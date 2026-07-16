@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Soulreaper Dev Interface</title>
+    <link rel="stylesheet" href="./dev-interface.css">
+  </head>
+  <body>
+    <main class="dev-shell">
+      <aside class="sidebar">
+        <header class="brand">
+          <span class="kicker">Soulreaper</span>
+          <h1>Dev Interface</h1>
+        </header>
+        <nav class="main-tabs" aria-label="Editor tabs">
+          <button class="active" type="button" data-tab="units">Units</button>
+          <button type="button" data-tab="areas">Areas</button>
+          <button type="button" data-tab="dungeons">Dungeons</button>
+          <button type="button" data-tab="spells">Spells</button>
+          <button type="button" data-tab="enchantments">Enchantments</button>
+          <button type="button" data-tab="items">Items</button>
+          <button type="button" data-tab="crafting">Crafting</button>
+          <button type="button" data-tab="factions">Factions</button>
+          <button type="button" data-tab="npcs">NPCs</button>
+          <button type="button" data-tab="quests">Quests</button>
+          <button type="button" data-tab="assets">Assets</button>
+        </nav>
+        <div class="toolbar">
+          <button id="newButton" type="button">New</button>
+          <button id="duplicateButton" type="button">Duplicate</button>
+          <button id="deleteButton" type="button" class="danger">Delete</button>
+        </div>
+        <label class="search-field">
+          <span>Search</span>
+          <input id="searchInput" type="search" autocomplete="off">
+        </label>
+        <div id="unitGroupsPanel">
+          <div class="nav-label">Unit Filters</div>
+          <div class="filter-grid">
+            <label><span>Realm</span><select id="unitRealmFilter"></select></label>
+            <label><span>Type</span><select id="unitTypeFilter"></select></label>
+            <label><span>Alignment</span><select id="unitAlignmentFilter"></select></label>
+            <label><span>Faction</span><select id="unitFactionFilter"></select></label>
+            <label><span>Elite</span><select id="unitEliteFilter"></select></label>
+          </div>
+        </div>
+        <div id="itemGroupsPanel">
+          <div class="nav-label">Item Type</div>
+          <div id="itemTabs" class="group-tabs item-tabs"></div>
+          <div id="itemFiltersPanel" class="filter-grid mt">
+            <label><span>Rarity</span><select id="itemRarityFilter"></select></label>
+            <label><span>Slot</span><select id="itemSlotFilter"></select></label>
+          </div>
+        </div>
+        <div id="npcGroupsPanel">
+          <div class="nav-label">NPC Filters</div>
+          <div class="filter-grid">
+            <label><span>Area</span><select id="npcAreaFilter"></select></label>
+            <label><span>Alignment</span><select id="npcAlignmentFilter"></select></label>
+          </div>
+        </div>
+        <div id="assetGroupsPanel">
+          <div class="nav-label">Asset Folder</div>
+          <div id="assetTabs" class="group-tabs asset-tabs"></div>
+        </div>
+        <div id="recordList" class="record-list"></div>
+      </aside>
+
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <div id="filePath" class="file-path"></div>
+            <h2 id="editorTitle">Units</h2>
+          </div>
+          <div class="save-cluster">
+            <span id="statusText" class="status-text">Loading...</span>
+            <button id="reloadButton" type="button">Reload</button>
+            <button id="saveButton" type="button" class="primary">Save to Game</button>
+          </div>
+        </header>
+
+        <section id="unitsView" class="tab-view active">
+          <form id="unitForm" class="editor-grid">
+            <section class="panel">
+              <h3>Identity</h3>
+              <div class="form-grid two">
+                <label><span>Name</span><input name="name" type="text"></label>
+                <label><span>Realm</span><select name="realm"></select></label>
+                <label><span>Type</span><input name="type" type="text" list="typeOptions"></label>
+                <label><span>Alignment</span><select name="alignment"></select></label>
+                <label><span>Faction</span><select name="faction"></select></label>
+                <label><span>Foodchain</span><input name="foodchain" type="text" list="foodchainOptions"></label>
+                <label><span>Gold</span><input name="gold" type="text"></label>
+              </div>
+              <div class="toggle-row">
+                <label><input name="aggressive" type="checkbox"> Aggressive</label>
+                <label><input name="flying" type="checkbox"> Flying</label>
+                <label><input name="incorporeal" type="checkbox"> Incorporeal</label>
+                <label><input name="aquatic" type="checkbox"> Aquatic</label>
+                <label><input name="amphibious" type="checkbox"> Amphibious</label>
+                <label><input name="elite" type="checkbox"> Elite</label>
+                <label><input name="boss" type="checkbox"> Boss</label>
+              </div>
+            </section>
+            <section class="panel">
+              <h3>Sprite</h3>
+              <button id="unitSpriteButton" class="asset-button" type="button">
+                <span class="sprite-stage"><img id="unitSpritePreview" alt=""></span>
+                <span>Choose Sprite</span>
+              </button>
+              <label class="mt"><span>Sprite Path</span><input name="sprite" type="text"></label>
+            </section>
+            <section class="panel">
+              <h3>Stats</h3>
+              <div id="unitStatsGrid" class="stat-grid"></div>
+            </section>
+            <section class="panel">
+              <h3>Combat</h3>
+              <div class="form-grid two">
+                <label><span>Weapon</span><select name="weaponName"></select></label>
+                <label><span>Radius</span><input name="radius" type="number" step="0.5"></label>
+              </div>
+              <h3 class="section-break">Spells</h3>
+              <div id="unitSpellsList" class="stack-list"></div>
+              <button id="addUnitSpellButton" type="button">Add Spell</button>
+            </section>
+            <section class="panel full">
+              <h3>Loot Tables</h3>
+              <div id="unitLootList" class="stack-list"></div>
+              <div class="toggle-row">
+                <button id="addLootButton" type="button">Add Loot Table</button>
+                <button id="importLootButton" type="button">Import Loot Table</button>
+              </div>
+            </section>
+          </form>
+        </section>
+
+        <section id="factionsView" class="tab-view">
+          <form id="factionForm" class="editor-grid">
+            <section class="panel">
+              <h3>Faction</h3>
+              <div class="form-grid two">
+                <label><span>Name</span><input name="name" type="text"></label>
+                <label><span>ID</span><input name="id" type="text"></label>
+              </div>
+            </section>
+            <section class="panel">
+              <h3>Enemy Factions</h3>
+              <div id="factionEnemyList" class="stack-list"></div>
+            </section>
+            <section class="panel full">
+              <h3>Mass Assign Units</h3>
+              <div class="form-grid two">
+                <label><span>Search Units</span><input id="factionUnitSearch" type="search" autocomplete="off"></label>
+                <label><span>Show</span><select id="factionUnitFilter"><option value="all">All Units</option><option value="unassigned">Unassigned</option><option value="assigned-here">Assigned Here</option></select></label>
+              </div>
+              <div id="factionUnitAssignList" class="stack-list mt"></div>
+              <div class="toggle-row">
+                <button id="assignSelectedFactionUnitsButton" type="button">Assign Selected</button>
+                <button id="clearSelectedFactionUnitsButton" type="button">Clear Selected</button>
+              </div>
+            </section>
+          </form>
+        </section>
+
+        <section id="dungeonsView" class="tab-view">
+          <form id="dungeonForm" class="editor-grid">
+            <section class="panel">
+              <h3>Dungeon</h3>
+              <div class="form-grid two">
+                <label><span>Name</span><input name="name" type="text"></label>
+                <label><span>ID</span><input name="id" type="text"></label>
+                <label><span>Width Squares</span><input name="width" type="number" min="1" max="80" step="1"></label>
+                <label><span>Height Squares</span><input name="height" type="number" min="1" max="80" step="1"></label>
+              </div>
+              <p class="hint">Each square represents 128 x 128 pixels in the dungeon.</p>
+            </section>
+
+            <section class="panel">
+              <h3>Paint Tools</h3>
+              <div class="form-grid">
+                <label>
+                  <span>Ground Texture</span>
+                  <select id="dungeonTextureSelect" class="native-preview-select" name="groundTexture"></select>
+                  <div id="dungeonTexturePreviewSelect" class="preview-select"></div>
+                </label>
+                <label>
+                  <span>Unit</span>
+                  <select id="dungeonUnitSelect" class="native-preview-select" name="unitName"></select>
+                  <div id="dungeonUnitPreviewSelect" class="preview-select"></div>
+                </label>
+                <label>
+                  <span>NPC</span>
+                  <select id="dungeonNpcSelect" name="npcId"></select>
+                </label>
+                <label>
+                  <span>Feature</span>
+                  <select id="dungeonFeatureSelect" class="native-preview-select" name="featureSprite"></select>
+                  <div id="dungeonFeaturePreviewSelect" class="preview-select"></div>
+                </label>
+                <label>
+                  <span>Ground Brush</span>
+                  <select id="dungeonBrushSelect" name="groundBrush"></select>
+                </label>
+                <label>
+                  <span>Wall Texture</span>
+                  <select id="dungeonWallTextureSelect" class="native-preview-select" name="wallTexture"></select>
+                  <div id="dungeonWallTexturePreviewSelect" class="preview-select"></div>
+                </label>
+              </div>
+              <div class="toggle-row">
+                <label><input name="dungeonTool" type="radio" value="select" checked> Select Unit</label>
+                <label><input name="dungeonTool" type="radio" value="paint"> Paint Ground</label>
+                <label><input name="dungeonTool" type="radio" value="water"> Place Water</label>
+                <label><input name="dungeonTool" type="radio" value="lava"> Place Lava</label>
+                <label><input name="dungeonTool" type="radio" value="unit"> Place Unit</label>
+                <label><input name="dungeonTool" type="radio" value="npc"> Place NPC</label>
+                <label><input name="dungeonTool" type="radio" value="feature"> Place Feature</label>
+                <label><input name="dungeonTool" type="radio" value="entrance"> Set Entrance</label>
+                <label><input name="dungeonTool" type="radio" value="erase"> Erase</label>
+              </div>
+            </section>
+
+            <section class="panel full">
+              <h3>Layout Grid</h3>
+              <div id="dungeonGrid" class="dungeon-grid-editor"></div>
+            </section>
+
+            <section class="panel full">
+              <h3>Ambient Spawn List</h3>
+              <p class="hint">Min LVL and Max LVL override the dungeon's default ambient spawn level range for that unit.</p>
+              <div id="dungeonSpawnList" class="stack-list"></div>
+              <button id="addDungeonSpawnButton" type="button">Add Mob</button>
+            </section>
+
+            <section class="panel full">
+              <h3>Selected Unit</h3>
+              <div id="dungeonSelectedUnitDetails" class="dungeon-selected-unit"></div>
+            </section>
+          </form>
+        </section>
+
+        <section id="areasView" class="tab-view">
+          <form id="areaForm" class="editor-grid">
+            <section class="panel">
+              <h3>Level Range</h3>
+              <div class="form-grid two">
+                <label><span>Min LVL</span><input name="minLvl" type="number" step="1" min="1"></label>
+                <label><span>Max LVL</span><input name="maxLvl" type="number" step="1" min="1"></label>
+                <label><span>Spawn Rate</span><select name="spawnRate"></select></label>
+                <label><span>Spawn Amount</span><select name="spawnAmount"></select></label>
+              </div>
+            </section>
+            <section class="panel full">
+              <h3>Spawn List</h3>
+              <div id="spawnList" class="stack-list"></div>
+              <button id="addSpawnButton" type="button">Add Mob</button>
+            </section>
+          </form>
+        </section>
+
+        <section id="spellsView" class="tab-view">
+          <form id="spellForm" class="editor-grid">
+            <section class="panel">
+              <h3>Spell</h3>
+              <div class="form-grid two">
+                <label><span>Name</span><input name="name" type="text"></label>
+                <label><span>Realm</span><select name="realm"></select></label>
+                <label><span>Cooldown</span><input name="cooldown" type="number" step="0.5"></label>
+                <label><span>Range</span><input name="range" type="number" step="0.5"></label>
+                <label><span>Level</span><input name="lvl" type="number" step="1"></label>
+                <label><span>AoE Range</span><input name="aoeRadius" type="number" step="0.5"></label>
+                <label><span>Duration</span><input name="duration" type="number" step="0.1"></label>
+                <label><span>Tick Interval</span><input name="tick" type="number" step="0.1"></label>
+              </div>
+              <div class="toggle-row">
+                <label><input name="manualTarget" type="checkbox"> Manual Target</label>
+                <label><input name="autocast" type="checkbox"> Autocast</label>
+                <label><input name="passive" type="checkbox"> Passive</label>
+                <label><input name="aura" type="checkbox"> Aura</label>
+              </div>
+              <label class="json-field"><span>Description Text ({formulaKey}, {duration}, {tick}, {lvl})</span><textarea name="text" rows="7"></textarea></label>
+            </section>
+            <section class="panel">
+              <h3>Icon</h3>
+              <button id="spellIconButton" class="asset-button" type="button">
+                <span class="sprite-stage"><img id="spellIconPreview" alt=""></span>
+                <span>Choose Icon</span>
+              </button>
+              <label class="mt"><span>Icon Path</span><input name="icon" type="text"></label>
+              <h3 class="section-break">Sound</h3>
+              <button id="spellSoundEffectButton" type="button">Choose Sound</button>
+              <label class="mt"><span>Sound Effect</span><input name="soundEffect" type="text"></label>
+            </section>
+            <section class="panel full">
+              <h3>Advanced JSON</h3>
+              <label><span>Spell JSON</span><textarea name="advancedJson" rows="14" spellcheck="false"></textarea></label>
+            </section>
+          </form>
+        </section>
+
+        <section id="itemsView" class="tab-view">
+          <form id="itemForm" class="editor-grid">
+            <section class="panel">
+              <h3>Item</h3>
+              <div class="form-grid two">
+                <label><span>Name</span><input name="name" type="text"></label>
+                <label><span>Rarity</span><select name="rarity"></select></label>
+                <label><span>Slot</span><input name="slot" type="text" list="slotOptions"></label>
+                <label><span>Gold Value</span><input name="goldValue" type="number" step="1"></label>
+                <label><span>Max Stack</span><input name="maxStack" type="number" step="1"></label>
+                <label><span>Sound Effect</span><input name="soundEffect" type="text"></label>
+                <button id="itemSoundEffectButton" type="button">Choose Sound</button>
+              </div>
+              <button id="itemGraphicButton" class="asset-button item-graphic-button mt" type="button">
+                <span class="sprite-stage"><img id="itemGraphicPreview" alt=""></span>
+                <span>Choose Graphic</span>
+              </button>
+              <div class="form-grid two mt">
+                <label><span>Graphic Path</span><input name="graphic" type="text"></label>
+                <label><span>Graphic Size</span><input name="graphicSize" type="number" min="8" max="96" step="1"></label>
+                <label><span>Graphic Tint</span><input name="graphicTint" type="color"></label>
+                <label><span>Tint Hex</span><input name="graphicTintText" type="text" placeholder="#68a85e"></label>
+                <label><span>Metal Tint</span><input name="graphicMetalTint" type="color"></label>
+                <label><span>Metal Hex</span><input name="graphicMetalTintText" type="text" placeholder="#c8c9c2"></label>
+                <label><span>Gem Tint</span><input name="graphicGemTint" type="color"></label>
+                <label><span>Gem Hex</span><input name="graphicGemTintText" type="text" placeholder="#68a85e"></label>
+                <label><span>Glow</span><input name="glow" type="checkbox"></label>
+                <label><span>Glow Color</span><input name="glowColor" type="color"></label>
+                <label><span>Glow Hex</span><input name="glowColorText" type="text" placeholder="#68a85e"></label>
+              </div>
+              <h3 class="section-break">Avatar Sprite</h3>
+              <div class="avatar-preview-actions mt">
+                <button id="itemMaleAvatarSpriteButton" class="asset-button item-graphic-button" type="button">
+                  <span class="sprite-stage item-avatar-preview-stage"><canvas id="itemMaleAvatarPreview" width="128" height="128"></canvas></span>
+                  <span>Male Avatar Sprite</span>
+                </button>
+                <button id="itemFemaleAvatarSpriteButton" class="asset-button item-graphic-button" type="button">
+                  <span class="sprite-stage item-avatar-preview-stage"><canvas id="itemFemaleAvatarPreview" width="128" height="128"></canvas></span>
+                  <span>Female Avatar Sprite</span>
+                </button>
+                <button id="itemDwarfMaleAvatarSpriteButton" class="asset-button item-graphic-button" type="button">
+                  <span class="sprite-stage item-avatar-preview-stage"><canvas id="itemDwarfMaleAvatarPreview" width="128" height="128"></canvas></span>
+                  <span>Dwarf Male Avatar Sprite</span>
+                </button>
+                <button id="itemDwarfFemaleAvatarSpriteButton" class="asset-button item-graphic-button" type="button">
+                  <span class="sprite-stage item-avatar-preview-stage"><canvas id="itemDwarfFemaleAvatarPreview" width="128" height="128"></canvas></span>
+                  <span>Dwarf Female Avatar Sprite</span>
+                </button>
+              </div>
+              <div class="form-grid two mt">
+                <label><span>Male Avatar Sprite Path</span><input name="maleAvatarSprite" type="text"></label>
+                <label><span>Female Avatar Sprite Path</span><input name="femaleAvatarSprite" type="text"></label>
+                <label><span>Dwarf Male Avatar Sprite Path</span><input name="dwarfMaleAvatarSprite" type="text"></label>
+                <label><span>Dwarf Female Avatar Sprite Path</span><input name="dwarfFemaleAvatarSprite" type="text"></label>
+                <label><span>Legacy Avatar Sprite Path</span><input name="avatarSprite" type="text"></label>
+                <label><span>Preview Wrist Side</span><select name="avatarPreviewWristSide"><option value="">Default</option><option value="left-wrist">Left Wrist</option><option value="right-wrist">Right Wrist</option></select></label>
+              </div>
+              <div id="wristAvatarSpriteFields" class="form-grid two mt">
+                <label><span>Male Left Wrist Sprite</span><input name="maleLeftWristAvatarSprite" type="text"></label>
+                <label><span>Female Left Wrist Sprite</span><input name="femaleLeftWristAvatarSprite" type="text"></label>
+                <label><span>Dwarf Male Left Wrist Sprite</span><input name="dwarfMaleLeftWristAvatarSprite" type="text"></label>
+                <label><span>Dwarf Female Left Wrist Sprite</span><input name="dwarfFemaleLeftWristAvatarSprite" type="text"></label>
+                <label><span>Male Right Wrist Sprite</span><input name="maleRightWristAvatarSprite" type="text"></label>
+                <label><span>Female Right Wrist Sprite</span><input name="femaleRightWristAvatarSprite" type="text"></label>
+                <label><span>Dwarf Male Right Wrist Sprite</span><input name="dwarfMaleRightWristAvatarSprite" type="text"></label>
+                <label><span>Dwarf Female Right Wrist Sprite</span><input name="dwarfFemaleRightWristAvatarSprite" type="text"></label>
+                <button id="itemLeftWristAvatarSpriteButton" class="asset-button" type="button">Choose Male Left Wrist Sprite</button>
+                <button id="itemRightWristAvatarSpriteButton" class="asset-button" type="button">Choose Male Right Wrist Sprite</button>
+                <button id="itemDwarfLeftWristAvatarSpriteButton" class="asset-button" type="button">Choose Dwarf Male Left Wrist Sprite</button>
+                <button id="itemDwarfRightWristAvatarSpriteButton" class="asset-button" type="button">Choose Dwarf Male Right Wrist Sprite</button>
+                <button id="itemDwarfFemaleLeftWristAvatarSpriteButton" class="asset-button" type="button">Choose Dwarf Female Left Wrist Sprite</button>
+                <button id="itemDwarfFemaleRightWristAvatarSpriteButton" class="asset-button" type="button">Choose Dwarf Female Right Wrist Sprite</button>
+              </div>
+              <div class="form-grid two mt">
+                <label><span>Avatar Tint</span><input name="avatarSpriteTint" type="color"></label>
+                <label><span>Avatar Tint Hex</span><input name="avatarSpriteTintText" type="text" placeholder="#68a85e"></label>
+                <label><span>Avatar Metal Tint</span><input name="avatarSpriteMetalTint" type="color"></label>
+                <label><span>Avatar Metal Hex</span><input name="avatarSpriteMetalTintText" type="text" placeholder="#c8c9c2"></label>
+                <label><span>Avatar Gem Tint</span><input name="avatarSpriteGemTint" type="color"></label>
+                <label><span>Avatar Gem Hex</span><input name="avatarSpriteGemTintText" type="text" placeholder="#68a85e"></label>
+              </div>
+              <div class="toggle-row">
+                <label><input name="stackable" type="checkbox"> Stackable</label>
+                <label><input name="noDrop" type="checkbox"> No Drop</label>
+                <label><input name="noSell" type="checkbox"> No Sell</label>
+                <label><input name="shield" type="checkbox"> Shield</label>
+              </div>
+              <label class="json-field"><span>Lore</span><textarea name="lore" rows="3"></textarea></label>
+            </section>
+            <section class="panel">
+              <h3>Stats</h3>
+              <div id="itemStatsGrid" class="stat-grid"></div>
+              <h3 class="section-break">Realm Resist</h3>
+              <div id="itemRealmResistsGrid" class="stat-grid"></div>
+            </section>
+            <section id="weaponFields" class="panel">
+              <h3>Weapon</h3>
+              <div class="form-grid two">
+                <label><span>Realm</span><select name="realm"></select></label>
+                <label><span>Hands</span><select name="hands"><option>One-Handed</option><option>Two-Handed</option></select></label>
+                <label><span>Damage Type</span><select name="dmgType"><option>Physical</option><option>Magical</option></select></label>
+                <label><span>Damage Dice</span><input name="dice" type="text"></label>
+                <label><span>Speed</span><input name="speed" type="number" step="1"></label>
+                <label><span>Range</span><input name="range" type="number" step="0.5"></label>
+                <label><span>Animation</span><input name="animation" type="text"></label>
+                <label><span>Projectile Speed</span><input name="projectileSpeed" type="number" step="0.1"></label>
+                <label><span>Projectile Animation</span><input name="projectileAnimation" type="text"></label>
+                <label><span>Ammo</span><input name="ammo" type="text"></label>
+                <label><span>Category</span><input name="category" type="text"></label>
+              </div>
+              <button id="weaponProjectileSpriteButton" class="asset-button item-graphic-button mt" type="button">
+                <span class="sprite-stage"><img id="weaponProjectilePreview" alt=""></span>
+                <span>Choose Projectile Sprite</span>
+              </button>
+              <div class="form-grid two mt">
+                <label><span>Projectile Sprite</span><input name="projectileSprite" type="text"></label>
+                <label><span>Projectile Size</span><input name="projectileSize" type="number" min="0.1" step="0.1" placeholder="1"></label>
+                <label><span>Projectile Tint</span><input name="projectileTint" type="color"></label>
+                <label><span>Projectile Tint Hex</span><input name="projectileTintText" type="text" placeholder="#8db8ff"></label>
+                <label><span>Projectile Glow</span><input name="projectileGlow" type="checkbox"></label>
+                <label><span>Projectile Glow Color</span><input name="projectileGlowColor" type="color"></label>
+                <label><span>Projectile Glow Hex</span><input name="projectileGlowColorText" type="text" placeholder="#8db8ff"></label>
+              </div>
+              <div class="toggle-row">
+                <label><input name="weaponTypeBow" type="checkbox"> Bow</label>
+                <label><input name="weaponTypeSlashing" type="checkbox"> Slashing</label>
+                <label><input name="weaponTypeStabbing" type="checkbox"> Stabbing</label>
+                <label><input name="weaponTypeBlunt" type="checkbox"> Blunt</label>
+                <label><input name="weaponTypeAxe" type="checkbox"> Axe</label>
+                <label><input name="weaponTypeSpear" type="checkbox"> Spear</label>
+              </div>
+              <h3 class="section-break">Effects</h3>
+              <div class="toggle-row">
+                <label><input name="weaponEffectStun" type="checkbox"> Stun</label>
+              </div>
+              <div class="form-grid two">
+                <label><span>Stun Chance %</span><input name="weaponStunChance" type="number" min="0" max="100" step="0.1"></label>
+                <label><span>Stun Duration</span><input name="weaponStunDuration" type="number" min="0" step="0.1"></label>
+              </div>
+            </section>
+            <section class="panel full">
+              <h3>Advanced JSON</h3>
+              <label><span>Consumable / Scroll / Extra Data</span><textarea name="advancedJson" rows="10" spellcheck="false"></textarea></label>
+            </section>
+          </form>
+        </section>
+
+        <section id="enchantmentsView" class="tab-view">
+          <form id="enchantmentForm" class="editor-grid">
+            <section class="panel">
+              <h3>Enchantment</h3>
+              <div class="form-grid two">
+                <label><span>Name</span><input name="name" type="text"></label>
+                <label><span>Realm</span><select name="realm"></select></label>
+              </div>
+            </section>
+            <section class="panel">
+              <h3>Stat Bonuses</h3>
+              <div id="enchantmentStatsGrid" class="stat-grid"></div>
+            </section>
+            <section class="panel full">
+              <h3>Requirements</h3>
+              <label><span>Equipment Slots</span><div id="enchantmentSlotRequirements" class="toggle-row"></div></label>
+              <label><span>Weapon Types</span><div id="enchantmentWeaponTypeRequirements" class="toggle-row"></div></label>
+              <label><span>Armor Types</span><div id="enchantmentArmorTypeRequirements" class="toggle-row"></div></label>
+            </section>
+            <section class="panel full">
+              <h3>Color Channel Change</h3>
+              <label class="inline-check"><input name="changesColorChannels" type="checkbox"> Applying this enchantment changes item icon color channels</label>
+              <div class="form-grid three mt">
+                <label><span>Metal</span><input name="enchantmentMetalChannel" type="color"></label>
+                <label><span>Metal Hex</span><input name="enchantmentMetalChannelText" type="text" placeholder="#c8c9c2"></label>
+                <label><span>Gem</span><input name="enchantmentGemChannel" type="color"></label>
+                <label><span>Gem Hex</span><input name="enchantmentGemChannelText" type="text" placeholder="#68a85e"></label>
+                <label><span>Rune</span><input name="enchantmentRuneChannel" type="color"></label>
+                <label><span>Rune Hex</span><input name="enchantmentRuneChannelText" type="text" placeholder="#9ad8ff"></label>
+              </div>
+            </section>
+            <section class="panel full">
+              <h3>Advanced JSON</h3>
+              <label><span>Enchantment Extra Data</span><textarea name="advancedJson" rows="10" spellcheck="false"></textarea></label>
+            </section>
+          </form>
+        </section>
+
+        <section id="craftingView" class="tab-view">
+          <form id="craftingForm" class="editor-grid">
+            <section class="panel full">
+              <h3>Craft</h3>
+              <div id="craftingSkillTabs" class="subtabs"></div>
+            </section>
+            <section class="panel">
+              <h3>Recipe</h3>
+              <div class="form-grid two">
+                <label><span>Name</span><input name="name" type="text"></label>
+                <label><span>Station</span><select name="station">
+                  <option>Loom</option>
+                  <option>Dress Form Mannequin</option>
+                  <option>Smelting</option>
+                  <option>Smithing</option>
+                  <option>Alchemy</option>
+                  <option>Tanning</option>
+                  <option>Crafting Table</option>
+                </select></label>
+                <label><span>Output Item</span><span class="select-with-preview"><span id="craftingOutputPreview" class="loot-item-preview"></span><select name="output"></select></span></label>
+                <label><span>Output Qty</span><input name="quantity" type="number" min="1" step="1"></label>
+                <label><span>Required LVL</span><input name="level" type="number" min="1" step="1"></label>
+                <label><span>XP Gained</span><input name="xp" type="number" min="0" step="1"></label>
+                <label><span>Sound Effect</span><input name="soundEffect" type="text"></label>
+              </div>
+            </section>
+            <section class="panel">
+              <h3>Ingredients</h3>
+              <div id="craftingIngredientsList" class="stack-list"></div>
+              <button id="addCraftingIngredientButton" type="button">Add Ingredient</button>
+            </section>
+          </form>
+        </section>
+
+        <section id="npcsView" class="tab-view">
+          <form id="npcForm" class="editor-grid">
+            <section class="panel">
+              <h3>Identity</h3>
+              <div class="form-grid two">
+                <label><span>ID</span><input name="id" type="text"></label>
+                <label><span>Name</span><input name="name" type="text"></label>
+                <label><span>Area</span><select name="area"></select></label>
+                <label><span>Alignment</span><select name="alignment"></select></label>
+                <label><span>Faction</span><select name="faction"></select></label>
+                <label><span>Radius</span><input name="radius" type="number" step="0.5"></label>
+                <label><span>Label</span><input name="label" type="text"></label>
+              </div>
+              <div class="toggle-row">
+                <label><input name="trainer" type="checkbox"> Trainer</label>
+                <label><input name="shopkeeper" type="checkbox"> Shopkeeper</label>
+                <label><input name="banker" type="checkbox"> Banker</label>
+                <label><input name="startsQuest" type="checkbox"> Starts Quest</label>
+                <label><input name="wandering" type="checkbox"> Wanders</label>
+                <label><input name="mustBeFactionAlly" type="checkbox"> Must Be Faction Ally</label>
+              </div>
+            </section>
+            <section class="panel">
+              <h3>Sprite</h3>
+              <button id="npcSpriteButton" class="asset-button" type="button">
+                <span class="sprite-stage"><img id="npcSpritePreview" alt=""></span>
+                <span>Choose Sprite</span>
+              </button>
+              <label class="mt"><span>Sprite Path</span><input name="sprite" type="text"></label>
+              <h3 class="section-break">Trainer Realms</h3>
+              <div class="toggle-row trainer-realms">
+                <label><input name="trainerRealmMortal" type="checkbox"> Mortal</label>
+                <label><input name="trainerRealmEthereal" type="checkbox"> Ethereal</label>
+                <label><input name="trainerRealmCelestial" type="checkbox"> Celestial</label>
+                <label><input name="trainerRealmInfernal" type="checkbox"> Infernal</label>
+                <label><input name="trainerRealmSylvan" type="checkbox"> Sylvan</label>
+                <label><input name="trainerRealmUmbral" type="checkbox"> Umbral</label>
+              </div>
+              <p class="hint">Leave all unchecked to train all Realms.</p>
+              <label class="mt"><span>Max Spell LVL</span><input name="trainerMaxSpellLevel" type="number" min="1" step="1" placeholder="No cap"></label>
+            </section>
+            <section class="panel">
+              <h3>Quest</h3>
+              <label><span>Starts Quest</span><select name="questId"></select></label>
+              <h3 class="section-break">Dialogue</h3>
+              <label><span>Trigger / Context</span><select id="npcDialogueContextSelect"></select></label>
+              <label class="json-field"><span>Dialogue Text</span><textarea id="npcDialogueContextText" rows="9" placeholder="NPC dialogue for the selected trigger/context."></textarea></label>
+              <div class="toggle-row">
+                <button id="addNpcDialogueContextButton" type="button">Add Context</button>
+                <button id="deleteNpcDialogueContextButton" type="button" class="danger">Delete Context</button>
+              </div>
+              <p class="hint">Built-in contexts save to the exact fields used by the game. Custom contexts save under dialogueContexts.</p>
+            </section>
+            <section class="panel full" id="npcShopPanel">
+              <h3>Shop Inventory</h3>
+              <div class="form-grid two">
+                <section>
+                  <h3>Weapons</h3>
+                  <div id="npcShopWeapons" class="stack-list"></div>
+                  <button type="button" data-add-npc-shop="weapons">Add Weapon</button>
+                  <button type="button" data-bulk-add-npc-shop="weapons">Add Many</button>
+                </section>
+                <section>
+                  <h3>Equipment</h3>
+                  <div id="npcShopEquipment" class="stack-list"></div>
+                  <button type="button" data-add-npc-shop="equipment">Add Equipment</button>
+                  <button type="button" data-bulk-add-npc-shop="equipment">Add Many</button>
+                </section>
+                <section>
+                  <h3>Bags</h3>
+                  <div id="npcShopBags" class="stack-list"></div>
+                  <button type="button" data-add-npc-shop="bags">Add Bag</button>
+                  <button type="button" data-bulk-add-npc-shop="bags">Add Many</button>
+                </section>
+                <section>
+                  <h3>Consumables</h3>
+                  <div id="npcShopConsumables" class="stack-list"></div>
+                  <button type="button" data-add-npc-shop="consumables">Add Consumable</button>
+                  <button type="button" data-bulk-add-npc-shop="consumables">Add Many</button>
+                </section>
+                <section>
+                  <h3>Scrolls</h3>
+                  <div id="npcShopScrolls" class="stack-list"></div>
+                  <button type="button" data-add-npc-shop="scrolls">Add Scroll</button>
+                  <button type="button" data-bulk-add-npc-shop="scrolls">Add Many</button>
+                </section>
+                <section>
+                  <h3>Materials</h3>
+                  <div id="npcShopMisc" class="stack-list"></div>
+                  <button type="button" data-add-npc-shop="misc">Add Material</button>
+                  <button type="button" data-bulk-add-npc-shop="misc">Add Many</button>
+                </section>
+              </div>
+            </section>
+            <section class="panel full">
+              <h3>Advanced JSON</h3>
+              <label><span>NPC Extra Data</span><textarea name="advancedJson" rows="10" spellcheck="false"></textarea></label>
+            </section>
+          </form>
+        </section>
+
+        <section id="assetsView" class="tab-view">
+          <div class="editor-grid">
+            <section class="panel">
+              <h3>Upload</h3>
+              <div class="form-grid">
+                <label><span>Destination</span><select id="assetUploadFolder"></select></label>
+                <label><span>File</span><input id="assetUploadFile" type="file"></label>
+                <button id="uploadAssetButton" type="button" class="primary">Upload Asset</button>
+              </div>
+            </section>
+            <section class="panel">
+              <h3>Selected Asset</h3>
+              <div id="assetDetails" class="asset-details"></div>
+            </section>
+            <section class="panel full">
+              <h3>Files</h3>
+              <div id="assetManagerGrid" class="asset-manager-grid"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="questsView" class="tab-view">
+          <form id="questForm" class="editor-grid">
+            <section class="panel">
+              <h3>Quest</h3>
+              <div class="form-grid two">
+                <label><span>ID</span><input name="id" type="text"></label>
+                <label><span>Name</span><input name="name" type="text"></label>
+                <label><span>Minimum LVL</span><input name="minimumLevel" type="number" min="1" step="1"></label>
+                <label><span>Minimum Realm</span><select name="minimumRealm">
+                  <option value="">None</option>
+                  <option value="Mortal">Mortal</option>
+                  <option value="Ethereal">Ethereal</option>
+                  <option value="Celestial">Celestial</option>
+                  <option value="Infernal">Infernal</option>
+                  <option value="Sylvan">Sylvan</option>
+                  <option value="Umbral">Umbral</option>
+                </select></label>
+                <label><span>Minimum Realm LVL</span><input name="minimumRealmLevel" type="number" min="1" step="1"></label>
+              </div>
+              <label class="json-field"><span>Description / Text</span><textarea name="description" rows="7"></textarea></label>
+            </section>
+            <section class="panel">
+              <h3>Rewards</h3>
+              <div class="form-grid two">
+                <label><span>XP</span><input name="rewardXp" type="number" step="1"></label>
+                <label><span>Gold</span><input name="rewardGold" type="number" step="1"></label>
+                <label><span>Virtue</span><input name="rewardVirtue" type="number" step="1"></label>
+                <label><span>Item</span><input name="rewardItem" type="text" list="itemNameOptions"></label>
+              </div>
+              <label class="json-field"><span>Realm XP Rewards</span><textarea name="rewardRealmXp" rows="4" placeholder="Sylvan: 25&#10;Umbral: 10"></textarea></label>
+              <label class="json-field"><span>Extra Reward Items</span><textarea name="rewardItems" rows="4" placeholder="One item per line"></textarea></label>
+              <label class="json-field"><span>Reward Text Override</span><textarea name="rewardText" rows="3"></textarea></label>
+            </section>
+            <section class="panel full">
+              <h3>Objectives</h3>
+              <div id="questObjectivesList" class="stack-list"></div>
+              <button id="addQuestObjectiveButton" type="button">Add Objective</button>
+            </section>
+            <section class="panel full">
+              <h3>Advanced JSON</h3>
+              <label><span>Quest State / Extra Data</span><textarea name="advancedJson" rows="12" spellcheck="false"></textarea></label>
+            </section>
+          </form>
+        </section>
+
+        <div id="validationPanel" class="validation-panel"></div>
+      </section>
+    </main>
+
+    <dialog id="assetDialog" class="asset-dialog">
+      <header>
+        <h3 id="assetDialogTitle">Choose Asset</h3>
+        <button id="closeAssetDialog" type="button">Close</button>
+      </header>
+      <input id="assetSearch" type="search" placeholder="Filter assets">
+      <div id="assetGrid" class="asset-grid"></div>
+    </dialog>
+
+    <dialog id="npcShopBulkDialog" class="asset-dialog">
+      <header>
+        <h3 id="npcShopBulkTitle">Add Shop Items</h3>
+        <button id="closeNpcShopBulkDialog" type="button">Close</button>
+      </header>
+      <input id="npcShopBulkSearch" type="search" placeholder="Filter items">
+      <div id="npcShopBulkList" class="bulk-check-list"></div>
+      <footer class="dialog-actions">
+        <button id="addNpcShopBulkSelected" type="button" class="primary">Add Selected</button>
+      </footer>
+    </dialog>
+
+    <dialog id="lootImportDialog" class="asset-dialog">
+      <header>
+        <h3>Import Loot Table</h3>
+        <button id="closeLootImportDialog" type="button">Close</button>
+      </header>
+      <input id="lootImportSearch" type="search" placeholder="Filter units">
+      <div id="lootImportList" class="bulk-check-list"></div>
+    </dialog>
+
+    <dialog id="lootBulkDialog" class="asset-dialog">
+      <header>
+        <h3>Add Loot Items</h3>
+        <button id="closeLootBulkDialog" type="button">Close</button>
+      </header>
+      <input id="lootBulkSearch" type="search" placeholder="Filter items">
+      <div id="lootBulkList" class="bulk-check-list"></div>
+      <footer class="dialog-actions">
+        <button id="addLootBulkSelected" type="button" class="primary">Add Selected</button>
+      </footer>
+    </dialog>
+
+    <datalist id="typeOptions">
+      <option>Beast</option><option>Humanoid</option><option>Demon</option><option>Faerie</option>
+      <option>Elemental</option><option>Entity</option><option>Revenant</option>
+    </datalist>
+    <datalist id="foodchainOptions"><option>Prey</option><option>Predator</option></datalist>
+    <datalist id="slotOptions">
+      <option>Main Hand</option><option>Off-Hand</option><option>Head</option><option>Chest</option><option>Legs</option>
+      <option>Shoulders</option><option>Hands</option><option>Feet</option><option>Neck</option><option>Finger</option>
+      <option>Wrist</option><option>Ear</option><option>Waist</option><option>Cape</option><option>Supply</option><option>Consumable</option>
+      <option>Scroll</option><option>Bag</option><option>Material</option><option>Quest</option>
+    </datalist>
+    <datalist id="itemNameOptions"></datalist>
+    <script src="./dev-interface.js?v=item-shield-flag-20260712"></script>
+  </body>
+</html>

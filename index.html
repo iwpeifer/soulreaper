@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Soulreaper</title>
+    <link rel="stylesheet" href="./styles.css?v=dwarf-start-choice-20260713">
+  </head>
+  <body>
+    <main class="app-shell">
+      <div class="hidden-status" aria-hidden="true">
+        <span id="hpReadout">10 / 10</span>
+        <span id="xpReadout">0 / 10</span>
+        <span id="weaponReadout">Ready</span>
+        <span id="levelReadout">1</span>
+        <i id="hpBar"></i>
+        <i id="xpBar"></i>
+        <i id="goldBar"></i>
+        <i id="weaponBar"></i>
+      </div>
+
+      <section class="game-layout">
+        <aside class="panel left-panel" aria-label="Character sheet">
+          <div class="panel-section">
+            <div id="playerSummary" class="player-summary"></div>
+            <div class="sheet-title-row">
+              <h2>Stats</h2>
+              <div class="equipment-hover">
+                <button class="equipment-trigger" type="button">Equipment</button>
+                <div class="equipment-popover">
+                  <div id="equipmentGrid" class="equipment-grid"></div>
+                </div>
+              </div>
+            </div>
+            <div id="statsGrid" class="stats-grid compact"></div>
+            <h2 class="subsection-title">Resistances</h2>
+            <div id="resistancesGrid" class="stats-grid compact"></div>
+          </div>
+          <div class="panel-section">
+            <div class="sheet-title-row">
+              <h2>Inventory</h2>
+              <div class="sheet-gold">Gold <strong id="goldReadout">0</strong></div>
+            </div>
+            <div id="inventoryGrid" class="inventory-grid"></div>
+          </div>
+        </aside>
+
+        <section class="arena-wrap" aria-label="World">
+          <canvas id="gameCanvas" width="920" height="620"></canvas>
+          <div id="trainerRealmOverlay" class="trainer-realm-overlay hidden" aria-hidden="true"></div>
+          <div id="areaName" class="area-name">The Ganderswood</div>
+          <div id="statusEffectHud" class="status-effect-hud" aria-label="Active buffs and debuffs"></div>
+          <div id="pauseNotice" class="pause-notice hidden">Paused</div>
+          <input id="chatInput" class="chat-input hidden" type="text" maxlength="160" autocomplete="off" aria-label="Say something">
+          <div class="arena-hud">
+            <div id="spellHud" class="spell-hud"></div>
+          </div>
+        </section>
+
+        <aside class="panel right-panel" aria-label="Spellbook and combat log">
+          <div class="panel-section">
+            <div class="side-button-row">
+              <button id="openSpellbookButton" class="spellbook-trigger" type="button">Spellbook</button>
+              <button id="openSpellLineupsButton" class="spellbook-trigger" type="button">Spell Lineups</button>
+            </div>
+          </div>
+          <div class="panel-section">
+            <div class="side-button-row">
+              <button id="openQuestLogButton" class="spellbook-trigger" type="button">Quest Log</button>
+              <button id="openSoulCrystalsButton" class="spellbook-trigger" type="button">Skills</button>
+            </div>
+          </div>
+          <div class="panel-section grow">
+            <div class="log-tabs" role="tablist" aria-label="Log view">
+              <button id="chronicleTab" class="log-tab active" type="button">Chronicle</button>
+              <button id="chatLogTab" class="log-tab" type="button">Chat Log</button>
+            </div>
+            <ol id="log" class="log"></ol>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <div id="modeChoice" class="modal-backdrop">
+      <section class="modal mode-modal" role="dialog" aria-modal="true" aria-labelledby="modeChoiceTitle">
+        <h2 id="modeChoiceTitle">Create Your Soulreaper</h2>
+        <label class="name-field">
+          <span>Name</span>
+          <input id="playerNameInput" type="text" maxlength="24" autocomplete="off" placeholder="Soulreaper">
+        </label>
+        <div class="avatar-choice" aria-label="Choose character ancestry and avatar">
+          <button class="avatar-card selected" type="button" data-avatar="soulreaperMale">
+            <img src="./assets/sprites/player-bases/soulreaper-male-naked.png" alt="">
+            <span>Human Male</span>
+          </button>
+          <button class="avatar-card" type="button" data-avatar="soulreaperFemale">
+            <img src="./assets/sprites/player-bases/soulreaper-female-naked.png" alt="">
+            <span>Human Female</span>
+          </button>
+          <button class="avatar-card" type="button" data-avatar="dwarfMale">
+            <img src="./assets/sprites/player-bases/soulreaper-dwarf-male-naked.png" alt="">
+            <span>Dwarf Male</span>
+          </button>
+          <button class="avatar-card avatar-card-disabled" type="button" data-avatar="dwarfFemale" disabled aria-disabled="true">
+            <img src="./assets/sprites/player-bases/soulreaper-dwarf-female-naked.png" alt="">
+            <span>Dwarf Female</span>
+          </button>
+        </div>
+        <div class="multiplayer-panel">
+          <h3 class="mode-heading">Multiplayer World</h3>
+          <label class="name-field multiplayer-field">
+            <span>New World Name</span>
+            <input id="multiplayerWorldInput" type="text" maxlength="32" autocomplete="off" placeholder="The Hollow Road">
+          </label>
+          <div class="multiplayer-worlds">
+            <div class="multiplayer-worlds-header">
+              <span>Existing Worlds</span>
+              <button id="refreshMultiplayerWorldsButton" class="small-button" type="button">Refresh</button>
+            </div>
+            <div id="multiplayerWorldList" class="multiplayer-world-list" aria-live="polite">
+              <span class="multiplayer-world-empty">Loading worlds...</span>
+            </div>
+          </div>
+          <div class="choice-grid multiplayer-choice-grid">
+            <button class="choice-card" type="button" data-multiplayer-action="create">
+              <strong>Create New World</strong>
+              <small>Create a named shared world.</small>
+            </button>
+            <button class="choice-card" type="button" data-multiplayer-action="join">
+              <strong>Join Existing World</strong>
+              <small>Use the selected world from the list.</small>
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div id="spellChoice" class="modal-backdrop hidden">
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="spellChoiceTitle">
+        <h2 id="spellChoiceTitle">Choose Your First Spell</h2>
+        <p>At level 1, one spell slot is active. Pick the first page in your Spellbook.</p>
+        <div id="starterSpells" class="choice-grid"></div>
+      </section>
+    </div>
+
+    <div id="levelChoice" class="modal-backdrop hidden">
+      <section class="modal level-modal" role="dialog" aria-modal="true" aria-labelledby="levelChoiceTitle">
+        <h2 id="levelChoiceTitle">Level Up</h2>
+        <p>Choose one of three stats twice, and one equipped spell to improve.</p>
+        <div id="levelOptions" class="level-options"></div>
+      </section>
+    </div>
+
+    <div id="spellbookWindow" class="modal-backdrop hidden">
+      <section class="modal spellbook-modal" role="dialog" aria-modal="true" aria-labelledby="spellbookTitle">
+        <h2 id="spellbookTitle" class="sr-only">Spellbook</h2>
+        <p id="spellbookSlotsReadout" class="sr-only">Spell slots: 0 / 0</p>
+        <div id="spellbookRealmTabs" class="shop-tabs realm-tabs" role="tablist" aria-label="Spell realms"></div>
+        <div id="spellbookSpellList" class="spellbook-spell-list"></div>
+      </section>
+    </div>
+
+    <div id="replaceSpellWindow" class="modal-backdrop hidden">
+      <section class="modal replace-modal" role="dialog" aria-modal="true" aria-labelledby="replaceSpellTitle">
+        <h2 id="replaceSpellTitle">Replace Active Spell</h2>
+        <p>Choose which active spell should be replaced.</p>
+        <div id="replaceSpellOptions" class="level-choice-grid"></div>
+      </section>
+    </div>
+
+    <div id="soulCrystalsWindow" class="modal-backdrop hidden">
+      <section class="modal spellbook-modal" role="dialog" aria-modal="true" aria-labelledby="soulCrystalsTitle">
+        <div class="shop-header">
+          <div>
+            <h2 id="soulCrystalsTitle">Skills</h2>
+            <p>Realms, Crafting, and Factions</p>
+          </div>
+          <button id="closeSoulCrystalsButton" class="shop-close" type="button">Close</button>
+        </div>
+        <div id="skillsTabs" class="shop-tabs realm-tabs" role="tablist" aria-label="Skills sections"></div>
+        <div id="soulCrystalsList" class="spellbook-spell-list"></div>
+      </section>
+    </div>
+
+    <div id="craftingWindow" class="modal-backdrop hidden">
+      <section class="modal spellbook-modal" role="dialog" aria-modal="true" aria-labelledby="craftingTitle">
+        <div class="shop-header">
+          <div>
+            <h2 id="craftingTitle">Crafting</h2>
+            <p id="craftingSubtitle">Station</p>
+          </div>
+          <div class="shop-header-actions">
+            <label class="crafting-filter-toggle">
+              <input id="craftingUsableOnlyToggle" type="checkbox">
+              <span>Usable Only</span>
+            </label>
+            <button id="closeCraftingButton" class="shop-close" type="button">Close</button>
+          </div>
+        </div>
+        <div id="craftingList" class="spellbook-spell-list"></div>
+      </section>
+    </div>
+
+    <div id="questLogWindow" class="modal-backdrop hidden">
+      <section class="modal quest-modal" role="dialog" aria-modal="true" aria-labelledby="questLogTitle">
+        <h2 id="questLogTitle" class="sr-only">Quest Log</h2>
+        <div id="questList" class="quest-list"></div>
+      </section>
+    </div>
+
+    <div id="deathScreen" class="modal-backdrop hidden">
+      <section class="modal death-modal" role="dialog" aria-modal="true" aria-labelledby="deathTitle">
+        <h2 id="deathTitle">Your Soulreaper Falls</h2>
+        <p>The run ends, but the hunt can begin again.</p>
+        <button id="restartButton" class="restart-button" type="button">Restart Run</button>
+      </section>
+    </div>
+
+    <div id="shopWindow" class="modal-backdrop shop-backdrop hidden">
+      <section class="modal shop-modal" role="dialog" aria-modal="true" aria-labelledby="shopTitle">
+        <div class="shop-header">
+          <div>
+            <h2 id="shopTitle">Wandering Salesman</h2>
+            <p>Buy supplies here. Sell items from your Inventory window.</p>
+          </div>
+          <div class="shop-header-actions">
+            <div class="shop-gold">Gold <strong id="shopGoldReadout">0</strong></div>
+            <button id="closeShopButton" class="shop-close" type="button">Close</button>
+          </div>
+        </div>
+        <div class="shop-layout">
+          <div>
+            <div class="shop-tabs" role="tablist" aria-label="Shop sections">
+              <button id="shopEquipmentTab" class="shop-tab active" type="button">Equipment</button>
+              <button id="shopConsumablesTab" class="shop-tab" type="button">Supplies</button>
+              <button id="shopScrollsTab" class="shop-tab" type="button">Scrolls</button>
+              <button id="shopMiscTab" class="shop-tab" type="button">Materials</button>
+            </div>
+            <div id="shopInventory" class="shop-inventory"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div id="bankWindow" class="modal-backdrop shop-backdrop hidden">
+      <section class="modal bank-modal" role="dialog" aria-modal="true" aria-labelledby="bankTitle">
+        <div class="shop-header">
+          <div>
+            <h2 id="bankTitle">Bank</h2>
+            <p>Store gold and items.</p>
+          </div>
+          <div class="shop-header-actions">
+            <div class="shop-gold">Bank Gold <strong id="bankGoldReadout">0</strong></div>
+            <button id="bankGoldButton" class="shop-gold bank-gold-button" type="button">Your Gold <strong id="bankPlayerGoldReadout">0</strong></button>
+            <button id="closeBankButton" class="shop-close" type="button">Close</button>
+          </div>
+        </div>
+        <div class="bank-layout">
+          <div>
+            <h3>Bank</h3>
+            <div id="bankInventory" class="shop-inventory bank-inventory"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div id="devSpawnWindow" class="modal-backdrop hidden">
+      <section class="modal dev-spawn-modal" role="dialog" aria-modal="true" aria-labelledby="devSpawnTitle">
+        <div class="shop-header">
+          <div>
+            <h2 id="devSpawnTitle">Spawn Mob</h2>
+            <p>Select a mob, choose its LVL, and spawn it nearby.</p>
+          </div>
+          <button id="closeDevSpawnButton" class="shop-close" type="button">Close</button>
+        </div>
+        <label class="name-field dev-spawn-level-field">
+          <span>LVL</span>
+          <input id="devSpawnLevelInput" type="number" min="1" max="99" step="1" value="1">
+        </label>
+        <div id="devSpawnList" class="dev-spawn-list"></div>
+      </section>
+    </div>
+
+    <div id="trainerWindow" class="modal-backdrop hidden">
+      <section class="modal spellbook-modal" role="dialog" aria-modal="true" aria-labelledby="trainerTitle">
+        <div class="shop-header">
+          <div>
+            <h2 id="trainerTitle">Soulreaper Trainer</h2>
+            <p>Level active spells with gold.</p>
+          </div>
+          <button id="closeTrainerButton" class="shop-close" type="button">Close</button>
+        </div>
+        <div id="trainerSpellList" class="spellbook-spell-list"></div>
+      </section>
+    </div>
+
+    <div id="dialogueWindow" class="modal-backdrop hidden">
+      <section class="modal dialogue-modal" role="dialog" aria-modal="true" aria-labelledby="dialogueTitle">
+        <div class="shop-header">
+          <div>
+            <h2 id="dialogueTitle">Gvada</h2>
+            <p id="dialogueText"></p>
+          </div>
+          <div class="dialogue-actions">
+            <button id="dialogueNextButton" class="shop-close hidden" type="button">Next</button>
+            <button id="closeDialogueButton" class="shop-close" type="button">Close</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div id="itemActionMenu" class="item-action-menu hidden"></div>
+
+    <div id="confirmWindow" class="modal-backdrop prompt-backdrop hidden">
+      <section class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+        <h2 id="confirmTitle">Confirm</h2>
+        <p id="confirmText"></p>
+        <label id="confirmInputWrap" class="name-field hidden">
+          <span id="confirmInputLabel">Amount</span>
+          <input id="confirmInput" type="number" min="1" step="1">
+        </label>
+        <div id="confirmOptions" class="dialogue-actions hidden"></div>
+        <div class="dialogue-actions">
+          <button id="confirmAcceptButton" class="shop-close" type="button">Confirm</button>
+          <button id="confirmCancelButton" class="shop-close" type="button">Cancel</button>
+        </div>
+      </section>
+    </div>
+
+    <div id="tradeWindow" class="modal-backdrop shop-backdrop hidden">
+      <section class="modal trade-modal" role="dialog" aria-modal="true" aria-labelledby="tradeTitle">
+        <div class="shop-header">
+          <div>
+            <h2 id="tradeTitle">Trade</h2>
+            <p id="tradeSubtitle">Exchange items and gold.</p>
+          </div>
+          <div class="shop-header-actions">
+            <button id="tradeRejectButton" class="shop-close" type="button">Reject</button>
+          </div>
+        </div>
+        <div class="trade-layout">
+          <section>
+            <h3>Your Offer</h3>
+            <label class="trade-gold-field">Gold <input id="tradeGoldInput" type="number" min="0" step="1" value="0"></label>
+            <div id="tradeYourOffer" class="shop-inventory trade-offer-grid"></div>
+          </section>
+          <section>
+            <h3>Their Offer</h3>
+            <div id="tradeTheirGold" class="trade-gold-readout">Gold 0</div>
+            <div id="tradeTheirOffer" class="shop-inventory trade-offer-grid"></div>
+          </section>
+          <section class="trade-inventory-section">
+            <h3>Your Inventory</h3>
+            <div id="tradeInventory" class="shop-inventory trade-inventory-grid"></div>
+          </section>
+        </div>
+        <div class="dialogue-actions trade-actions">
+          <button id="tradeConfirmButton" class="shop-close" type="button">Confirm</button>
+          <button id="tradeCancelButton" class="shop-close" type="button">Cancel</button>
+        </div>
+      </section>
+    </div>
+
+    <script src="./data/items.js?v=gold-jewelry-20260712"></script>
+    <script src="./data/item-art.js?v=gold-jewelry-20260712"></script>
+    <script src="./data/npc-sprites.js"></script>
+    <script src="./data/monsters.js?v=loot-duplicate-rolls-20260706"></script>
+    <script src="./data/world.js?v=editor-save-1784197252010"></script>
+    <script src="./data/spells.js?v=portal-ingame-choice-20260713"></script>
+    <script src="./npc-interactions.js"></script>
+    <script src="./map-generation.js?v=editor-save-1784197252010"></script>
+    <script src="./spell-runtime.js"></script>
+    <script src="./inventory-ui.js?v=enchantment-avatar-channels-20260703"></script>
+    <script src="./spell-ui.js?v=skills-crafting-tab-20260706"></script>
+    <script src="./quest-ui.js?v=quest-hardening-20260708"></script>
+    <script src="./game.js?v=editor-save-1784197252010"></script>
+  </body>
+</html>

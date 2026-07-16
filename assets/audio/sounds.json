@@ -1,0 +1,282 @@
+[
+  {
+    "id": "handle-money",
+    "name": "handle money",
+    "file": "./assets/audio/handle-money.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "item-handle",
+    "name": "item handle",
+    "file": "./assets/audio/item-handle.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "turn-page",
+    "name": "turn page",
+    "file": "./assets/audio/turn-page.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "level-up-gong",
+    "name": "level up gong",
+    "file": "./assets/audio/level-up-gong.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "game-over",
+    "name": "game over",
+    "file": "./assets/audio/game-over.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "autocast-on",
+    "name": "autocast on",
+    "file": "./assets/audio/autocast-on.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "receive-physical-damage",
+    "name": "receive physical damage",
+    "file": "./assets/audio/receive-physical-damage.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "receive-magic-damage",
+    "name": "receive magic damage",
+    "file": "./assets/audio/receive-magic-damage.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "bite",
+    "name": "bite",
+    "file": "./assets/audio/bite.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "claw",
+    "name": "claw",
+    "file": "./assets/audio/claw.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "stab",
+    "name": "stab",
+    "file": "./assets/audio/stab.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "slash",
+    "name": "slash",
+    "file": "./assets/audio/slash.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "whack",
+    "name": "whack",
+    "file": "./assets/audio/whack.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "wand",
+    "name": "wand",
+    "file": "./assets/audio/wand.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "shoot-arrow",
+    "name": "shoot arrow",
+    "file": "./assets/audio/shoot-arrow.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "receive-quest",
+    "name": "receive quest",
+    "file": "./assets/audio/receive-quest.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "complete-quest",
+    "name": "complete quest",
+    "file": "./assets/audio/complete-quest.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "generic-celestial-offensive-spell",
+    "name": "generic Celestial offensive spell",
+    "file": "./assets/audio/generic-celestial-offensive-spell.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "heal-spell",
+    "name": "heal spell",
+    "file": "./assets/audio/heal-spell.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "generic-celestial-buff",
+    "name": "generic Celestial buff",
+    "file": "./assets/audio/generic-celestial-buff.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "lightning",
+    "name": "lightning",
+    "file": "./assets/audio/lightning.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "generic-ethereal-offensive-spell",
+    "name": "generic Ethereal offensive spell",
+    "file": "./assets/audio/generic-ethereal-offensive-spell.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "generic-ethereal-buff",
+    "name": "generic Ethereal buff",
+    "file": "./assets/audio/generic-ethereal-buff.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "ice-storm",
+    "name": "ice storm",
+    "file": "./assets/audio/ice-storm.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "invisible",
+    "name": "invisible",
+    "file": "./assets/audio/invisible.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "banish",
+    "name": "banish",
+    "file": "./assets/audio/banish.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "pacify",
+    "name": "pacify",
+    "file": "./assets/audio/pacify.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "summon-pet",
+    "name": "summon pet",
+    "file": "./assets/audio/summon-pet.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "generic-shadow-offensive-spell",
+    "name": "generic Shadow offensive spell",
+    "file": "./assets/audio/generic-shadow-offensive-spell.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "generic-shadow-buff",
+    "name": "generic Shadow buff",
+    "file": "./assets/audio/generic-shadow-buff.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "curse",
+    "name": "curse",
+    "file": "./assets/audio/curse.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "poison",
+    "name": "poison",
+    "file": "./assets/audio/poison.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "generic-infernal-offensive-spell",
+    "name": "generic Infernal offensive spell",
+    "file": "./assets/audio/generic-infernal-offensive-spell.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "generic-infernal-buff",
+    "name": "generic Infernal buff",
+    "file": "./assets/audio/generic-infernal-buff.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "fireball",
+    "name": "fireball",
+    "file": "./assets/audio/fireball.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "fireblast",
+    "name": "fireblast",
+    "file": "./assets/audio/fireblast.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "generic-sylvan-offensive-spell",
+    "name": "generic Sylvan offensive spell",
+    "file": "./assets/audio/generic-sylvan-offensive-spell.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "generic-sylvan-buff",
+    "name": "generic Sylvan buff",
+    "file": "./assets/audio/generic-sylvan-buff.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "tangle-vines",
+    "name": "tangle vines",
+    "file": "./assets/audio/tangle-vines.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  },
+  {
+    "id": "fairy-dust",
+    "name": "fairy dust",
+    "file": "./assets/audio/fairy-dust.wav",
+    "sampleRate": 44100,
+    "channels": 2
+  }
+]
