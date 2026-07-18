@@ -126,6 +126,7 @@ const monsterTemplates = [
     "realm": "Mortal",
     "type": "Beast",
     "alignment": "Neutral",
+    "faction": "",
     "radius": 14,
     "gold": "0",
     "sprite": "./assets/sprites/mobs/wolf.png",
@@ -146,6 +147,39 @@ const monsterTemplates = [
     },
     "foodchain": "Predator",
     "aggressive": true
+  },
+  {
+    "name": "Arctic Wolf",
+    "realm": "Mortal",
+    "type": "Beast",
+    "alignment": "Neutral",
+    "faction": "",
+    "radius": 14,
+    "gold": "0",
+    "sprite": "./assets/sprites/mobs/arctic-wolf.png",
+    "stats": {
+      "HP": 7,
+      "ATK": 2.5,
+      "DEF": 0,
+      "SPD": 3,
+      "AGL": 0,
+      "INT": 0,
+      "FOCUS": 2,
+      "BLOCK": 5,
+      "RESIST": 0,
+      "REGEN": 1
+    },
+    "weapon": {
+      "name": "Claw"
+    },
+    "foodchain": "Predator",
+    "aggressive": true,
+    "spells": [
+      {
+        "name": "Arcane Protection",
+        "realm": "Ethereal"
+      }
+    ]
   },
   {
     "name": "Green Drake",
@@ -184,12 +218,40 @@ const monsterTemplates = [
     "realm": "Mortal",
     "type": "Beast",
     "alignment": "Neutral",
+    "faction": "",
     "radius": 12,
     "gold": "0",
     "sprite": "./assets/sprites/mobs/black-panther.png",
     "stats": {
       "HP": 7.5,
       "ATK": 3.5,
+      "DEF": 1,
+      "SPD": 4,
+      "AGL": 20,
+      "INT": 0,
+      "FOCUS": 10,
+      "BLOCK": 15,
+      "RESIST": 1,
+      "REGEN": 1
+    },
+    "weapon": {
+      "name": "Bite"
+    },
+    "foodchain": "Predator",
+    "aggressive": true
+  },
+  {
+    "name": "Snow Leopard",
+    "realm": "Mortal",
+    "type": "Beast",
+    "alignment": "Neutral",
+    "faction": "",
+    "radius": 12,
+    "gold": "0",
+    "sprite": "./assets/sprites/mobs/snow-leopard.png",
+    "stats": {
+      "HP": 7.5,
+      "ATK": 2.5,
       "DEF": 1,
       "SPD": 4,
       "AGL": 20,
@@ -227,7 +289,7 @@ const monsterTemplates = [
       "REGEN": 1
     },
     "weapon": {
-      "name": "Bite"
+      "name": "Claw"
     },
     "foodchain": "Predator",
     "aggressive": true
@@ -235,7 +297,7 @@ const monsterTemplates = [
   {
     "name": "Bisonar",
     "realm": "Mortal",
-    "type": "Beast",
+    "type": "Humanoid",
     "alignment": "Neutral",
     "faction": "",
     "radius": 20,
@@ -281,7 +343,7 @@ const monsterTemplates = [
       "REGEN": 1
     },
     "weapon": {
-      "name": "Bite"
+      "name": "Claw"
     },
     "foodchain": "Predator",
     "elite": true,
@@ -302,7 +364,7 @@ const monsterTemplates = [
   },
   {
     "name": "Griffin",
-    "realm": "Sylvan",
+    "realm": "Celestial",
     "type": "Beast",
     "alignment": "Good",
     "faction": "",
@@ -339,6 +401,7 @@ const monsterTemplates = [
     "realm": "Mortal",
     "type": "Beast",
     "alignment": "Neutral",
+    "faction": "",
     "radius": 14,
     "gold": "0",
     "sprite": "./assets/sprites/mobs/giant-toad.png",
@@ -904,6 +967,7 @@ const monsterTemplates = [
     "realm": "Infernal",
     "type": "Demon",
     "alignment": "Evil",
+    "faction": "",
     "radius": 10,
     "gold": "1D5",
     "sprite": "./assets/sprites/mobs/imp.png",
@@ -922,6 +986,7 @@ const monsterTemplates = [
     "weapon": {
       "name": "Ebony Wand"
     },
+    "flying": true,
     "spells": [
       {
         "name": "Fireball",
@@ -1451,6 +1516,37 @@ const monsterTemplates = [
     }
   },
   {
+    "name": "Ice Elemental",
+    "realm": "Ethereal",
+    "type": "Elemental",
+    "alignment": "Neutral",
+    "faction": "",
+    "radius": 12,
+    "gold": "0",
+    "sprite": "./assets/sprites/mobs/ice-elemental.png",
+    "stats": {
+      "HP": 5,
+      "ATK": 1,
+      "DEF": 2,
+      "SPD": 1,
+      "AGL": 0,
+      "INT": 0,
+      "FOCUS": 0,
+      "BLOCK": 5,
+      "RESIST": 0,
+      "REGEN": 0.5
+    },
+    "weapon": {
+      "name": "Ice Fist"
+    },
+    "spells": [
+      {
+        "name": "Frozen Touch",
+        "realm": "Ethereal"
+      }
+    ]
+  },
+  {
     "name": "Cogar the Whisperer",
     "realm": "Ethereal",
     "type": "Elemental",
@@ -1597,8 +1693,9 @@ const monsterTemplates = [
   {
     "name": "Gelatinous Cube",
     "realm": "Mortal",
-    "type": "Beast",
+    "type": "Elemental",
     "alignment": "Neutral",
+    "faction": "",
     "radius": 13,
     "gold": "2D5",
     "sprite": "./assets/sprites/mobs/green-gelatinous-cube.png",
@@ -1629,6 +1726,7 @@ const monsterTemplates = [
     "realm": "Ethereal",
     "type": "Beast",
     "alignment": "Good",
+    "faction": "",
     "radius": 25,
     "gold": "0",
     "sprite": "./assets/sprites/mobs/blue-hydra.png",
@@ -1676,6 +1774,7 @@ const fenMonsterTemplates = [
     "realm": "Mortal",
     "type": "Beast",
     "alignment": "Neutral",
+    "faction": "ratkin",
     "radius": 11,
     "gold": "0",
     "sprite": "./assets/sprites/mobs/plague-rat.png",
@@ -1701,14 +1800,41 @@ const fenMonsterTemplates = [
         "name": "Poison",
         "realm": "Mortal"
       }
-    ],
-    "faction": "ratkin"
+    ]
+  },
+  {
+    "name": "Snow Weasel",
+    "realm": "Mortal",
+    "type": "Beast",
+    "alignment": "Neutral",
+    "faction": "",
+    "radius": 11,
+    "gold": "0",
+    "sprite": "./assets/sprites/mobs/arctic-weasel.png",
+    "stats": {
+      "HP": 3,
+      "ATK": 1.5,
+      "DEF": 0,
+      "SPD": 1,
+      "AGL": 0,
+      "INT": 0,
+      "FOCUS": 2,
+      "BLOCK": 2,
+      "RESIST": 0,
+      "REGEN": 1
+    },
+    "weapon": {
+      "name": "Bite"
+    },
+    "foodchain": "Prey",
+    "aggressive": true
   },
   {
     "name": "Vampire Bat",
     "realm": "Mortal",
     "type": "Beast",
     "alignment": "Neutral",
+    "faction": "",
     "radius": 11,
     "gold": "0",
     "sprite": "./assets/sprites/mobs/bat.png",
@@ -2145,6 +2271,39 @@ const fenMonsterTemplates = [
     ]
   },
   {
+    "name": "Kappa",
+    "realm": "Ethereal",
+    "type": "Humanoid",
+    "alignment": "Evil",
+    "faction": "",
+    "radius": 14,
+    "gold": "0",
+    "sprite": "./assets/sprites/mobs/kappa.png",
+    "stats": {
+      "HP": 5,
+      "ATK": 1.5,
+      "DEF": 0.5,
+      "SPD": 3,
+      "AGL": 0,
+      "INT": 0,
+      "FOCUS": 2,
+      "BLOCK": 2,
+      "RESIST": 1,
+      "REGEN": 1
+    },
+    "weapon": {
+      "name": "Shadow Claw"
+    },
+    "aggressive": true,
+    "aquatic": true,
+    "spells": [
+      {
+        "name": "Magic Missile",
+        "realm": "Ethereal"
+      }
+    ]
+  },
+  {
     "name": "Princess Nurdine",
     "realm": "Infernal",
     "type": "Humanoid",
@@ -2188,6 +2347,7 @@ const fenMonsterTemplates = [
     "realm": "Mortal",
     "type": "Beast",
     "alignment": "Neutral",
+    "faction": "",
     "radius": 15,
     "gold": "0",
     "sprite": "./assets/sprites/mobs/plague-wolf.png",
@@ -2220,6 +2380,7 @@ const fenMonsterTemplates = [
     "realm": "Mortal",
     "type": "Beast",
     "alignment": "Neutral",
+    "faction": "",
     "radius": 16,
     "gold": "0",
     "sprite": "./assets/sprites/mobs/plague-bear.png",
@@ -2251,10 +2412,44 @@ const fenMonsterTemplates = [
     "name": "Giant Spider",
     "realm": "Mortal",
     "type": "Beast",
-    "alignment": "Evil",
+    "alignment": "Neutral",
+    "faction": "",
     "radius": 13,
     "gold": "0",
     "sprite": "./assets/sprites/mobs/giant-spider.png",
+    "stats": {
+      "HP": 6,
+      "ATK": 2,
+      "DEF": 0,
+      "SPD": 4.5,
+      "AGL": 0,
+      "INT": 0,
+      "FOCUS": 2,
+      "BLOCK": 5,
+      "RESIST": 0,
+      "REGEN": 1
+    },
+    "weapon": {
+      "name": "Bite"
+    },
+    "foodchain": "Predator",
+    "aggressive": true,
+    "spells": [
+      {
+        "name": "Spiderweb",
+        "realm": "Mortal"
+      }
+    ]
+  },
+  {
+    "name": "Woolly Spider",
+    "realm": "Mortal",
+    "type": "Beast",
+    "alignment": "Neutral",
+    "faction": "",
+    "radius": 13,
+    "gold": "0",
+    "sprite": "./assets/sprites/mobs/snow-spider.png",
     "stats": {
       "HP": 6,
       "ATK": 2,
@@ -2832,6 +3027,10 @@ const monsterLootTables = {
           {
             "name": "Wolf Pelt",
             "chance": 0.5
+          },
+          {
+            "name": "Bone",
+            "chance": 0.5
           }
         ]
       }
@@ -2930,40 +3129,16 @@ const monsterLootTables = {
             "chance": 0.02
           },
           {
-            "name": "Spidersilk Cowl",
-            "chance": 0.01
-          },
-          {
-            "name": "Spidersilk Shirt",
-            "chance": 0.01
-          },
-          {
-            "name": "Spidersilk Gloves",
-            "chance": 0.01
-          },
-          {
-            "name": "Spidersilk Pants",
-            "chance": 0.01
-          },
-          {
-            "name": "Spidersilk Slippers",
-            "chance": 0.01
-          },
-          {
-            "name": "Ruby",
-            "chance": 0.01
-          },
-          {
-            "name": "Ruby Necklace",
-            "chance": 0.01
-          },
-          {
-            "name": "Ruby Ring",
-            "chance": 0.01
-          },
-          {
             "name": "Uncut Ruby",
             "chance": 0.01
+          },
+          {
+            "name": "Essense of Fire",
+            "chance": 0.5
+          },
+          {
+            "name": "Imp Wing",
+            "chance": 0.5
           }
         ]
       }
@@ -3198,6 +3373,10 @@ const monsterLootTables = {
           {
             "name": "Bear Pelt",
             "chance": 0.5
+          },
+          {
+            "name": "Bone",
+            "chance": 0.5
           }
         ]
       }
@@ -3411,6 +3590,10 @@ const monsterLootTables = {
         "entries": [
           {
             "name": "Wolf Pelt",
+            "chance": 0.5
+          },
+          {
+            "name": "Bone",
             "chance": 0.5
           }
         ]
@@ -4326,6 +4509,10 @@ const monsterLootTables = {
           {
             "name": "Plague Bear Adrenal Gland",
             "chance": 1
+          },
+          {
+            "name": "Bone",
+            "chance": 0.5
           }
         ]
       }
@@ -4798,12 +4985,142 @@ const monsterLootTables = {
       }
     ]
   },
-  "Corvari Archer": [],
-  "Corvari Spearman": [],
-  "Corvari Wisecrow": [],
-  "Badgeri": [],
-  "Badgeri Shaman": [],
-  "Badgeri Bruiser": [],
+  "Corvari Archer": {
+    "tables": [
+      {
+        "entries": [
+          {
+            "name": "Corvari Wing",
+            "chance": 0.5
+          },
+          {
+            "name": "Bone",
+            "chance": 0.5
+          }
+        ]
+      }
+    ]
+  },
+  "Corvari Spearman": {
+    "tables": [
+      {
+        "entries": [
+          {
+            "name": "Corvari Wing",
+            "chance": 0.5
+          },
+          {
+            "name": "Bone",
+            "chance": 0.5
+          }
+        ]
+      }
+    ]
+  },
+  "Corvari Wisecrow": {
+    "tables": [
+      {
+        "entries": [
+          {
+            "name": "Corvari Wing",
+            "chance": 0.5
+          },
+          {
+            "name": "Bone",
+            "chance": 0.5
+          }
+        ]
+      }
+    ]
+  },
+  "Badgeri": {
+    "tables": [
+      {
+        "entries": [
+          {
+            "name": "Bone",
+            "chance": 0.5
+          },
+          {
+            "name": "Mustelid Pelt",
+            "chance": 0.5
+          },
+          {
+            "name": "Bronze Spear",
+            "chance": 0.01
+          }
+        ]
+      }
+    ]
+  },
+  "Badgeri Shaman": {
+    "tables": [
+      {
+        "entries": [
+          {
+            "name": "Nightshade",
+            "chance": 0.05
+          },
+          {
+            "name": "Houndstongue",
+            "chance": 0.5
+          },
+          {
+            "name": "Mandrake Root",
+            "chance": 0.05
+          },
+          {
+            "name": "Eldweave Fiber",
+            "chance": 0.05
+          },
+          {
+            "name": "Datura Pod",
+            "chance": 0.05
+          },
+          {
+            "name": "Crimson Nettle",
+            "chance": 0.05
+          },
+          {
+            "name": "Silverleaf",
+            "chance": 0.05
+          },
+          {
+            "name": "Bone",
+            "chance": 0.5
+          },
+          {
+            "name": "Mustelid Pelt",
+            "chance": 0.5
+          },
+          {
+            "name": "Willow Branch",
+            "chance": 0.01
+          }
+        ]
+      }
+    ]
+  },
+  "Badgeri Bruiser": {
+    "tables": [
+      {
+        "entries": [
+          {
+            "name": "Bone",
+            "chance": 0.5
+          },
+          {
+            "name": "Mustelid Pelt",
+            "chance": 0.5
+          },
+          {
+            "name": "Bronze Battleaxe",
+            "chance": 0.01
+          }
+        ]
+      }
+    ]
+  },
   "Tellursa": {
     "tables": [
       {
@@ -4846,13 +5163,106 @@ const monsterLootTables = {
         "entries": [
           {
             "name": "Bronze Battleaxe",
-            "chance": 0.02
+            "chance": 0.05
+          },
+          {
+            "name": "Bisonar Head",
+            "chance": 1
           }
         ]
       }
     ]
   },
-  "Griffin": []
+  "Griffin": [],
+  "Woolly Spider": {
+    "tables": [
+      {
+        "entries": [
+          {
+            "name": "Spider Leg",
+            "chance": 0.2
+          },
+          {
+            "name": "Spider Silk",
+            "chance": 0.75
+          },
+          {
+            "name": "Spider Venom Sack",
+            "chance": 0.2
+          },
+          {
+            "name": "Spider Silk",
+            "chance": 0.75
+          }
+        ]
+      }
+    ]
+  },
+  "Ice Elemental": [],
+  "Snow Leopard": {
+    "tables": [
+      {
+        "entries": [
+          {
+            "name": "Snow Leopard Pelt",
+            "chance": 0.5
+          },
+          {
+            "name": "Bone",
+            "chance": 0.5
+          }
+        ]
+      }
+    ]
+  },
+  "Snow Weasel": {
+    "tables": [
+      {
+        "entries": [
+          {
+            "name": "Mustelid Pelt",
+            "chance": 0.5
+          },
+          {
+            "name": "Musk Gland",
+            "chance": 0.1
+          },
+          {
+            "name": "Bone",
+            "chance": 0.5
+          }
+        ]
+      }
+    ]
+  },
+  "Arctic Wolf": {
+    "tables": [
+      {
+        "entries": [
+          {
+            "name": "Wolf Pelt",
+            "chance": 0.5
+          },
+          {
+            "name": "Bone",
+            "chance": 0.5
+          }
+        ]
+      }
+    ]
+  },
+  "Kappa": {
+    "tables": [
+      {
+        "entries": [
+          {
+            "name": "Strange Water Dish",
+            "chance": 1
+          }
+        ]
+      }
+    ]
+  }
 };
 
 window.SoulreaperMonsters = {

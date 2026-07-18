@@ -117,7 +117,14 @@ const QUEST_FACTORY_NAMES = [
   "morePlagueResearchQuest",
   "boneCollectorQuest",
   "introductionToEtherQuest",
-  "whiteStagQuest"
+  "whiteStagQuest",
+  "hollyhocksMossyErrandQuest",
+  "hollyhocksLakeOfferingQuest",
+  "hollyhocksGreenTouchQuest",
+  "fenrirsGoblinIronQuest",
+  "fenrirsBadgeriRivalsQuest",
+  "fenrirsCorvariWingsQuest",
+  "fenrirsBisonarHeadQuest"
 ];
 const ITEM_GROUPS = ["weapons", "equipment", "bags", "consumables", "scrolls", "misc"];
 const ASSET_UPLOAD_FOLDERS = new Set([
@@ -408,6 +415,7 @@ const DEFAULT_NPC_CONFIGS = [
 const NPC_ALIGNMENTS = ["Neutral", "Neutral Good", "Good", "Neutral Evil", "Evil"];
 const BUILTIN_QUEST_IDS = new Set([
   "gvada-starter-magic",
+  "sybil-starter-magic",
   "rat-infestation",
   "pantry-pests",
   "fen-patrol",
@@ -445,7 +453,14 @@ const BUILTIN_QUEST_IDS = new Set([
   "joining-the-gandersguard",
   "joining-the-fenguard",
   "gandersville-raid",
-  "the-white-stag"
+  "the-white-stag",
+  "hollyhocks-mossy-errand",
+  "hollyhocks-lake-offering",
+  "hollyhocks-green-touch",
+  "fenrirs-goblin-iron",
+  "fenrirs-badgeri-rivals",
+  "fenrirs-corvari-wings",
+  "fenrirs-bisonar-head"
 ]);
 const SPRITE_CHANNEL_KEYS = ["hair", "skin", "clothing-primary", "clothing-secondary"];
 
@@ -1214,7 +1229,7 @@ function validateSpellTextPlaceholders(spell, where) {
   return errors;
 }
 
-const QUEST_OBJECTIVE_TYPES = new Set(["item", "kill", "phase", "flag", "custom"]);
+const QUEST_OBJECTIVE_TYPES = new Set(["item", "anyItems", "kill", "phase", "flag", "custom"]);
 
 function validateQuest(quest, index, seenIds, context = {}) {
   const errors = [];
@@ -1246,12 +1261,18 @@ function validateQuest(quest, index, seenIds, context = {}) {
         return;
       }
       const label = String(objective.label || "").trim();
-      if (!QUEST_OBJECTIVE_TYPES.has(objective.type)) errors.push(`${objectiveWhere}.type must be item, kill, phase, flag, or custom.`);
+      if (!QUEST_OBJECTIVE_TYPES.has(objective.type)) errors.push(`${objectiveWhere}.type must be item, anyItems, kill, phase, flag, or custom.`);
       if (!label) errors.push(`${objectiveWhere}.label is required.`);
       if (label && labels.has(label)) errors.push(`${objectiveWhere}.label duplicates "${label}".`);
       if (label) labels.add(label);
       if (!Number.isFinite(Number(objective.required)) || Number(objective.required) < 1) errors.push(`${objectiveWhere}.required must be a positive number.`);
       if (objective.type === "item" && (!objective.item || (itemNames.size && !itemNames.has(objective.item)))) errors.push(`${objectiveWhere}.item must be an existing item.`);
+      if (objective.type === "anyItems") {
+        if (!Array.isArray(objective.items) || !objective.items.length) errors.push(`${objectiveWhere}.items must list at least one item.`);
+        for (const itemName of objective.items || []) {
+          if (!itemName || (itemNames.size && !itemNames.has(itemName))) errors.push(`${objectiveWhere}.items contains missing item "${itemName}".`);
+        }
+      }
       if (objective.type === "kill" && (!objective.enemy || (unitNames.size && !unitNames.has(objective.enemy)))) errors.push(`${objectiveWhere}.enemy must be an existing unit.`);
       if (objective.type === "phase" && !String(objective.completePhase || "").trim()) errors.push(`${objectiveWhere}.completePhase is required.`);
       if (objective.type === "flag" && !String(objective.flag || "").trim()) errors.push(`${objectiveWhere}.flag is required.`);

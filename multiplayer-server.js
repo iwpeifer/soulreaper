@@ -5,7 +5,7 @@ const crypto = require("crypto");
 
 const root = __dirname;
 const port = Number(process.env.PORT || 4173);
-const host = process.env.HOST || "127.0.0.1";
+const host = process.env.HOST || (process.env.RENDER ? "0.0.0.0" : "127.0.0.1");
 const worlds = new Map();
 const players = new Map();
 const sockets = new Map();
@@ -13,6 +13,23 @@ const teams = new Map();
 const pendingTeamInvites = new Map();
 const trades = new Map();
 const characterSaves = new Map();
+const DATA_DIR = path.join(root, ".soulreaper-data");
+const ACCOUNT_STORE_FILE = process.env.SOULREAPER_ACCOUNT_STORE || path.join(DATA_DIR, "accounts.json");
+const DATABASE_URL = process.env.DATABASE_URL || "";
+const USE_POSTGRES_ACCOUNT_STORE = Boolean(DATABASE_URL);
+const SESSION_COOKIE = "soulreaper_session";
+const SESSION_DAYS = 14;
+const MAX_CHARACTERS_PER_ACCOUNT = 6;
+const PROFANE_NAME_PARTS = [
+  "fuck", "shit", "bitch", "cunt", "dick", "pussy", "asshole", "nigger", "faggot", "retard"
+];
+const accountStore = {
+  accounts: [],
+  characters: [],
+  sessions: []
+};
+let accountStoreSaveTimer = null;
+let postgresPool = null;
 const RANGE_UNIT = 34;
 const HOSTILE_TRIGGER_RANGE = 7;
 const LEASH_RETURN_RANGE = 42;
@@ -287,8 +304,6 @@ function loadSharedGameData(force = false) {
   }
 }
 
-loadSharedGameData(true);
-
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -306,7 +321,469 @@ function safeFilePath(urlPath) {
   return resolved.startsWith(root) ? resolved : null;
 }
 
+function sendJson(res, status, body, headers = {}) {
+  res.writeHead(status, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store",
+    ...headers
+  });
+  res.end(JSON.stringify(body, null, 2));
+}
+
+function readRequestBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = "";
+    req.on("data", chunk => {
+      body += chunk;
+      if (body.length > 200000) {
+        reject(new Error("Request too large"));
+        req.destroy();
+      }
+    });
+    req.on("end", () => resolve(body));
+    req.on("error", reject);
+  });
+}
+
+function ensureAccountStoreLoaded() {
+  try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    if (!fs.existsSync(ACCOUNT_STORE_FILE)) {
+      saveAccountStore();
+      return;
+    }
+    const parsed = JSON.parse(fs.readFileSync(ACCOUNT_STORE_FILE, "utf8"));
+    accountStore.accounts = Array.isArray(parsed.accounts) ? parsed.accounts : [];
+    accountStore.characters = Array.isArray(parsed.characters) ? parsed.characters : [];
+    accountStore.sessions = Array.isArray(parsed.sessions) ? parsed.sessions : [];
+  } catch (error) {
+    console.warn(`Could not load account store: ${error.message}`);
+  }
+}
+
+function accountRecordFromDb(row) {
+  return {
+    id: row.id,
+    username: row.username,
+    passwordSalt: row.password_salt,
+    passwordHash: row.password_hash,
+    createdAt: Number(row.created_at) || Date.now(),
+    updatedAt: Number(row.updated_at) || Date.now()
+  };
+}
+
+function characterRecordFromDb(row) {
+  return {
+    id: row.id,
+    accountId: row.account_id,
+    name: row.name,
+    race: row.race || "human",
+    sex: row.sex || "male",
+    avatar: row.avatar || "",
+    level: Number(row.level) || 1,
+    lastArea: row.last_area || "",
+    lastWorld: row.last_world || "",
+    lastX: Number(row.last_x) || 0,
+    lastY: Number(row.last_y) || 0,
+    save: row.save_json && typeof row.save_json === "object" ? normalizeRealmData(row.save_json) : {},
+    deletedAt: row.deleted_at ? Number(row.deleted_at) : undefined,
+    createdAt: Number(row.created_at) || Date.now(),
+    updatedAt: Number(row.updated_at) || Date.now()
+  };
+}
+
+function sessionRecordFromDb(row) {
+  return {
+    tokenHash: row.token_hash,
+    accountId: row.account_id,
+    createdAt: Number(row.created_at) || Date.now(),
+    expiresAt: Number(row.expires_at) || 0
+  };
+}
+
+async function initializePostgresAccountStore() {
+  let pg;
+  try {
+    pg = require("pg");
+  } catch (error) {
+    throw new Error(`DATABASE_URL is set, but the pg package is not installed: ${error.message}`);
+  }
+  postgresPool = new pg.Pool({
+    connectionString: DATABASE_URL,
+    ssl: DATABASE_URL.includes("sslmode=require") || process.env.PGSSLMODE === "require"
+      ? { rejectUnauthorized: false }
+      : undefined
+  });
+  await postgresPool.query(`
+    CREATE TABLE IF NOT EXISTS accounts (
+      id TEXT PRIMARY KEY,
+      username TEXT NOT NULL UNIQUE,
+      password_salt TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      created_at BIGINT NOT NULL,
+      updated_at BIGINT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS characters (
+      id TEXT PRIMARY KEY,
+      account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      race TEXT NOT NULL DEFAULT 'human',
+      sex TEXT NOT NULL DEFAULT 'male',
+      avatar TEXT NOT NULL DEFAULT '',
+      level INTEGER NOT NULL DEFAULT 1,
+      last_area TEXT NOT NULL DEFAULT '',
+      last_world TEXT NOT NULL DEFAULT '',
+      last_x DOUBLE PRECISION NOT NULL DEFAULT 0,
+      last_y DOUBLE PRECISION NOT NULL DEFAULT 0,
+      save_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+      deleted_at BIGINT,
+      created_at BIGINT NOT NULL,
+      updated_at BIGINT NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS characters_name_unique_active
+      ON characters (lower(name))
+      WHERE deleted_at IS NULL;
+    CREATE TABLE IF NOT EXISTS sessions (
+      token_hash TEXT PRIMARY KEY,
+      account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+      created_at BIGINT NOT NULL,
+      expires_at BIGINT NOT NULL
+    );
+  `);
+  const now = Date.now();
+  await postgresPool.query("DELETE FROM sessions WHERE expires_at <= $1", [now]);
+  const [accounts, characters, sessions] = await Promise.all([
+    postgresPool.query("SELECT * FROM accounts ORDER BY created_at ASC"),
+    postgresPool.query("SELECT * FROM characters ORDER BY updated_at DESC"),
+    postgresPool.query("SELECT * FROM sessions WHERE expires_at > $1", [now])
+  ]);
+  accountStore.accounts = accounts.rows.map(accountRecordFromDb);
+  accountStore.characters = characters.rows.map(characterRecordFromDb);
+  accountStore.sessions = sessions.rows.map(sessionRecordFromDb);
+}
+
+async function flushAccountStoreToPostgres() {
+  if (!postgresPool) return;
+  const client = await postgresPool.connect();
+  try {
+    await client.query("BEGIN");
+    for (const account of accountStore.accounts) {
+      await client.query(`
+        INSERT INTO accounts (id, username, password_salt, password_hash, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (id) DO UPDATE SET
+          username = EXCLUDED.username,
+          password_salt = EXCLUDED.password_salt,
+          password_hash = EXCLUDED.password_hash,
+          updated_at = EXCLUDED.updated_at
+      `, [account.id, account.username, account.passwordSalt, account.passwordHash, Number(account.createdAt) || Date.now(), Number(account.updatedAt) || Date.now()]);
+    }
+    for (const character of accountStore.characters) {
+      await client.query(`
+        INSERT INTO characters (
+          id, account_id, name, race, sex, avatar, level, last_area, last_world,
+          last_x, last_y, save_json, deleted_at, created_at, updated_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13, $14, $15)
+        ON CONFLICT (id) DO UPDATE SET
+          account_id = EXCLUDED.account_id,
+          name = EXCLUDED.name,
+          race = EXCLUDED.race,
+          sex = EXCLUDED.sex,
+          avatar = EXCLUDED.avatar,
+          level = EXCLUDED.level,
+          last_area = EXCLUDED.last_area,
+          last_world = EXCLUDED.last_world,
+          last_x = EXCLUDED.last_x,
+          last_y = EXCLUDED.last_y,
+          save_json = EXCLUDED.save_json,
+          deleted_at = EXCLUDED.deleted_at,
+          updated_at = EXCLUDED.updated_at
+      `, [
+        character.id,
+        character.accountId,
+        character.name,
+        character.race || "human",
+        character.sex || "male",
+        character.avatar || "",
+        Number(character.level) || 1,
+        String(character.lastArea || "").slice(0, 80),
+        String(character.lastWorld || "").slice(0, 32),
+        Number(character.lastX) || 0,
+        Number(character.lastY) || 0,
+        JSON.stringify(character.save && typeof character.save === "object" ? character.save : {}),
+        character.deletedAt ? Number(character.deletedAt) : null,
+        Number(character.createdAt) || Date.now(),
+        Number(character.updatedAt) || Date.now()
+      ]);
+    }
+    await client.query("DELETE FROM sessions");
+    for (const session of accountStore.sessions.filter(session => Number(session.expiresAt) > Date.now())) {
+      await client.query(`
+        INSERT INTO sessions (token_hash, account_id, created_at, expires_at)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (token_hash) DO UPDATE SET
+          account_id = EXCLUDED.account_id,
+          expires_at = EXCLUDED.expires_at
+      `, [session.tokenHash, session.accountId, Number(session.createdAt) || Date.now(), Number(session.expiresAt) || 0]);
+    }
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function initializeAccountStore() {
+  if (USE_POSTGRES_ACCOUNT_STORE) {
+    await initializePostgresAccountStore();
+    console.log(`Loaded account store from Postgres: ${accountStore.accounts.length} accounts, ${accountStore.characters.length} characters.`);
+    return;
+  }
+  ensureAccountStoreLoaded();
+}
+
+function saveAccountStore() {
+  if (accountStoreSaveTimer) {
+    clearTimeout(accountStoreSaveTimer);
+    accountStoreSaveTimer = null;
+  }
+  if (USE_POSTGRES_ACCOUNT_STORE) {
+    flushAccountStoreToPostgres().catch(error => console.warn(`Could not save Postgres account store: ${error.message}`));
+    return;
+  }
+  try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.writeFileSync(ACCOUNT_STORE_FILE, JSON.stringify(accountStore, null, 2));
+  } catch (error) {
+    console.warn(`Could not save account store: ${error.message}`);
+  }
+}
+
+function scheduleAccountStoreSave() {
+  if (accountStoreSaveTimer) return;
+  accountStoreSaveTimer = setTimeout(() => {
+    accountStoreSaveTimer = null;
+    saveAccountStore();
+  }, 1200);
+}
+
+function randomToken(bytes = 32) {
+  return crypto.randomBytes(bytes).toString("base64url");
+}
+
+function hashToken(token) {
+  return crypto.createHash("sha256").update(String(token || "")).digest("hex");
+}
+
+function hashPassword(password, salt = randomToken(16)) {
+  const hash = crypto.scryptSync(String(password || ""), salt, 64).toString("base64");
+  return { salt, hash };
+}
+
+function verifyPassword(password, account) {
+  if (!account?.passwordHash || !account?.passwordSalt) return false;
+  const { hash } = hashPassword(password, account.passwordSalt);
+  const a = Buffer.from(hash);
+  const b = Buffer.from(account.passwordHash);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+function parseCookies(req) {
+  return Object.fromEntries(String(req.headers.cookie || "")
+    .split(";")
+    .map(part => part.trim())
+    .filter(Boolean)
+    .map(part => {
+      const index = part.indexOf("=");
+      return index < 0 ? [part, ""] : [decodeURIComponent(part.slice(0, index)), decodeURIComponent(part.slice(index + 1))];
+    }));
+}
+
+function sessionCookie(token, maxAgeSeconds = SESSION_DAYS * 24 * 60 * 60) {
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  return `${SESSION_COOKIE}=${encodeURIComponent(token || "")}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSeconds}${secure}`;
+}
+
+function normalizeUsername(username) {
+  return String(username || "").trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "").slice(0, 24);
+}
+
+function normalizeCharacterName(name) {
+  const raw = String(name || "").trim();
+  if (!/^[A-Za-z]+$/.test(raw)) return "";
+  const lower = raw.toLowerCase();
+  return `${lower.charAt(0).toUpperCase()}${lower.slice(1)}`.slice(0, 24);
+}
+
+function characterNameError(name) {
+  const normalized = normalizeCharacterName(name);
+  if (!normalized) return "Names may only contain letters, with no spaces, numbers, or symbols.";
+  const lower = normalized.toLowerCase();
+  if (PROFANE_NAME_PARTS.some(part => lower.includes(part))) return "That name is not allowed.";
+  if (accountStore.characters.some(character => !character.deletedAt && String(character.name || "").toLowerCase() === lower)) return "A character with that name already exists.";
+  return "";
+}
+
+function accountBySessionToken(token) {
+  const tokenHash = hashToken(token);
+  const now = Date.now();
+  const before = accountStore.sessions.length;
+  accountStore.sessions = accountStore.sessions.filter(session => Number(session.expiresAt) > now);
+  if (accountStore.sessions.length !== before) saveAccountStore();
+  const session = accountStore.sessions.find(candidate => candidate.tokenHash === tokenHash);
+  return session ? accountStore.accounts.find(account => account.id === session.accountId) || null : null;
+}
+
+function authenticatedAccount(req) {
+  const token = parseCookies(req)[SESSION_COOKIE];
+  return token ? accountBySessionToken(token) : null;
+}
+
+function publicCharacter(character) {
+  const save = character.save && typeof character.save === "object" ? character.save : {};
+  const worldActive = Boolean(character.lastWorld && worlds.has(character.lastWorld));
+  return {
+    id: character.id,
+    name: character.name,
+    avatar: character.avatar || save.avatar || "soulreaperMale",
+    race: character.race || (String(character.avatar || save.avatar || "").includes("dwarf") ? "dwarf" : "human"),
+    sex: character.sex || (String(character.avatar || save.avatar || "").toLowerCase().includes("female") ? "female" : "male"),
+    level: Number(character.level || save.level) || 1,
+    area: character.lastArea || save.area || "Unknown",
+    world: worldActive ? character.lastWorld : "",
+    lastArea: character.lastArea || save.area || "Unknown",
+    lastWorld: worldActive ? character.lastWorld : "",
+    worldActive,
+    updatedAt: character.updatedAt || character.createdAt || 0
+  };
+}
+
+function publicAccount(account) {
+  return {
+    username: account.username,
+    characters: accountStore.characters
+      .filter(character => character.accountId === account.id && !character.deletedAt)
+      .map(publicCharacter)
+      .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+  };
+}
+
+function activeWorldSummaries() {
+  return [...worlds.values()]
+    .map(world => ({
+      name: world.name,
+      playerCount: [...players.values()].filter(player => player.world === world.name).length
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function characterForAccount(account, characterId) {
+  return accountStore.characters.find(character => account && character.accountId === account.id && character.id === characterId && !character.deletedAt) || null;
+}
+
+function avatarForRaceSex(race, sex) {
+  if (race === "dwarf") return sex === "female" ? "dwarfFemale" : "dwarfMale";
+  return sex === "female" ? "soulreaperFemale" : "soulreaperMale";
+}
+
+async function handleApiRequest(req, res) {
+  const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+  const pathName = url.pathname;
+  if (req.method === "GET" && pathName === "/api/account/me") {
+    const account = authenticatedAccount(req);
+    return sendJson(res, 200, { ok: true, account: account ? publicAccount(account) : null, worlds: activeWorldSummaries() });
+  }
+  if (req.method === "GET" && pathName === "/api/worlds") {
+    return sendJson(res, 200, { ok: true, worlds: activeWorldSummaries() });
+  }
+  let body = {};
+  if (req.method !== "GET") {
+    try {
+      body = JSON.parse(await readRequestBody(req) || "{}");
+    } catch {
+      return sendJson(res, 400, { ok: false, message: "Invalid request." });
+    }
+  }
+  if (req.method === "POST" && pathName === "/api/account/create") {
+    const username = normalizeUsername(body.username);
+    const password = String(body.password || "");
+    const repeatPassword = String(body.repeatPassword || "");
+    if (username.length < 3) return sendJson(res, 400, { ok: false, message: "Username must be at least 3 characters." });
+    if (password.length < 8 || password.length > 128) return sendJson(res, 400, { ok: false, message: "Password must be 8 to 128 characters." });
+    if (password !== repeatPassword) return sendJson(res, 400, { ok: false, message: "Passwords do not match." });
+    if (accountStore.accounts.some(account => account.username === username)) return sendJson(res, 409, { ok: false, message: "That username is already taken." });
+    const { salt, hash } = hashPassword(password);
+    const account = { id: crypto.randomUUID(), username, passwordSalt: salt, passwordHash: hash, createdAt: Date.now(), updatedAt: Date.now() };
+    accountStore.accounts.push(account);
+    const token = randomToken();
+    accountStore.sessions.push({ tokenHash: hashToken(token), accountId: account.id, createdAt: Date.now(), expiresAt: Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000 });
+    saveAccountStore();
+    return sendJson(res, 200, { ok: true, account: publicAccount(account), worlds: activeWorldSummaries() }, { "Set-Cookie": sessionCookie(token) });
+  }
+  if (req.method === "POST" && pathName === "/api/account/login") {
+    const account = accountStore.accounts.find(candidate => candidate.username === normalizeUsername(body.username));
+    if (!account || !verifyPassword(body.password || "", account)) return sendJson(res, 401, { ok: false, message: "Invalid username or password." });
+    const token = randomToken();
+    accountStore.sessions.push({ tokenHash: hashToken(token), accountId: account.id, createdAt: Date.now(), expiresAt: Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000 });
+    saveAccountStore();
+    return sendJson(res, 200, { ok: true, account: publicAccount(account), worlds: activeWorldSummaries() }, { "Set-Cookie": sessionCookie(token) });
+  }
+  if (req.method === "POST" && pathName === "/api/account/logout") {
+    const token = parseCookies(req)[SESSION_COOKIE];
+    if (token) accountStore.sessions = accountStore.sessions.filter(session => session.tokenHash !== hashToken(token));
+    saveAccountStore();
+    return sendJson(res, 200, { ok: true }, { "Set-Cookie": sessionCookie("", 0) });
+  }
+  const account = authenticatedAccount(req);
+  if (!account) return sendJson(res, 401, { ok: false, message: "Login required." });
+  if (req.method === "POST" && pathName === "/api/characters") {
+    const existing = accountStore.characters.filter(character => character.accountId === account.id && !character.deletedAt);
+    if (existing.length >= MAX_CHARACTERS_PER_ACCOUNT) return sendJson(res, 400, { ok: false, message: "You already have 6 characters." });
+    const nameError = characterNameError(body.name);
+    if (nameError) return sendJson(res, 400, { ok: false, message: nameError });
+    const race = String(body.race || "human").toLowerCase() === "dwarf" ? "dwarf" : "human";
+    const sex = String(body.sex || "male").toLowerCase() === "female" ? "female" : "male";
+    const name = normalizeCharacterName(body.name);
+    const nameKey = name.toLowerCase();
+    if (accountStore.characters.some(character => !character.deletedAt && String(character.name || "").toLowerCase() === nameKey)) {
+      return sendJson(res, 409, { ok: false, message: "That character name is already taken." });
+    }
+    const avatar = avatarForRaceSex(race, sex);
+    const character = { id: crypto.randomUUID(), accountId: account.id, name, race, sex, avatar, level: 1, lastArea: "", lastWorld: "", save: { name, avatar, level: 1 }, createdAt: Date.now(), updatedAt: Date.now() };
+    accountStore.characters.push(character);
+    saveAccountStore();
+    return sendJson(res, 200, { ok: true, account: publicAccount(account), character: publicCharacter(character), worlds: activeWorldSummaries() });
+  }
+  const deleteMatch = pathName.match(/^\/api\/characters\/([^/]+)$/);
+  if (req.method === "DELETE" && deleteMatch) {
+    const character = characterForAccount(account, deleteMatch[1]);
+    if (!character) return sendJson(res, 404, { ok: false, message: "Character not found." });
+    character.deletedAt = Date.now();
+    character.updatedAt = Date.now();
+    saveAccountStore();
+    return sendJson(res, 200, { ok: true, account: publicAccount(account), worlds: activeWorldSummaries() });
+  }
+  return sendJson(res, 404, { ok: false, message: "Not found." });
+}
+
 function serveFile(req, res) {
+  if (req.url.split("?")[0] === "/healthz") {
+    sendJson(res, 200, {
+      ok: true,
+      server: "Soulreaper multiplayer server",
+      accountStore: USE_POSTGRES_ACCOUNT_STORE ? "postgres" : "json",
+      players: players.size,
+      worlds: worlds.size
+    });
+    return;
+  }
+  if (req.url.split("?")[0].startsWith("/api/")) {
+    handleApiRequest(req, res).catch(error => sendJson(res, 500, { ok: false, message: error.message || "Server error." }));
+    return;
+  }
   if (req.url.split("?")[0] === "/multiplayer-status") {
     res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
     res.end(JSON.stringify({
@@ -962,9 +1439,24 @@ function sanitizeCharacterSave(message) {
   }
 }
 
-function saveCharacterForPlayer(worldName, message) {
+function saveCharacterForPlayer(worldName, message, account = null, characterId = "") {
   const save = sanitizeCharacterSave(message);
   if (!save?.name) return;
+  if (account && characterId) {
+    const character = characterForAccount(account, characterId);
+    if (!character) return;
+    character.save = save;
+    character.name = save.name || character.name;
+    character.avatar = save.avatar || character.avatar;
+    character.level = Number(save.level) || character.level || 1;
+    character.lastArea = String(message.area || save.area || character.lastArea || "").slice(0, 80);
+    character.lastWorld = normalizeWorldName(worldName);
+    character.lastX = Number(save.x) || Number(message.x) || 0;
+    character.lastY = Number(save.y) || Number(message.y) || 0;
+    character.updatedAt = Date.now();
+    scheduleAccountStoreSave();
+    return;
+  }
   characterSaves.set(characterSaveKey(worldName, save.name), save);
 }
 
@@ -1341,6 +1833,28 @@ function distancePointToSegment(px, py, x1, y1, x2, y2) {
   if (lengthSq <= 0) return Math.hypot(px - x1, py - y1);
   const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / lengthSq));
   return Math.hypot(px - (x1 + dx * t), py - (y1 + dy * t));
+}
+
+function projectileWeaponIsBow(weapon) {
+  const category = String(weapon?.category || "").toLowerCase();
+  const name = String(weapon?.name || "").toLowerCase();
+  const ammo = String(weapon?.ammo || "").toLowerCase();
+  const animation = String(weapon?.projectileAnimation || weapon?.animation || "").toLowerCase();
+  return category === "bow" || name.includes("bow") || ammo.includes("arrow") || animation.includes("arrow");
+}
+
+function projectileHitRadius(projectile, target) {
+  const bowBonus = projectileWeaponIsBow(projectile?.sourceWeapon) ? 24 : 0;
+  return (projectile?.radius || 4) + (target?.radius || 18) + bowBonus;
+}
+
+function projectileIntersectsTarget(projectile, target, fromX, fromY, toX, toY) {
+  if (!projectile || !target) return false;
+  const hitRadius = projectileHitRadius(projectile, target);
+  const targetX = target.x || 0;
+  const targetY = target.y || 0;
+  if (Math.hypot(targetX - toX, targetY - toY) <= hitRadius) return true;
+  return distancePointToSegment(targetX, targetY, fromX, fromY, toX, toY) <= hitRadius;
 }
 
 function serverHasLineOfSight(world, source, target, padding = 2) {
@@ -2413,6 +2927,7 @@ const serverSpellTemplates = {
   Clarity: { name: "Clarity", realm: "Ethereal", cooldown: 5, range: 6 },
   "Ice Bolt": { name: "Ice Bolt", realm: "Ethereal", cooldown: 6, range: 10 },
   "Ice Storm": { name: "Ice Storm", realm: "Ethereal", cooldown: 10, range: 10, aoeRadius: 5 },
+  "Frozen Touch": { name: "Frozen Touch", realm: "Ethereal", cooldown: 0, range: 0, passive: true, duration: 4, formulas: { freezeChance: { type: "stat", base: 0, perLevel: 2 } } },
   "Chain Lightning": { name: "Chain Lightning", realm: "Celestial", cooldown: 6, range: 8 },
   "Grace from Above": { name: "Grace from Above", realm: "Celestial", cooldown: 16, range: 8, aoeRadius: 5, duration: 8, tick: 1, formulas: { heal: { type: "heal", base: 0, perLevel: 0.5 } } },
   "Divine Shield": { name: "Divine Shield", realm: "Celestial", cooldown: 12, range: 8, duration: 8, formulas: { shield: { type: "shield", base: 0, perLevel: 3 } } },
@@ -3142,6 +3657,34 @@ function burningSkinServerDamage(unit) {
   return spell ? spellDamageValue(spell, "damage", 0, 0.5) : 0;
 }
 
+function serverWeaponIsMelee(weapon) {
+  return String(weapon?.animation || "claw").toLowerCase() !== "projectile" && (Number(weapon?.range) || 1) <= 3;
+}
+
+function frozenTouchServerSpell(unit) {
+  return unitActiveServerSpell(unit, "Frozen Touch");
+}
+
+function maybeApplyFrozenTouchServer(attacker, target, weapon) {
+  if (!attacker || !target || !serverWeaponIsMelee(weapon)) return false;
+  const spell = frozenTouchServerSpell(attacker);
+  if (!spell) return false;
+  const chance = Math.max(0, spellValue(spell, "freezeChance", 0, 2));
+  if (Math.random() * 100 >= chance) return false;
+  applyStatModToTarget(target, {
+    name: "Frozen",
+    realm: "Ethereal",
+    remaining: freezeDurationFor(target, Number(spell.duration ?? 4) || 4),
+    freeze: true,
+    debuff: true
+  });
+  if (players.has(attacker.id)) {
+    const socket = sockets.get(attacker.id)?.socket;
+    if (socket) send(socket, { type: "player:realm-xp", realm: "Ethereal", amount: Number(spell.lvl) || 1 });
+  }
+  return true;
+}
+
 function playerRageActive(player) {
   return Boolean(player?.statMods?.some(mod => mod?.name === "Rage"));
 }
@@ -3525,7 +4068,7 @@ function serverKillEnemy(world, enemy, attackerId) {
 function serverFactionStandingChangesForKill(enemy) {
   const killedFaction = unitFactionId(enemy);
   if (!killedFaction || !serverFactionById.has(killedFaction)) return {};
-  const changes = { [killedFaction]: -1 };
+  const changes = { [killedFaction]: -2 };
   for (const faction of serverFactionConfigs) {
     if (faction.enemyFactionIds.includes(killedFaction)) {
       changes[faction.id] = (changes[faction.id] || 0) + 1;
@@ -4076,6 +4619,38 @@ function tickEnemySpells(world, enemy, target, dt, combats, chainLinks = []) {
       changed = true;
       continue;
     }
+    if (spell.name === "Spirit of Avia") {
+      const existing = (enemy.statMods || []).some(mod => mod.name === "Spirit of Avia");
+      if (existing) {
+        spell.timer = 1;
+        continue;
+      }
+      applyEnemyStatMod(enemy, {
+        name: "Spirit of Avia",
+        realm: "Sylvan",
+        remaining: Number(spell.duration) || 8,
+        addStats: {
+          SPD: spellValue(spell, "speedBonus", 0, 0.5),
+          AGL: spellValue(spell, "agilityBonus", 0, 1)
+        },
+        flying: true
+      });
+      world.state.effects = Array.isArray(world.state.effects) ? world.state.effects : [];
+      world.state.effects.push({
+        id: sharedServerId("effect"),
+        type: "spiritOfAvia",
+        ownerId: "server",
+        ownerEnemyId: enemy.id,
+        x: enemy.x,
+        y: enemy.y,
+        age: 0,
+        duration: 0.85,
+        radius: enemy.radius || 18
+      });
+      spell.timer = Number(spell.cooldown) || 20;
+      changed = true;
+      continue;
+    }
     const range = Number(spell.range) || 0;
     if (range > 0 && distance(enemy, target) > (range * RANGE_UNIT) + (target.radius || 18) + (enemy.radius || 18)) continue;
     if (spell.name === "Tangle Vine") {
@@ -4136,7 +4711,7 @@ function tickEnemySpells(world, enemy, target, dt, combats, chainLinks = []) {
       spell.timer = Number(spell.cooldown) || 4;
       changed = true;
     } else if (spell.name === "Ice Bolt") {
-      const freeze = { name: "Freeze", remaining: freezeDurationFor(target, Number(spell.duration ?? 4) || 4), freeze: true };
+      const freeze = { name: "Frozen", realm: "Ethereal", remaining: freezeDurationFor(target, Number(spell.duration ?? 4) || 4), freeze: true, debuff: true };
       createEnemySpellProjectile(world, enemy, target, {
         damage: spellDamageValue(spell, "damage", 4, 1),
         realm: "Ethereal",
@@ -4167,7 +4742,7 @@ function tickEnemySpells(world, enemy, target, dt, combats, chainLinks = []) {
         trail: "#f0cf63",
         range: spell.range || 10,
         dmgType: "Magical",
-        dot: { name: "Fireball", realm: "Infernal", damage: dotDamage, tick, timer: tick, remaining: duration, dmgType: "Magical" },
+        dot: { name: "Burning", realm: "Infernal", damage: dotDamage, tick, timer: tick, remaining: duration, dmgType: "Magical" },
         projectileAnimation: "fireball"
       });
       spell.timer = Number(spell.cooldown) || 6;
@@ -4211,7 +4786,7 @@ function tickEnemySpells(world, enemy, target, dt, combats, chainLinks = []) {
         tick,
         tickTimer: 0,
         radius: (spell.aoeRadius || 5) * RANGE_UNIT,
-        statMod: { name: "Freeze", remaining: duration, freeze: true }
+        statMod: { name: "Frozen", realm: "Ethereal", remaining: duration, freeze: true, debuff: true }
       });
       spell.timer = Number(spell.cooldown) || 10;
       changed = true;
@@ -4465,8 +5040,8 @@ function applyPlayerWeaponAttack(world, playerId, enemyId, enemyIds = [], option
     removeInvisibility(player);
     const d = Math.max(1, distance(player, enemy));
     const speed = projectileSpeed(weapon.projectileSpeed || 2);
-    world.state.projectiles = Array.isArray(world.state.projectiles) ? world.state.projectiles : [];
-    world.state.projectiles.push({
+    const isBowShot = playerWeaponIsBow(weapon);
+    const projectile = {
       id: sharedServerId("projectile"),
       x: player.x,
       y: player.y,
@@ -4496,6 +5071,16 @@ function applyPlayerWeaponAttack(world, playerId, enemyId, enemyIds = [], option
       ...realmXpOptions,
       daggerMasteryCrit: playerDaggerMasteryCritRealmXp(player, weapon, roll.crit, 1) > 0,
       crit: roll.crit
+    };
+    if (isBowShot) applyProjectileHit(world, projectile, enemy);
+    world.state.projectiles = Array.isArray(world.state.projectiles) ? world.state.projectiles : [];
+    world.state.projectiles.push({
+      ...projectile,
+      damage: isBowShot ? 0 : projectile.damage,
+      ammoDrop: isBowShot ? null : projectile.ammoDrop,
+      realmXp: isBowShot ? false : projectile.realmXp,
+      daggerMasteryCrit: isBowShot ? false : projectile.daggerMasteryCrit,
+      visualOnly: isBowShot
     });
     markEnemyProvokedByPlayer(enemy, player.id);
     callForDefense(world, enemy, player);
@@ -4557,6 +5142,7 @@ function applyPlayerWeaponAttack(world, playerId, enemyId, enemyIds = [], option
     if (damage > 0 && targetEnemy.hp > 0) {
       maybeApplyPlayerPoison(world, targetEnemy, playerId);
       stunned = maybeApplyPlayerWeaponStun(player, targetEnemy, weapon);
+      maybeApplyFrozenTouchServer(player, targetEnemy, weapon);
     }
     const thorn = (targetEnemy.statMods || []).find(mod => mod.thornShield);
     const closeRange = (weapon.animation || "claw").toLowerCase() !== "projectile" && (weapon.range || 1) <= 3;
@@ -5359,6 +5945,8 @@ function tickProjectiles(world, dt) {
   let changed = false;
   for (let i = world.state.projectiles.length - 1; i >= 0; i -= 1) {
     const projectile = world.state.projectiles[i];
+    const prevX = projectile.x || 0;
+    const prevY = projectile.y || 0;
     const stepX = (projectile.vx || 0) * dt;
     const stepY = (projectile.vy || 0) * dt;
     projectile.x += stepX;
@@ -5375,9 +5963,9 @@ function tickProjectiles(world, dt) {
         world.state.projectiles.splice(i, 1);
         continue;
       }
-      if (distance(projectile, enemy) <= (projectile.radius || 4) + (enemy.radius || 18)) {
+      if (projectileIntersectsTarget(projectile, enemy, prevX, prevY, projectile.x, projectile.y)) {
         world.state.projectiles.splice(i, 1);
-        applyProjectileHit(world, projectile, enemy);
+        if (!projectile.visualOnly) applyProjectileHit(world, projectile, enemy);
       }
     } else if (projectile.targetType === "player") {
       const player = players.get(projectile.targetPlayerId);
@@ -5385,8 +5973,9 @@ function tickProjectiles(world, dt) {
         world.state.projectiles.splice(i, 1);
         continue;
       }
-      if (distance(projectile, player) <= (projectile.radius || 4) + (player.radius || 18)) {
+      if (projectileIntersectsTarget(projectile, player, prevX, prevY, projectile.x, projectile.y)) {
         world.state.projectiles.splice(i, 1);
+        if (projectile.visualOnly) continue;
         const sourceEnemy = world.state.enemies.find(enemy => enemy?.id === projectile.ownerId);
         if (sourceEnemy?.pet && unitFriendlyToPetMaster(sourceEnemy, player)) continue;
         if (unitIncorporeal(sourceEnemy) && (projectile.dmgType || "Physical") === "Physical") continue;
@@ -5620,12 +6209,14 @@ function tickServerEffects(world, dt, combats) {
             if ((player.hp || 0) <= 0) continue;
             if (distance(effect, player) > (effect.radius || 0) + (player.radius || 18)) continue;
             sendDamageToPlayer(player, ownerEnemy, effect.damage || 0, effect.realm || "Ethereal", `<b>${ownerEnemy.name}</b>'s Ice Storm`, "Magical");
-            const freeze = effect.statMod || { name: "Freeze", remaining: 4, freeze: true };
+            const freeze = effect.statMod || { name: "Frozen", realm: "Ethereal", remaining: 4, freeze: true, debuff: true };
             applyStatModToTarget(player, {
               ...freeze,
-              name: "Freeze",
+              name: "Frozen",
+              realm: "Ethereal",
               remaining: freezeDurationFor(player, Number(freeze.remaining) || 4),
-              freeze: true
+              freeze: true,
+              debuff: true
             });
           }
           for (const enemy of [...(world.state.enemies || [])]) {
@@ -5634,10 +6225,12 @@ function tickServerEffects(world, dt, combats) {
             if (combat) combats.push(combat);
             if (world.state.enemies.includes(enemy)) {
               applyEnemyStatMod(enemy, {
-                ...(effect.statMod || { name: "Freeze", remaining: 4, freeze: true }),
-                name: "Freeze",
+                ...(effect.statMod || { name: "Frozen", realm: "Ethereal", remaining: 4, freeze: true, debuff: true }),
+                name: "Frozen",
+                realm: "Ethereal",
                 remaining: freezeDurationFor(enemy, Number(effect.statMod?.remaining) || 4),
-                freeze: true
+                freeze: true,
+                debuff: true
               });
             }
           }
@@ -5650,10 +6243,12 @@ function tickServerEffects(world, dt, combats) {
           if (!combat.rejected) combats.push(combat);
           if (world.state.enemies.includes(enemy)) {
             applyEnemyStatMod(enemy, {
-              ...(effect.statMod || { name: "Freeze", remaining: 4, freeze: true }),
-              name: "Freeze",
+              ...(effect.statMod || { name: "Frozen", realm: "Ethereal", remaining: 4, freeze: true, debuff: true }),
+              name: "Frozen",
+              realm: "Ethereal",
               remaining: freezeDurationFor(enemy, Number(effect.statMod?.remaining) || 4),
-              freeze: true
+              freeze: true,
+              debuff: true
             });
           }
         }
@@ -5888,6 +6483,7 @@ function tickWorld(world, dt) {
         const landed = attackEnemyTarget(world, enemy, target, damage, realm, `<b>${enemy.name}</b>'s ${enemyWeapon.name || "attack"}`, dmgType, combats, enemyWeapon.soundEffect || "");
         if (landed && (players.has(target.id) || world.state.enemies.includes(target))) maybeApplyEnemyPoison(enemy, target);
         if (landed && (players.has(target.id) || world.state.enemies.includes(target))) maybeApplyEnemyWeaponStun(enemy, target, enemyWeapon);
+        if (landed && (players.has(target.id) || world.state.enemies.includes(target))) maybeApplyFrozenTouchServer(enemy, target, enemyWeapon);
       }
       const thorn = (target.statMods || []).find(mod => mod.thornShield);
       const closeRange = enemyWeaponAnimation !== "projectile" && (enemyWeapon.range || 1) <= 3;
@@ -5922,6 +6518,12 @@ server.on("upgrade", (req, socket) => {
     socket.destroy();
     return;
   }
+  const account = authenticatedAccount(req);
+  if (!account) {
+    socket.write("HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n");
+    socket.destroy();
+    return;
+  }
   const key = req.headers["sec-websocket-key"];
   if (!key) {
     socket.destroy();
@@ -5937,7 +6539,7 @@ server.on("upgrade", (req, socket) => {
     "",
     ""
   ].join("\r\n"));
-  sockets.set(id, { socket, world: "" });
+  sockets.set(id, { socket, world: "", accountId: account.id, characterId: "" });
   send(socket, { type: "welcome", id });
   socket.on("data", chunk => {
     for (const raw of decodeFrames(socket, chunk)) {
@@ -5958,6 +6560,12 @@ server.on("upgrade", (req, socket) => {
           worlds: [...worlds.values()].map(world => world.name).sort((a, b) => a.localeCompare(b))
         });
       } else if (message.type === "world:create" || message.type === "world:join") {
+        const account = accountStore.accounts.find(candidate => candidate.id === state?.accountId);
+        const selectedCharacter = characterForAccount(account, String(message.characterId || ""));
+        if (!account || !selectedCharacter) {
+          send(socket, { type: "world:error", message: "Choose a character first." });
+          continue;
+        }
         const name = normalizeWorldName(message.world);
         if (!name) {
           send(socket, { type: "world:error", message: "Enter a world name." });
@@ -5980,10 +6588,17 @@ server.on("upgrade", (req, socket) => {
           pruneWorld(state.world);
         }
         state.world = name;
+        state.characterId = selectedCharacter.id;
         const world = worlds.get(name);
         ensureWorldHost(name);
-        const characterName = String(message.characterName || message.name || "Soulreaper").slice(0, 24);
-        send(socket, { type: "world:joined", world: name, seed: world.seed, hostId: world.hostId, revision: world.revision || 0, character: characterSaveFor(name, characterName) });
+        const resume = Boolean(message.resume && selectedCharacter.lastWorld === name && worlds.has(name));
+        const characterSave = selectedCharacter.save && typeof selectedCharacter.save === "object" ? JSON.parse(JSON.stringify(selectedCharacter.save)) : null;
+        if (characterSave && !resume) {
+          delete characterSave.x;
+          delete characterSave.y;
+          delete characterSave.lastDeath;
+        }
+        send(socket, { type: "world:joined", world: name, seed: world.seed, hostId: world.hostId, revision: world.revision || 0, character: normalizeRealmData(characterSave), resume });
         send(socket, { type: "players", players: playerList(name) });
         if (world.state) send(socket, worldStatePayload(world));
       } else if (message.type === "player:update") {
@@ -5991,7 +6606,8 @@ server.on("upgrade", (req, socket) => {
         const world = worlds.get(state.world);
         const player = normalizedPlayerForWorld(world, sanitizePlayer(id, message));
         players.set(id, player);
-        saveCharacterForPlayer(state.world, message);
+        const account = accountStore.accounts.find(candidate => candidate.id === state.accountId);
+        saveCharacterForPlayer(state.world, message, account, state.characterId);
         if (refreshNaturalPlayerAggro(world, player)) {
           acceptWorldRevision(world);
           broadcastToWorld(state.world, worldStatePayload(world, id));
@@ -6196,6 +6812,15 @@ setInterval(() => {
   }
 }, 100);
 
-server.listen(port, host, () => {
-  console.log(`Soulreaper multiplayer server running at http://${host}:${port}/`);
+async function startServer() {
+  loadSharedGameData(true);
+  await initializeAccountStore();
+  server.listen(port, host, () => {
+    console.log(`Soulreaper multiplayer server running at http://${host}:${port}/`);
+  });
+}
+
+startServer().catch(error => {
+  console.error(`Soulreaper multiplayer server failed to initialize: ${error.stack || error.message || error}`);
+  process.exitCode = 1;
 });

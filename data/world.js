@@ -380,7 +380,7 @@ const areaSpawnTables = {
     },
     {
       "name": "Badgeri Shaman",
-      "frequency": 15,
+      "frequency": 10,
       "minLvl": 3,
       "maxLvl": 5
     },
@@ -405,10 +405,40 @@ const areaSpawnTables = {
     {
       "name": "Imp",
       "frequency": 10
+    },
+    {
+      "name": "Woolly Spider",
+      "frequency": 20
+    },
+    {
+      "name": "Snow Weasel",
+      "frequency": 50
+    },
+    {
+      "name": "Stag",
+      "frequency": 20
     }
   ],
-  "Highstone Pass": [],
+  "Highstone Pass": [
+    {
+      "name": "Earth Elemental",
+      "frequency": 10
+    },
+    {
+      "name": "Snow Leopard",
+      "frequency": 5
+    },
+    {
+      "name": "Arctic Wolf",
+      "frequency": 5
+    },
+    {
+      "name": "Wolf",
+      "frequency": 5
+    }
+  ],
   "Harga Voagh": [],
+  "Firecry Peak": [],
   "Evermist Glade": [
     {
       "name": "Black Panther",
@@ -728,8 +758,8 @@ const devAreaConfigs = {
   },
   "Highstone Pass": {
     "levelRange": {
-      "min": 15,
-      "max": 17
+      "min": 4,
+      "max": 6
     },
     "connectsTo": [
       "Harmush Lagh",
@@ -751,6 +781,29 @@ const devAreaConfigs = {
     "environment": {
       "groundTexture": "./assets/ground/snow.png",
       "features": []
+    }
+  },
+  "Firecry Peak": {
+    "levelRange": {
+      "min": 19,
+      "max": 21
+    },
+    "connectsTo": [
+      "Harga Voagh"
+    ],
+    "environment": {
+      "groundTexture": "./assets/ground/ash.png",
+      "features": [
+        {
+          "name": "Dead Trees",
+          "sprite": "./assets/sprites/props/dead-tree.png",
+          "minRadius": 18,
+          "maxRadius": 40,
+          "obstacle": true,
+          "minCount": 32,
+          "maxCount": 56
+        }
+      ]
     }
   },
   "Evermist Glade": {
@@ -898,15 +951,15 @@ const devQuestConfigs = {
     "objectives": [
       {
         "type": "kill",
-        "enemy": "Froglin",
         "label": "Froglins Slain",
-        "required": 5
+        "required": 5,
+        "enemy": "Froglin"
       },
       {
         "type": "kill",
-        "enemy": "Giant Toad",
         "label": "Giant Toads Slain",
-        "required": 3
+        "required": 3,
+        "enemy": "Giant Toad"
       }
     ],
     "new": true
@@ -956,6 +1009,14 @@ const devQuestConfigs = {
     "new": true,
     "name": "Gvada's Lesson",
     "description": "Gvada has given you a starter spell scroll. Learn it, practice with it, and return to her after your matching Realm LVL increases.",
+    "rewardXp": 100,
+    "rewardGold": 50
+  },
+  "sybil-starter-magic": {
+    "id": "sybil-starter-magic",
+    "new": true,
+    "name": "Sybil's Lesson",
+    "description": "Sybil Ladybeard has given you a starter spell scroll and a dwarf's warning: practice until your matching Realm LVL increases, then return to her.",
     "rewardXp": 100,
     "rewardGold": 50
   },
@@ -1139,7 +1200,8 @@ const devNpcConfigs = [
         "Leather Boots",
         "Leather Pauldrons",
         "Wooden Shield",
-        "Leather Bracer"
+        "Leather Bracer",
+        "Leather Belt"
       ],
       "bags": [
         "Small Bag"
@@ -1454,7 +1516,8 @@ const devNpcConfigs = [
     "area": "Gandersville",
     "alignment": "Neutral",
     "radius": 16,
-    "sprite": "./assets/sprites/npcs/dwarf-villager-male-1.png",
+    "sprite": "./assets/sprites/npcs/dwarf-leather-full.png",
+    "faction": "whiterock-dwarves",
     "shopkeeper": true,
     "shop": {
       "weapons": [
@@ -1528,7 +1591,7 @@ const devNpcConfigs = [
       ],
       "equipment": [
         "Bronze Chainmail Boots",
-        "Iron Shield",
+        "Bronze Shield",
         "Bronze Spangenhelm",
         "Wooden Shield",
         "Bronze Plate Bracer",
@@ -1647,6 +1710,7 @@ const devNpcConfigs = [
         "Scroll of Fireblast",
         "Scroll of Ice Bolt",
         "Scroll of Ice Storm",
+        "Scroll of Frozen Touch",
         "Scroll of Invisibility",
         "Scroll of Magic Missile",
         "Scroll of Pacify",
@@ -1810,6 +1874,7 @@ const devNpcConfigs = [
         "Scroll of Fireblast",
         "Scroll of Ice Bolt",
         "Scroll of Ice Storm",
+        "Scroll of Frozen Touch",
         "Scroll of Invisibility",
         "Scroll of Magic Missile",
         "Scroll of Pacify",
@@ -1881,6 +1946,7 @@ const devNpcConfigs = [
         "Scroll of Fireblast",
         "Scroll of Ice Bolt",
         "Scroll of Ice Storm",
+        "Scroll of Frozen Touch",
         "Scroll of Invisibility",
         "Scroll of Magic Missile",
         "Scroll of Pacify",
@@ -1948,6 +2014,7 @@ const devNpcConfigs = [
       "questFollowupActive": "Equip a shield, let an enemy take a swing, and come back after you have blocked the blow.",
       "trainerQuestAfterComplete": "Weapons choose their lessons. Bows teach patience, axes teach force, maces teach interruption, daggers teach precision, and shields teach survival."
     },
+    "faction": "barbarian",
     "trainer": true,
     "shopkeeper": true,
     "shop": {
@@ -2007,6 +2074,7 @@ const devNpcConfigs = [
     "radius": 16,
     "sprite": "./assets/sprites/npcs/dwarf-villager-female-1.png",
     "refusalText": "I don't do business with scoundrels.",
+    "faction": "whiterock-dwarves",
     "shopkeeper": true,
     "shop": {
       "equipment": [
@@ -2108,7 +2176,10 @@ const devNpcConfigs = [
         "Iron Sabatons",
         "Iron Shield",
         "Bronze Spangenhelm",
-        "Wooden Shield"
+        "Wooden Shield",
+        "Iron Plate Pauldrons",
+        "Iron Plate Spangenhelm",
+        "Bronze Shield"
       ],
       "scrolls": [
         "Scroll of Rage",
@@ -2150,6 +2221,7 @@ const devNpcConfigs = [
     "alignment": "Neutral",
     "radius": 16,
     "sprite": "./assets/sprites/npcs/dwarf-nobleman.png",
+    "faction": "whiterock-dwarves",
     "banker": true
   },
   {
@@ -2247,6 +2319,7 @@ const devNpcConfigs = [
     ],
     "trainerMaxSpellLevel": 10,
     "refusalText": "A Dwarf who doesn't follow Orox the Lightbringer is no Dwarves at all.",
+    "faction": "whiterock-dwarves",
     "trainer": true,
     "shopkeeper": true,
     "shop": {
@@ -2284,6 +2357,7 @@ const devNpcConfigs = [
       "Ethereal",
       "Infernal"
     ],
+    "faction": "whiterock-dwarves",
     "trainer": true,
     "shopkeeper": true,
     "shop": {
@@ -2328,6 +2402,7 @@ const devNpcConfigs = [
         "Scroll of Hypnotize",
         "Scroll of Ice Bolt",
         "Scroll of Ice Storm",
+        "Scroll of Frozen Touch",
         "Scroll of Invisibility",
         "Scroll of Magic Missile",
         "Scroll of Pacify",
@@ -2424,6 +2499,7 @@ const devNpcConfigs = [
     "alignment": "Neutral",
     "radius": 16,
     "sprite": "./assets/sprites/npcs/dwarf-villager-male-2.png",
+    "faction": "whiterock-dwarves",
     "shopkeeper": true,
     "shop": {
       "weapons": [
@@ -2451,7 +2527,7 @@ const devNpcConfigs = [
         "Bronze Plate Pauldrons",
         "Bronze Plate Sabatons",
         "Bronze Spangenhelm",
-        "Iron Shield",
+        "Bronze Shield",
         "Wooden Shield",
         "Leather Belt",
         "Leather Bracer",
@@ -2484,7 +2560,13 @@ const devNpcConfigs = [
     "area": "Harmush Lagh",
     "alignment": "Neutral Good",
     "radius": 16,
-    "sprite": "./assets/sprites/npcs/dwarf-thane.png"
+    "sprite": "./assets/sprites/npcs/dwarf-thane.png",
+    "dialogue": "You dare interrupt your thane?",
+    "refusalText": "You dare interrupt your thane?",
+    "factionNotAllyText": "You dare interrupt your thane?",
+    "factionEnemyText": "My thaneguards will have your head.",
+    "faction": "whiterock-dwarves",
+    "mustBeFactionAlly": true
   },
   {
     "advanced": {},
@@ -2494,11 +2576,8 @@ const devNpcConfigs = [
     "alignment": "Neutral",
     "radius": 16,
     "sprite": "./assets/sprites/npcs/dwarf-paladin.png",
-    "trainerRealms": [
-      "Mortal"
-    ],
     "trainerMaxSpellLevel": 10,
-    "trainer": true
+    "faction": "whiterock-dwarves"
   },
   {
     "advanced": {},
@@ -2507,7 +2586,9 @@ const devNpcConfigs = [
     "area": "Harmush Lagh",
     "alignment": "Neutral",
     "radius": 16,
-    "sprite": "./assets/sprites/npcs/dwarf-warlock-female.png"
+    "sprite": "./assets/sprites/npcs/dwarf-warlock-female.png",
+    "faction": "whiterock-dwarves",
+    "mustBeFactionAlly": true
   },
   {
     "advanced": {},
@@ -2516,7 +2597,244 @@ const devNpcConfigs = [
     "area": "Harmush Lagh",
     "alignment": "Neutral",
     "radius": 16,
-    "sprite": "./assets/sprites/npcs/mayor.png"
+    "sprite": "./assets/sprites/npcs/mayor.png",
+    "faction": "gandersguard"
+  },
+  {
+    "advanced": {},
+    "id": "sybil-ladybeard",
+    "name": "Sybil Ladybeard",
+    "area": "Harmush Lagh",
+    "alignment": "Neutral",
+    "radius": 16,
+    "sprite": "./assets/sprites/npcs/dwarf-mage-female.png",
+    "startsQuest": true,
+    "questId": "sybil-starter-magic",
+    "faction": "whiterock-dwarves"
+  },
+  {
+    "advanced": {},
+    "id": "herbalist-hollyhock",
+    "name": "Herbalist Hollyhock",
+    "area": "Harmush Lagh",
+    "alignment": "Neutral Good",
+    "radius": 16,
+    "sprite": "./assets/sprites/npcs/dwarf-villager-female-1.png",
+    "trainerRealms": [
+      "Sylvan"
+    ],
+    "trainerMaxSpellLevel": 10,
+    "trainer": true,
+    "startsQuest": true,
+    "questChain": [
+      "hollyhocks-mossy-errand",
+      "hollyhocks-lake-offering",
+      "hollyhocks-green-touch"
+    ],
+    "dialogueContexts": {
+      "questOffer": "Aye, I can feel a shy bit of green waking in you. If you want my teaching, start with a patient errand: find me a Moss-Covered Stone out in Harmush Lagh. The old stones here drink root-whispers better than any bottle I own, but they do not sit politely beside the road.",
+      "questActive": "Still hunting the stone, are you? Keep your eyes low and your boots steady. Moss loves the quiet places, away from shouting halls and hot forge smoke.",
+      "questReady": "There it is. Do not hand it over. Keep it close. A stone that has listened this long should hear what the lake has to say next.",
+      "questLakeOffer": "Now take that Moss-Covered Stone to the lake and drop it in. Do not toss it like rubbish. Offer it. If something answers with teeth, keep your wits and show me you can survive the bargain.",
+      "questLakeActive": "The lake has not had your offering yet. Stand near the water and drop the Moss-Covered Stone in. If the water spits trouble back, put it down cleanly.",
+      "questLakeReady": "Good. The lake answered, and you answered louder. That is how a dwarf learns Sylvan work: not by pretty words, but by standing firm when the deep places blink back.",
+      "questTellursaOffer": "One more lesson, and this one needs a gentler hand. A rare Tellursa wanders the Harkhar Highlands. Find it, do not butcher it, and cast Chlorophyll on it. I want to know you can mend a living thing when the mountains are trying to harden your heart.",
+      "questTellursaActive": "Find the Tellursa in Harkhar Highlands and lay Chlorophyll on it. If it bolts, let it breathe and try again. Sylvan magic is not a hammer, no matter what our kin say.",
+      "questTellursaReady": "Aye, that will do. You have listened to stone, water, tooth, and beast. Take this trinket. It is not fancy, but it remembers the lake better than most people do.",
+      "questAfterComplete": "Keep your roots deep and your axe sharper than your pride. Harmush Lagh has more to teach, if you keep listening."
+    },
+    "shopkeeper": true,
+    "shop": {
+      "scrolls": [
+        "Scroll of Briar Lash",
+        "Scroll of Chlorophyll",
+        "Scroll of Faerie Circle",
+        "Scroll of Faerie Dust",
+        "Scroll of Faerie Fire",
+        "Scroll of Poison",
+        "Scroll of Sacred Grove",
+        "Scroll of Spirit of Avia",
+        "Scroll of Summon Treant",
+        "Scroll of Tame Beast",
+        "Scroll of Tangle Vine",
+        "Scroll of Thorn Shield",
+        "Scroll of Wooden Skin"
+      ],
+      "misc": [
+        {
+          "name": "Houndstongue",
+          "quantity": 5
+        },
+        {
+          "name": "Purple Mushroom",
+          "quantity": 5
+        },
+        {
+          "name": "Bloodroot",
+          "quantity": 5
+        },
+        {
+          "name": "Blue Lotus",
+          "quantity": 5
+        },
+        {
+          "name": "Mandrake Root",
+          "quantity": 5
+        },
+        {
+          "name": "Crimson Nettle",
+          "quantity": 5
+        },
+        {
+          "name": "Nightshade",
+          "quantity": 5
+        },
+        {
+          "name": "Silverleaf",
+          "quantity": 5
+        }
+      ]
+    }
+  },
+  {
+    "advanced": {},
+    "id": "fenrir",
+    "name": "Fenrir",
+    "area": "Harmush Lagh",
+    "alignment": "Neutral",
+    "radius": 16,
+    "sprite": "./assets/sprites/npcs/barbarian-male.png",
+    "trainerRealms": [
+      "Mortal"
+    ],
+    "trainerMaxSpellLevel": 10,
+    "faction": "barbarian",
+    "trainer": true
+  },
+  {
+    "advanced": {},
+    "id": "sigrid",
+    "name": "Sigrid",
+    "area": "Harmush Lagh",
+    "alignment": "Neutral",
+    "radius": 16,
+    "sprite": "./assets/sprites/npcs/barbarian-female.png",
+    "trainerRealms": [
+      "Mortal"
+    ],
+    "factionNotAllyText": "I only do business with those who prove themselves allies to the Barbarians.",
+    "faction": "barbarian",
+    "mustBeFactionAlly": true,
+    "shopkeeper": true,
+    "shop": {
+      "weapons": [
+        "Bronze Longsword",
+        "Bronze Mace",
+        "Bronze Shortsword",
+        "Bronze Spear",
+        "Longbow",
+        "Shortbow",
+        "Willow Branch",
+        "Wooden Staff"
+      ],
+      "equipment": [
+        "Leather Breastplate",
+        "Leather Boots",
+        "Leather Bracer",
+        "Leather Gloves",
+        "Leather Hood",
+        "Leather Pants",
+        "Leather Pauldrons",
+        "Bronze Shield",
+        "Wooden Shield"
+      ],
+      "bags": [
+        "Small Bag"
+      ],
+      "consumables": [
+        {
+          "name": "Agility Potion",
+          "quantity": 3
+        },
+        {
+          "name": "Clarity Potion",
+          "quantity": 3
+        },
+        {
+          "name": "Energy Potion",
+          "quantity": 3
+        },
+        {
+          "name": "Focus Potion",
+          "quantity": 3
+        },
+        {
+          "name": "Greater Healing Potion",
+          "quantity": 3
+        },
+        {
+          "name": "Healing Potion",
+          "quantity": 3
+        },
+        {
+          "name": "Potion of Resist Magic",
+          "quantity": 3
+        },
+        {
+          "name": "Soothing Potion",
+          "quantity": 3
+        },
+        {
+          "name": "Strength Potion",
+          "quantity": 3
+        },
+        {
+          "name": "Bronze Arrow",
+          "quantity": 99
+        },
+        {
+          "name": "Bronze Arrow",
+          "quantity": 99
+        },
+        {
+          "name": "Bronze Arrow",
+          "quantity": 99
+        }
+      ]
+    }
+  },
+  {
+    "advanced": {},
+    "id": "snuffkie",
+    "name": "Snuffkie",
+    "area": "Harmush Lagh",
+    "alignment": "Neutral Good",
+    "radius": 16,
+    "sprite": "./assets/sprites/npcs/badgeri-villager-female.png",
+    "faction": "badgeri",
+    "mustBeFactionAlly": true
+  },
+  {
+    "advanced": {},
+    "id": "otachi",
+    "name": "Otachi",
+    "area": "Harmush Lagh",
+    "alignment": "Neutral Good",
+    "radius": 16,
+    "sprite": "./assets/sprites/npcs/badgeri-villager-male.png",
+    "faction": "badgeri",
+    "mustBeFactionAlly": true
+  },
+  {
+    "advanced": {},
+    "id": "chief-snautch",
+    "name": "Chief Snautch",
+    "area": "Harmush Lagh",
+    "alignment": "Neutral Good",
+    "radius": 16,
+    "sprite": "./assets/sprites/npcs/badgeri-chief.png",
+    "faction": "badgeri",
+    "mustBeFactionAlly": true
   }
 ];
 
@@ -3248,6 +3566,28 @@ const devSpellConfigs = {
       }
     },
     "soundEffect": "./assets/audio/ice-storm.wav"
+  },
+  "Frozen Touch": {
+    "name": "Frozen Touch",
+    "realm": "Ethereal",
+    "lvl": 1,
+    "cooldown": 0,
+    "range": 0,
+    "text": "Melee weapon hits have a {freezeChance}% chance to make an enemy Frozen for 4 seconds.",
+    "manualTarget": false,
+    "autocast": false,
+    "passive": true,
+    "aura": false,
+    "icon": "./assets/spells/frozen-touch.png",
+    "duration": 4,
+    "formulas": {
+      "freezeChance": {
+        "type": "stat",
+        "base": 0,
+        "perLevel": 2
+      }
+    },
+    "soundEffect": "./assets/audio/generic-ethereal-offensive-spell.wav"
   },
   "Chain Lightning": {
     "name": "Chain Lightning",
@@ -6452,19 +6792,19 @@ const devDungeonConfigs = [
       {
         "x": 9,
         "y": 9,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 10,
         "y": 9,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 11,
         "y": 9,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
@@ -6494,37 +6834,37 @@ const devDungeonConfigs = [
       {
         "x": 9,
         "y": 10,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 10,
         "y": 10,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 11,
         "y": 10,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 14,
         "y": 10,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 15,
         "y": 10,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 16,
         "y": 10,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
@@ -6536,37 +6876,37 @@ const devDungeonConfigs = [
       {
         "x": 9,
         "y": 11,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 10,
         "y": 11,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 11,
         "y": 11,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 14,
         "y": 11,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 15,
         "y": 11,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 16,
         "y": 11,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
@@ -6578,25 +6918,25 @@ const devDungeonConfigs = [
       {
         "x": 9,
         "y": 12,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 10,
         "y": 12,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 11,
         "y": 12,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 15,
         "y": 12,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
@@ -6608,25 +6948,25 @@ const devDungeonConfigs = [
       {
         "x": 10,
         "y": 13,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 14,
         "y": 13,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 15,
         "y": 13,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 16,
         "y": 13,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
@@ -6644,43 +6984,43 @@ const devDungeonConfigs = [
       {
         "x": 24,
         "y": 13,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 25,
         "y": 13,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 26,
         "y": 13,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 10,
         "y": 14,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 14,
         "y": 14,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 15,
         "y": 14,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 16,
         "y": 14,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
@@ -6722,38 +7062,38 @@ const devDungeonConfigs = [
       {
         "x": 24,
         "y": 14,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 25,
         "y": 14,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 26,
         "y": 14,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 27,
         "y": 14,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 28,
         "y": 14,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 29,
         "y": 14,
-        "texture": "./assets/ground/grey-tiles.png",
-        "brush": "square"
+        "texture": "./assets/ground/dwarf-tile.png",
+        "brush": "curve-sw"
       },
       {
         "x": 5,
@@ -6776,43 +7116,43 @@ const devDungeonConfigs = [
       {
         "x": 10,
         "y": 15,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 11,
         "y": 15,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 12,
         "y": 15,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 13,
         "y": 15,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 14,
         "y": 15,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 15,
         "y": 15,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 16,
         "y": 15,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
@@ -6830,31 +7170,31 @@ const devDungeonConfigs = [
       {
         "x": 24,
         "y": 15,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 25,
         "y": 15,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 26,
         "y": 15,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 28,
         "y": 15,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 29,
         "y": 15,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
@@ -6878,31 +7218,31 @@ const devDungeonConfigs = [
       {
         "x": 14,
         "y": 16,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 15,
         "y": 16,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 16,
         "y": 16,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 28,
         "y": 16,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 29,
         "y": 16,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
@@ -6926,37 +7266,37 @@ const devDungeonConfigs = [
       {
         "x": 14,
         "y": 17,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 15,
         "y": 17,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 16,
         "y": 17,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 28,
         "y": 17,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 29,
         "y": 17,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 6,
         "y": 18,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
@@ -6980,7 +7320,7 @@ const devDungeonConfigs = [
       {
         "x": 15,
         "y": 18,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
@@ -7034,19 +7374,19 @@ const devDungeonConfigs = [
       {
         "x": 28,
         "y": 18,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 29,
         "y": 18,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 6,
         "y": 19,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
@@ -7070,7 +7410,7 @@ const devDungeonConfigs = [
       {
         "x": 15,
         "y": 19,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
@@ -7124,25 +7464,25 @@ const devDungeonConfigs = [
       {
         "x": 28,
         "y": 19,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 29,
         "y": 19,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 6,
         "y": 20,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 7,
         "y": 20,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "diag-sw"
       },
       {
@@ -7154,7 +7494,7 @@ const devDungeonConfigs = [
       {
         "x": 15,
         "y": 20,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
@@ -7172,31 +7512,31 @@ const devDungeonConfigs = [
       {
         "x": 28,
         "y": 20,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 29,
         "y": 20,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 6,
         "y": 21,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "diag-ne"
       },
       {
         "x": 7,
         "y": 21,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 8,
         "y": 21,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "diag-sw"
       },
       {
@@ -7208,31 +7548,31 @@ const devDungeonConfigs = [
       {
         "x": 13,
         "y": 21,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 14,
         "y": 21,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 15,
         "y": 21,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 16,
         "y": 21,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 17,
         "y": 21,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
@@ -7248,315 +7588,321 @@ const devDungeonConfigs = [
         "brush": "square"
       },
       {
+        "x": 27,
+        "y": 21,
+        "texture": "./assets/ground/dwarf-tile.png",
+        "brush": "diag-se"
+      },
+      {
         "x": 28,
         "y": 21,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 29,
         "y": 21,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 7,
         "y": 22,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "diag-ne"
       },
       {
         "x": 8,
         "y": 22,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 9,
         "y": 22,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 10,
         "y": 22,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 11,
         "y": 22,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 12,
         "y": 22,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 13,
         "y": 22,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 14,
         "y": 22,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 15,
         "y": 22,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 16,
         "y": 22,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 17,
         "y": 22,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 18,
         "y": 22,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 19,
         "y": 22,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 20,
         "y": 22,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 21,
         "y": 22,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 22,
         "y": 22,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 23,
         "y": 22,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 24,
         "y": 22,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 25,
         "y": 22,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 26,
         "y": 22,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 27,
         "y": 22,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 28,
         "y": 22,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 29,
         "y": 22,
-        "texture": "./assets/ground/grey-tiles.png",
-        "brush": "square"
+        "texture": "./assets/ground/dwarf-tile.png",
+        "brush": "diag-nw"
       },
       {
         "x": 8,
         "y": 23,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "diag-ne"
       },
       {
         "x": 9,
         "y": 23,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 10,
         "y": 23,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 11,
         "y": 23,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 12,
         "y": 23,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 13,
         "y": 23,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 14,
         "y": 23,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 15,
         "y": 23,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 16,
         "y": 23,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 17,
         "y": 23,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 18,
         "y": 23,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 19,
         "y": 23,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 20,
         "y": 23,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 21,
         "y": 23,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 22,
         "y": 23,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 23,
         "y": 23,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 24,
         "y": 23,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 25,
         "y": 23,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 26,
         "y": 23,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 27,
         "y": 23,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 28,
         "y": 23,
-        "texture": "./assets/ground/grey-tiles.png",
-        "brush": "square"
+        "texture": "./assets/ground/dwarf-tile.png",
+        "brush": "diag-nw"
       },
       {
         "x": 29,
         "y": 23,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-floor.png",
         "brush": "square"
       },
       {
         "x": 13,
         "y": 24,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 14,
         "y": 24,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 15,
         "y": 24,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 16,
         "y": 24,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 17,
         "y": 24,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
@@ -7574,32 +7920,32 @@ const devDungeonConfigs = [
       {
         "x": 13,
         "y": 25,
-        "texture": "./assets/ground/grey-tiles.png",
-        "brush": "diag-ne"
+        "texture": "./assets/ground/dwarf-tile.png",
+        "brush": "square"
       },
       {
         "x": 14,
         "y": 25,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 15,
         "y": 25,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 16,
         "y": 25,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 17,
         "y": 25,
-        "texture": "./assets/ground/grey-tiles.png",
-        "brush": "diag-nw"
+        "texture": "./assets/ground/dwarf-tile.png",
+        "brush": "square"
       },
       {
         "x": 20,
@@ -7614,21 +7960,33 @@ const devDungeonConfigs = [
         "brush": "square"
       },
       {
+        "x": 13,
+        "y": 26,
+        "texture": "./assets/ground/dwarf-tile.png",
+        "brush": "diag-ne"
+      },
+      {
         "x": 14,
         "y": 26,
-        "texture": "./assets/ground/grey-tiles.png",
-        "brush": "diag-ne"
+        "texture": "./assets/ground/dwarf-tile.png",
+        "brush": "square"
       },
       {
         "x": 15,
         "y": 26,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 16,
         "y": 26,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
+        "brush": "square"
+      },
+      {
+        "x": 17,
+        "y": 26,
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "diag-nw"
       },
       {
@@ -7666,12 +8024,24 @@ const devDungeonConfigs = [
         "y": 26,
         "texture": "./assets/ground/grey-tiles.png",
         "brush": "square"
+      },
+      {
+        "x": 14,
+        "y": 27,
+        "texture": "./assets/ground/dwarf-tile.png",
+        "brush": "diag-ne"
       },
       {
         "x": 15,
         "y": 27,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
+      },
+      {
+        "x": 16,
+        "y": 27,
+        "texture": "./assets/ground/dwarf-tile.png",
+        "brush": "diag-nw"
       },
       {
         "x": 19,
@@ -7712,25 +8082,25 @@ const devDungeonConfigs = [
       {
         "x": 15,
         "y": 28,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 15,
         "y": 29,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 15,
         "y": 30,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       },
       {
         "x": 15,
         "y": 31,
-        "texture": "./assets/ground/grey-tiles.png",
+        "texture": "./assets/ground/dwarf-tile.png",
         "brush": "square"
       }
     ],
@@ -7974,6 +8344,11 @@ const devDungeonConfigs = [
         "id": "huntsman-flintstein",
         "x": 20,
         "y": 27
+      },
+      {
+        "id": "sybil-ladybeard",
+        "x": 16,
+        "y": 21
       }
     ],
     "features": [
@@ -8266,6 +8641,1805 @@ const devDungeonConfigs = [
       }
     ],
     "spawnTable": []
+  },
+  {
+    "id": "ashmyr-khazit",
+    "name": "Ashmyr Khazit",
+    "cellSize": 128,
+    "width": 40,
+    "height": 40,
+    "wallTexture": "./assets/ground/whisperspring-wall.png",
+    "entrance": {
+      "x": 0,
+      "y": 0
+    },
+    "cells": [
+      {
+        "x": 18,
+        "y": 28,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "diag-se"
+      },
+      {
+        "x": 19,
+        "y": 28,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 20,
+        "y": 28,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "diag-sw"
+      },
+      {
+        "x": 17,
+        "y": 29,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "diag-se"
+      },
+      {
+        "x": 18,
+        "y": 29,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 19,
+        "y": 29,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 20,
+        "y": 29,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 21,
+        "y": 29,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "diag-sw"
+      },
+      {
+        "x": 16,
+        "y": 30,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "diag-se"
+      },
+      {
+        "x": 17,
+        "y": 30,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 18,
+        "y": 30,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 19,
+        "y": 30,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 20,
+        "y": 30,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 21,
+        "y": 30,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 22,
+        "y": 30,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "diag-sw"
+      },
+      {
+        "x": 15,
+        "y": 31,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "diag-se"
+      },
+      {
+        "x": 16,
+        "y": 31,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 17,
+        "y": 31,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 18,
+        "y": 31,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 19,
+        "y": 31,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 20,
+        "y": 31,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 21,
+        "y": 31,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 22,
+        "y": 31,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 23,
+        "y": 31,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "diag-sw"
+      },
+      {
+        "x": 15,
+        "y": 32,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 16,
+        "y": 32,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 17,
+        "y": 32,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 18,
+        "y": 32,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 19,
+        "y": 32,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 20,
+        "y": 32,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 21,
+        "y": 32,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 22,
+        "y": 32,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 23,
+        "y": 32,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 15,
+        "y": 33,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "diag-ne"
+      },
+      {
+        "x": 16,
+        "y": 33,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 17,
+        "y": 33,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 18,
+        "y": 33,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 19,
+        "y": 33,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 20,
+        "y": 33,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 21,
+        "y": 33,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 22,
+        "y": 33,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 23,
+        "y": 33,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "diag-nw"
+      },
+      {
+        "x": 16,
+        "y": 34,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "diag-ne"
+      },
+      {
+        "x": 17,
+        "y": 34,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 18,
+        "y": 34,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 19,
+        "y": 34,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 20,
+        "y": 34,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 21,
+        "y": 34,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 22,
+        "y": 34,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "diag-nw"
+      },
+      {
+        "x": 17,
+        "y": 35,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "diag-ne"
+      },
+      {
+        "x": 18,
+        "y": 35,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 19,
+        "y": 35,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 20,
+        "y": 35,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 21,
+        "y": 35,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "diag-nw"
+      },
+      {
+        "x": 19,
+        "y": 36,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 19,
+        "y": 37,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 19,
+        "y": 38,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      },
+      {
+        "x": 19,
+        "y": 39,
+        "texture": "./assets/ground/grey-tiles.png",
+        "brush": "square"
+      }
+    ],
+    "water": [],
+    "lava": [
+      {
+        "x": 19,
+        "y": 30
+      },
+      {
+        "x": 18,
+        "y": 31
+      },
+      {
+        "x": 19,
+        "y": 31
+      },
+      {
+        "x": 20,
+        "y": 31
+      },
+      {
+        "x": 17,
+        "y": 32
+      },
+      {
+        "x": 18,
+        "y": 32
+      },
+      {
+        "x": 19,
+        "y": 32
+      },
+      {
+        "x": 20,
+        "y": 32
+      },
+      {
+        "x": 21,
+        "y": 32
+      },
+      {
+        "x": 18,
+        "y": 33
+      },
+      {
+        "x": 19,
+        "y": 33
+      },
+      {
+        "x": 20,
+        "y": 33
+      },
+      {
+        "x": 19,
+        "y": 34
+      }
+    ],
+    "units": [],
+    "npcs": [],
+    "features": [],
+    "spawnTable": []
+  },
+  {
+    "id": "badgeria",
+    "name": "Badgeria",
+    "cellSize": 128,
+    "width": 16,
+    "height": 32,
+    "wallTexture": "./assets/ground/rat-den.png",
+    "entrance": {
+      "x": 7,
+      "y": 31
+    },
+    "cells": [
+      {
+        "x": 3,
+        "y": 0,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-se"
+      },
+      {
+        "x": 4,
+        "y": 0,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 5,
+        "y": 0,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-sw"
+      },
+      {
+        "x": 3,
+        "y": 1,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 4,
+        "y": 1,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 5,
+        "y": 1,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 3,
+        "y": 2,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 4,
+        "y": 2,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 5,
+        "y": 2,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 3,
+        "y": 3,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-ne"
+      },
+      {
+        "x": 4,
+        "y": 3,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 5,
+        "y": 3,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-nw"
+      },
+      {
+        "x": 4,
+        "y": 4,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 9,
+        "y": 4,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-se"
+      },
+      {
+        "x": 10,
+        "y": 4,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 11,
+        "y": 4,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-sw"
+      },
+      {
+        "x": 4,
+        "y": 5,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 8,
+        "y": 5,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-se"
+      },
+      {
+        "x": 9,
+        "y": 5,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 10,
+        "y": 5,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 11,
+        "y": 5,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 12,
+        "y": 5,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-sw"
+      },
+      {
+        "x": 4,
+        "y": 6,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 7,
+        "y": 6,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-se"
+      },
+      {
+        "x": 8,
+        "y": 6,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 9,
+        "y": 6,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 10,
+        "y": 6,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 11,
+        "y": 6,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 12,
+        "y": 6,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 13,
+        "y": 6,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-sw"
+      },
+      {
+        "x": 2,
+        "y": 7,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-se"
+      },
+      {
+        "x": 3,
+        "y": 7,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 4,
+        "y": 7,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 5,
+        "y": 7,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 6,
+        "y": 7,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 7,
+        "y": 7,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 8,
+        "y": 7,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 9,
+        "y": 7,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 10,
+        "y": 7,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 11,
+        "y": 7,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 12,
+        "y": 7,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 13,
+        "y": 7,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 2,
+        "y": 8,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 7,
+        "y": 8,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-ne"
+      },
+      {
+        "x": 8,
+        "y": 8,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 9,
+        "y": 8,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 10,
+        "y": 8,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 11,
+        "y": 8,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 12,
+        "y": 8,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 13,
+        "y": 8,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-nw"
+      },
+      {
+        "x": 2,
+        "y": 9,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 8,
+        "y": 9,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-ne"
+      },
+      {
+        "x": 9,
+        "y": 9,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 10,
+        "y": 9,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 11,
+        "y": 9,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 12,
+        "y": 9,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-nw"
+      },
+      {
+        "x": 2,
+        "y": 10,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 9,
+        "y": 10,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-ne"
+      },
+      {
+        "x": 10,
+        "y": 10,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 11,
+        "y": 10,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-nw"
+      },
+      {
+        "x": 2,
+        "y": 11,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 5,
+        "y": 11,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-se"
+      },
+      {
+        "x": 6,
+        "y": 11,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 7,
+        "y": 11,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-sw"
+      },
+      {
+        "x": 10,
+        "y": 11,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 13,
+        "y": 11,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-se"
+      },
+      {
+        "x": 14,
+        "y": 11,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-sw"
+      },
+      {
+        "x": 2,
+        "y": 12,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-ne"
+      },
+      {
+        "x": 3,
+        "y": 12,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 4,
+        "y": 12,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 5,
+        "y": 12,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 6,
+        "y": 12,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 7,
+        "y": 12,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 10,
+        "y": 12,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 11,
+        "y": 12,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 12,
+        "y": 12,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 13,
+        "y": 12,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 14,
+        "y": 12,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 5,
+        "y": 13,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-ne"
+      },
+      {
+        "x": 6,
+        "y": 13,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 7,
+        "y": 13,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-nw"
+      },
+      {
+        "x": 10,
+        "y": 13,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 13,
+        "y": 13,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-ne"
+      },
+      {
+        "x": 14,
+        "y": 13,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-nw"
+      },
+      {
+        "x": 10,
+        "y": 14,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 6,
+        "y": 15,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-se"
+      },
+      {
+        "x": 7,
+        "y": 15,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 8,
+        "y": 15,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 9,
+        "y": 15,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 10,
+        "y": 15,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-nw"
+      },
+      {
+        "x": 12,
+        "y": 15,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-se"
+      },
+      {
+        "x": 13,
+        "y": 15,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-sw"
+      },
+      {
+        "x": 1,
+        "y": 16,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 2,
+        "y": 16,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 6,
+        "y": 16,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 11,
+        "y": 16,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-se"
+      },
+      {
+        "x": 12,
+        "y": 16,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 13,
+        "y": 16,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 14,
+        "y": 16,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-sw"
+      },
+      {
+        "x": 1,
+        "y": 17,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 2,
+        "y": 17,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 3,
+        "y": 17,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 4,
+        "y": 17,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 5,
+        "y": 17,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 6,
+        "y": 17,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 11,
+        "y": 17,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-ne"
+      },
+      {
+        "x": 12,
+        "y": 17,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 13,
+        "y": 17,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 14,
+        "y": 17,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-nw"
+      },
+      {
+        "x": 1,
+        "y": 18,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 2,
+        "y": 18,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 6,
+        "y": 18,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 12,
+        "y": 18,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 13,
+        "y": 18,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 6,
+        "y": 19,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 12,
+        "y": 19,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 13,
+        "y": 19,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 5,
+        "y": 20,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-se"
+      },
+      {
+        "x": 6,
+        "y": 20,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 7,
+        "y": 20,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-sw"
+      },
+      {
+        "x": 11,
+        "y": 20,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-se"
+      },
+      {
+        "x": 12,
+        "y": 20,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 13,
+        "y": 20,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 14,
+        "y": 20,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-sw"
+      },
+      {
+        "x": 2,
+        "y": 21,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-se"
+      },
+      {
+        "x": 3,
+        "y": 21,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 4,
+        "y": 21,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 5,
+        "y": 21,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 6,
+        "y": 21,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 7,
+        "y": 21,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 8,
+        "y": 21,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 9,
+        "y": 21,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 10,
+        "y": 21,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 11,
+        "y": 21,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 12,
+        "y": 21,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 13,
+        "y": 21,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 14,
+        "y": 21,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 2,
+        "y": 22,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 5,
+        "y": 22,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-ne"
+      },
+      {
+        "x": 6,
+        "y": 22,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 7,
+        "y": 22,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-nw"
+      },
+      {
+        "x": 11,
+        "y": 22,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-ne"
+      },
+      {
+        "x": 12,
+        "y": 22,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 13,
+        "y": 22,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 14,
+        "y": 22,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-nw"
+      },
+      {
+        "x": 2,
+        "y": 23,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 1,
+        "y": 24,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-se"
+      },
+      {
+        "x": 2,
+        "y": 24,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 3,
+        "y": 24,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-sw"
+      },
+      {
+        "x": 1,
+        "y": 25,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 2,
+        "y": 25,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 3,
+        "y": 25,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 4,
+        "y": 25,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 5,
+        "y": 25,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 6,
+        "y": 25,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 7,
+        "y": 25,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 8,
+        "y": 25,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 9,
+        "y": 25,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 10,
+        "y": 25,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-sw"
+      },
+      {
+        "x": 1,
+        "y": 26,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-ne"
+      },
+      {
+        "x": 2,
+        "y": 26,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 3,
+        "y": 26,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-nw"
+      },
+      {
+        "x": 10,
+        "y": 26,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 10,
+        "y": 27,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 7,
+        "y": 28,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-se"
+      },
+      {
+        "x": 8,
+        "y": 28,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 9,
+        "y": 28,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 10,
+        "y": 28,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "curve-nw"
+      },
+      {
+        "x": 7,
+        "y": 29,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 7,
+        "y": 30,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      },
+      {
+        "x": 7,
+        "y": 31,
+        "texture": "./assets/ground/rat-den.png",
+        "brush": "square"
+      }
+    ],
+    "water": [
+      {
+        "x": 9,
+        "y": 6
+      },
+      {
+        "x": 10,
+        "y": 6
+      },
+      {
+        "x": 11,
+        "y": 6
+      },
+      {
+        "x": 9,
+        "y": 7
+      },
+      {
+        "x": 10,
+        "y": 7
+      },
+      {
+        "x": 11,
+        "y": 7
+      },
+      {
+        "x": 9,
+        "y": 8
+      },
+      {
+        "x": 10,
+        "y": 8
+      },
+      {
+        "x": 11,
+        "y": 8
+      }
+    ],
+    "lava": [],
+    "units": [
+      {
+        "name": "Badgeri",
+        "x": 5,
+        "y": 20,
+        "level": 1,
+        "elite": false,
+        "boss": false
+      },
+      {
+        "name": "Badgeri",
+        "x": 5,
+        "y": 22,
+        "level": 1,
+        "elite": false,
+        "boss": false
+      },
+      {
+        "name": "Badgeri",
+        "x": 7,
+        "y": 20,
+        "level": 1,
+        "elite": false,
+        "boss": false
+      },
+      {
+        "name": "Badgeri",
+        "x": 7,
+        "y": 22,
+        "level": 1,
+        "elite": false,
+        "boss": false
+      },
+      {
+        "name": "Badgeri Bruiser",
+        "x": 12,
+        "y": 20,
+        "level": 1,
+        "elite": false,
+        "boss": false
+      },
+      {
+        "name": "Badgeri Bruiser",
+        "x": 12,
+        "y": 22,
+        "level": 1,
+        "elite": false,
+        "boss": false
+      },
+      {
+        "name": "Badgeri Bruiser",
+        "x": 13,
+        "y": 21,
+        "level": 1,
+        "elite": false,
+        "boss": false
+      },
+      {
+        "name": "Badgeri",
+        "x": 12,
+        "y": 17,
+        "level": 1,
+        "elite": false,
+        "boss": false
+      },
+      {
+        "name": "Badgeri",
+        "x": 13,
+        "y": 17,
+        "level": 1,
+        "elite": false,
+        "boss": false
+      },
+      {
+        "name": "Badgeri Shaman",
+        "x": 12,
+        "y": 16,
+        "level": 1,
+        "elite": false,
+        "boss": false
+      },
+      {
+        "name": "Badgeri Shaman",
+        "x": 13,
+        "y": 16,
+        "level": 1,
+        "elite": false,
+        "boss": false
+      },
+      {
+        "name": "Badgeri Shaman",
+        "x": 10,
+        "y": 9,
+        "level": 1,
+        "elite": false,
+        "boss": false
+      },
+      {
+        "name": "Badgeri Shaman",
+        "x": 8,
+        "y": 7,
+        "level": 1,
+        "elite": false,
+        "boss": false
+      },
+      {
+        "name": "Badgeri Shaman",
+        "x": 12,
+        "y": 7,
+        "level": 1,
+        "elite": false,
+        "boss": false
+      },
+      {
+        "name": "Badgeri Shaman",
+        "x": 10,
+        "y": 5,
+        "level": 1,
+        "elite": false,
+        "boss": false
+      },
+      {
+        "name": "Badgeri Bruiser",
+        "x": 11,
+        "y": 9,
+        "level": 1,
+        "elite": false,
+        "boss": false
+      },
+      {
+        "name": "Badgeri Bruiser",
+        "x": 12,
+        "y": 6,
+        "level": 1,
+        "elite": false,
+        "boss": false
+      },
+      {
+        "name": "Badgeri Bruiser",
+        "x": 8,
+        "y": 8,
+        "level": 1,
+        "elite": false,
+        "boss": false
+      },
+      {
+        "name": "Badgeri Bruiser",
+        "x": 9,
+        "y": 5,
+        "level": 1,
+        "elite": false,
+        "boss": false
+      },
+      {
+        "name": "Badgeri Bruiser",
+        "x": 3,
+        "y": 2,
+        "level": 1,
+        "elite": false,
+        "boss": false
+      },
+      {
+        "name": "Badgeri Bruiser",
+        "x": 5,
+        "y": 2,
+        "level": 1,
+        "elite": false,
+        "boss": false
+      },
+      {
+        "name": "Badgeri Bruiser",
+        "x": 3,
+        "y": 1,
+        "level": 1,
+        "elite": false,
+        "boss": false
+      },
+      {
+        "name": "Badgeri Shaman",
+        "x": 5,
+        "y": 1,
+        "level": 1,
+        "elite": false,
+        "boss": false
+      }
+    ],
+    "npcs": [
+      {
+        "id": "chief-snautch",
+        "x": 4,
+        "y": 1
+      },
+      {
+        "id": "snuffkie",
+        "x": 1,
+        "y": 17
+      },
+      {
+        "id": "otachi",
+        "x": 2,
+        "y": 25
+      }
+    ],
+    "features": [
+      {
+        "sprite": "./assets/sprites/props/bed.png",
+        "x": 2,
+        "y": 26,
+        "size": 96,
+        "obstacle": true
+      },
+      {
+        "sprite": "./assets/sprites/props/bed.png",
+        "x": 14,
+        "y": 12,
+        "size": 96,
+        "obstacle": true
+      },
+      {
+        "sprite": "./assets/sprites/props/bed.png",
+        "x": 1,
+        "y": 18,
+        "size": 96,
+        "obstacle": true
+      },
+      {
+        "sprite": "./assets/sprites/props/bed.png",
+        "x": 6,
+        "y": 11,
+        "size": 96,
+        "obstacle": true
+      },
+      {
+        "sprite": "./assets/sprites/props/table.png",
+        "x": 1,
+        "y": 16,
+        "size": 96,
+        "obstacle": true
+      },
+      {
+        "sprite": "./assets/sprites/props/table.png",
+        "x": 1,
+        "y": 25,
+        "size": 96,
+        "obstacle": true
+      },
+      {
+        "sprite": "./assets/sprites/props/table.png",
+        "x": 6,
+        "y": 13,
+        "size": 96,
+        "obstacle": true
+      },
+      {
+        "sprite": "./assets/sprites/props/table.png",
+        "x": 14,
+        "y": 11,
+        "size": 96,
+        "obstacle": true
+      },
+      {
+        "sprite": "./assets/sprites/props/red-boulder.png",
+        "x": 6,
+        "y": 21,
+        "size": 96,
+        "obstacle": true
+      },
+      {
+        "sprite": "./assets/sprites/props/red-boulder.png",
+        "x": 10,
+        "y": 7,
+        "size": 96,
+        "obstacle": true
+      },
+      {
+        "sprite": "./assets/sprites/props/ancient-tree.png",
+        "x": 4,
+        "y": 0,
+        "size": 96,
+        "obstacle": true
+      }
+    ],
+    "spawnTable": [
+      {
+        "name": "Badgeri",
+        "frequency": 12,
+        "minLvl": 6
+      },
+      {
+        "name": "Badgeri Bruiser",
+        "frequency": 6,
+        "minLvl": 7
+      },
+      {
+        "name": "Badgeri Shaman",
+        "frequency": 4,
+        "minLvl": 6
+      }
+    ]
   }
 ];
 
@@ -8452,6 +10626,21 @@ const devCraftingRecipes = {
       "soundEffect": "./assets/audio/slash.wav"
     },
     {
+      "name": "Bronze Shield",
+      "station": "Smithing",
+      "output": "Bronze Shield",
+      "quantity": 1,
+      "ingredients": [
+        {
+          "item": "Bronze Ingot",
+          "quantity": 3
+        }
+      ],
+      "level": 3,
+      "xp": 80,
+      "soundEffect": "./assets/audio/slash.wav"
+    },
+    {
       "name": "Bronze Chainmail Vest",
       "station": "Smithing",
       "output": "Bronze Chainmail Vest",
@@ -8544,6 +10733,21 @@ const devCraftingRecipes = {
       "soundEffect": "./assets/audio/turn-page.wav"
     },
     {
+      "name": "Mustelid Leather",
+      "station": "Tanning",
+      "output": "Tanned Leather",
+      "quantity": 1,
+      "ingredients": [
+        {
+          "item": "Mustelid Pelt",
+          "quantity": 4
+        }
+      ],
+      "level": 1,
+      "xp": 10,
+      "soundEffect": "./assets/audio/turn-page.wav"
+    },
+    {
       "name": "Wolf Leather",
       "station": "Tanning",
       "output": "Tanned Leather",
@@ -8551,6 +10755,21 @@ const devCraftingRecipes = {
       "ingredients": [
         {
           "item": "Wolf Pelt",
+          "quantity": 2
+        }
+      ],
+      "level": 1,
+      "xp": 10,
+      "soundEffect": "./assets/audio/turn-page.wav"
+    },
+    {
+      "name": "Snow Leopard Leather",
+      "station": "Tanning",
+      "output": "Tanned Leather",
+      "quantity": 1,
+      "ingredients": [
+        {
+          "item": "Snow Leopard Pelt",
           "quantity": 2
         }
       ],
@@ -8893,95 +11112,19 @@ const devCraftingRecipes = {
   ],
   "Alchemy": [
     {
-      "name": "Healing Potion",
-      "station": "Crafting Table",
-      "output": "Healing Potion",
+      "name": "Healing Compound",
+      "station": "Alchemy",
+      "output": "Healing Compound",
       "quantity": 1,
       "ingredients": [
         {
           "item": "Houndstongue",
           "quantity": 1
-        },
-        {
-          "item": "Mandrake Root",
-          "quantity": 1
         }
       ],
       "level": 1,
-      "xp": 30,
-      "soundEffect": "./assets/audio/wand.wav"
-    },
-    {
-      "name": "Soothing Potion",
-      "station": "Crafting Table",
-      "output": "Soothing Potion",
-      "quantity": 1,
-      "ingredients": [
-        {
-          "item": "Purple Mushroom",
-          "quantity": 2
-        }
-      ],
-      "level": 1,
-      "xp": 30,
-      "soundEffect": "./assets/audio/wand.wav"
-    },
-    {
-      "name": "Energy Potion",
-      "station": "Crafting Table",
-      "output": "Energy Potion",
-      "quantity": 1,
-      "ingredients": [
-        {
-          "item": "Pixie Wing",
-          "quantity": 2
-        },
-        {
-          "item": "Bat Wing",
-          "quantity": 2
-        }
-      ],
-      "level": 1,
-      "xp": 30,
-      "soundEffect": "./assets/audio/wand.wav"
-    },
-    {
-      "name": "Agility Potion",
-      "station": "Crafting Table",
-      "output": "Agility Potion",
-      "quantity": 1,
-      "ingredients": [
-        {
-          "item": "Spider Leg",
-          "quantity": 2
-        },
-        {
-          "item": "Snapdragon Frond",
-          "quantity": 2
-        }
-      ],
-      "level": 1,
-      "xp": 30,
-      "soundEffect": "./assets/audio/wand.wav"
-    },
-    {
-      "name": "Clarity Potion",
-      "station": "Crafting Table",
-      "output": "Clarity Potion",
-      "quantity": 1,
-      "ingredients": [
-        {
-          "item": "Pixie Wing",
-          "quantity": 2
-        },
-        {
-          "item": "Magic Mushroom",
-          "quantity": 1
-        }
-      ],
-      "level": 1,
-      "xp": 30,
-      "soundEffect": "./assets/audio/wand.wav"
+      "xp": 0,
+      "soundEffect": ""
     }
   ],
   "Jewelry": [
@@ -10449,6 +12592,16 @@ const devFactionConfigs = [
     "id": "badgeri",
     "name": "Badgeri",
     "enemyFactionIds": [
+      "goblin",
+      "barbarian"
+    ]
+  },
+  {
+    "id": "barbarian",
+    "name": "Barbarian",
+    "enemyFactionIds": [
+      "badgeri",
+      "corvari",
       "goblin"
     ]
   },
@@ -10456,7 +12609,8 @@ const devFactionConfigs = [
     "id": "corvari",
     "name": "Corvari",
     "enemyFactionIds": [
-      "goblin"
+      "goblin",
+      "barbarian"
     ]
   },
   {
@@ -10488,13 +12642,22 @@ const devFactionConfigs = [
     "enemyFactionIds": [
       "corvari",
       "gandersguard",
-      "badgeri"
+      "badgeri",
+      "whiterock-dwarves",
+      "barbarian"
     ]
   },
   {
     "id": "ratkin",
     "name": "Ratkin",
     "enemyFactionIds": []
+  },
+  {
+    "id": "whiterock-dwarves",
+    "name": "Whiterock Dwarves",
+    "enemyFactionIds": [
+      "goblin"
+    ]
   }
 ];
 

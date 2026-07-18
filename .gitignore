@@ -5,6 +5,7 @@ Thumbs.db
 *.dev-backup-*
 .backup-archive/
 tmp/
+.soulreaper-data/
 
 # Dependencies and local environments
 node_modules/

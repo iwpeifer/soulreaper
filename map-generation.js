@@ -583,6 +583,8 @@
     const areas = [ganderswood, fen, fenhold.area, ratDen, ...ratDenCavern.areas, ...ratzkhan.areas, ...diarrhRealm.areas, ...bearCave.areas, ...rogabogu.areas, ...yrgmaDim.areas, ...ratDenConnectorPads, gandersville, lakeRoga.area, glade, evermist, ...whisperspring.areas, ...wyndhelmCathedral.areas, grimswood.hub, ...grimswoodPathPads, wyndhelm, crowingFields, harkharHighlands, harmushLagh, highstonePass, hargaVoagh, firecryPeak, gobba, wastes, kebaan.oasisArea, ...kebaan.ruins.areas];
     repairMissingTransitionPads(areas, transitionPassages);
     const harmushLake = makeHarmushLake(harmushLagh, reservationPassages);
+    const hollyhockSite = makeHollyhockLakeSite(harmushLagh, harmushLake);
+    const barbarianHouseSite = makeBarbarianHouseSite(harmushLagh, reservationPassages, harmushLake, [hollyhockSite?.npc].filter(Boolean));
     const river = makeCrowingRiver(crowingFields, 28);
     const mudBanks = makeCrowingRiverMudBanks(river);
     const puddles = [lakeRoga.lake, harmushLake, ...makeGladePuddles(glade, 26), ...makeLavaPuddles(firecryPeak, 24), ...whisperspring.water, ...(bearCave.water || []), ...(bearCave.lava || []), ...(rogabogu.water || []), ...(rogabogu.lava || []), ...(yrgmaDim.water || []), ...(yrgmaDim.lava || []), ...river, kebaan.oasisWater];
@@ -616,7 +618,7 @@
     const gladeTrainerSite = makeGladeTrainerSite(glade, areas, reservationPassages);
     const wyndhelmSite = makeWyndhelmSite(wyndhelm, [wyndhelmPassage]);
     const gobbaSite = makeGobbaSite(gobba);
-    const mapHouses = [...homestead.houses, ...gandersvilleSite.houses, ...fenhold.houses, ...wyndhelmSite.houses, ...bumsforkSite.houses, ...gobbaSite.houses, ...(theodoraSite?.houses || []), ...(blasphemiumSite?.houses || []), ...(gladeTrainerSite?.houses || [])];
+    const mapHouses = [...homestead.houses, ...gandersvilleSite.houses, ...fenhold.houses, ...wyndhelmSite.houses, ...bumsforkSite.houses, ...gobbaSite.houses, ...(theodoraSite?.houses || []), ...(blasphemiumSite?.houses || []), ...(gladeTrainerSite?.houses || []), ...(barbarianHouseSite?.houses || [])];
     const configuredNpcs = makeConfiguredMapNpcs({
       ganderswood,
       fenhold,
@@ -639,9 +641,13 @@
         barbarianessSkjoldma,
         tailorAntonia,
         blasphemiumSite?.hereticOswaldo,
-        blasphemiumSite?.hereticSlayleigh
+        blasphemiumSite?.hereticSlayleigh,
+        hollyhockSite?.npc,
+        ...(barbarianHouseSite?.npcs || [])
       ].filter(Boolean)
     });
+    if (hollyhockSite?.npc) configuredNpcs.push(hollyhockSite.npc);
+    configuredNpcs.push(...(barbarianHouseSite?.npcs || []));
     configuredNpcs.push(...(bearCave.configuredNpcs || []), ...(rogabogu.configuredNpcs || []), ...(yrgmaDim.configuredNpcs || []));
     const fenGraveyard = makeRandomGraveyardSite(fen, areas, reservationPassages, mapHouses, {
       id: "ganderswood-fen-graveyard",
@@ -782,10 +788,11 @@
       if (obstacles.some(existing => distance(obstacle, existing) < obstacle.radius + existing.radius + 34)) continue;
       obstacles.push(obstacle);
     }
+    clearBlockedHouseEntrances(obstacles, mapHouses);
   
     applyDevAreaConfigs(areas);
     const graveyards = [blasphemiumSite?.graveyard, fenGraveyard?.graveyard, wyndhelmGraveyard?.graveyard].filter(Boolean);
-    const map = { name: AREA_NAME, areas, passages, transitionPassages, obstacles, puddles, mudBanks, oasisGrounds, mistClouds, houses: mapHouses, furniture: [...(gandersvilleSite.furniture || []), ...(fenhold.furniture || []), ...(bearCave.furniture || []), ...(rogabogu.furniture || []), ...(yrgmaDim.furniture || [])], gandersvilleTownSquare: gandersvilleSite.townSquare, playerStart: gandersvilleSite.playerStart, shopkeeper, pleezix, trainer, gladeTrainer: gladeTrainerSite?.trainer || null, configuredNpcs, gvada, huntsmanRobb, blacksmithFredward, tailorAntonia, barbarianessSkjoldma, chaplainSonsam, highPriestessSierra, alchemistClaristra, magisterMaimon, juanTabo, lordYantos: gandersvilleSite.lordYantos, theodora: theodoraSite?.theodora || null, hereticOswaldo: blasphemiumSite?.hereticOswaldo || null, hereticSlayleigh: blasphemiumSite?.hereticSlayleigh || null, sharlene, mordren, cecil, bumsforkNpcs, ganderswoodGraveyard: blasphemiumSite?.graveyard || null, graveyards, grimswood, fenhold, whisperspring, whisperspringRooms: whisperspring.rooms, wyndhelmCathedral, wyndhelmCathedralRooms: wyndhelmCathedral.rooms, ratzkhan, diarrhRealm, diarrhRealmRooms: diarrhRealm.rooms, bearCave, bearCaveRooms: bearCave.rooms, rogabogu, rogaboguRooms: rogabogu.rooms, yrgmaDim, yrgmaDimRooms: yrgmaDim.rooms, firecryPeak, kebaan: { wastes, ...kebaan }, eliteSpawns, fixedSpawns };
+    const map = { name: AREA_NAME, areas, passages, transitionPassages, obstacles, puddles, mudBanks, oasisGrounds, mistClouds, houses: mapHouses, furniture: [...(gandersvilleSite.furniture || []), ...(fenhold.furniture || []), ...(bearCave.furniture || []), ...(rogabogu.furniture || []), ...(yrgmaDim.furniture || [])], gandersvilleTownSquare: gandersvilleSite.townSquare, playerStart: gandersvilleSite.playerStart, shopkeeper, pleezix, trainer, gladeTrainer: gladeTrainerSite?.trainer || null, configuredNpcs, hollyhockQuestSites: hollyhockSite?.questSites || null, gvada, huntsmanRobb, blacksmithFredward, tailorAntonia, barbarianessSkjoldma, chaplainSonsam, highPriestessSierra, alchemistClaristra, magisterMaimon, juanTabo, lordYantos: gandersvilleSite.lordYantos, theodora: theodoraSite?.theodora || null, hereticOswaldo: blasphemiumSite?.hereticOswaldo || null, hereticSlayleigh: blasphemiumSite?.hereticSlayleigh || null, sharlene, mordren, cecil, bumsforkNpcs, ganderswoodGraveyard: blasphemiumSite?.graveyard || null, graveyards, grimswood, fenhold, whisperspring, whisperspringRooms: whisperspring.rooms, wyndhelmCathedral, wyndhelmCathedralRooms: wyndhelmCathedral.rooms, ratzkhan, diarrhRealm, diarrhRealmRooms: diarrhRealm.rooms, bearCave, bearCaveRooms: bearCave.rooms, rogabogu, rogaboguRooms: rogabogu.rooms, yrgmaDim, yrgmaDimRooms: yrgmaDim.rooms, firecryPeak, kebaan: { wastes, ...kebaan }, eliteSpawns, fixedSpawns };
     applyNpcConfigsToMap(map);
     scaleMapNpcRadii(map);
     prepareMapCaches(map);
@@ -4878,6 +4885,32 @@
       shopSpot: { x: cx, y: cy + 8 }
     };
   }
+
+  function obstacleIntersectsDoorCorridor(obstacle, start, end, clearance = 78) {
+    if (!obstacle || !start || !end) return false;
+    if (obstacle.kind === "city-building" || obstacle.kind === "ruins-wall") return false;
+    if (obstacle.kind === "whisperspring-entrance") return false;
+    const radius = Number(obstacle.radius) || Math.max(Number(obstacle.w) || 0, Number(obstacle.h) || 0, Number(obstacle.size) || 0) / 2 || 24;
+    if (!Number.isFinite(obstacle.x) || !Number.isFinite(obstacle.y)) return false;
+    const corridorHit = distancePointToSegment(obstacle.x, obstacle.y, start.x, start.y, end.x, end.y) <= radius + clearance;
+    const doorstepHit = Math.hypot(obstacle.x - end.x, obstacle.y - end.y) <= radius + clearance * 1.15;
+    return corridorHit || doorstepHit;
+  }
+
+  function clearBlockedHouseEntrances(obstacles = [], houses = []) {
+    for (let index = obstacles.length - 1; index >= 0; index -= 1) {
+      const obstacle = obstacles[index];
+      const blocksDoor = (houses || []).some(house => {
+        const entrances = house.entrances || [house.entrance].filter(Boolean);
+        const outsideDoors = house.outsideDoors || [house.outsideDoor].filter(Boolean);
+        return outsideDoors.some((outsideDoor, doorIndex) => {
+          const entrance = entrances[doorIndex] || house.entrance || outsideDoor;
+          return obstacleIntersectsDoorCorridor(obstacle, entrance, outsideDoor);
+        });
+      });
+      if (blocksDoor) obstacles.splice(index, 1);
+    }
+  }
   
   function makeLonghouse(id, cx, cy, options = {}) {
     const w = options.w || 720;
@@ -5656,6 +5689,124 @@
     fallback.rx = Math.min(fallback.rx, area.width * 0.2);
     fallback.ry = Math.min(fallback.ry, area.height * 0.16);
     return fallback;
+  }
+
+  function makeHollyhockLakeSite(area, lake) {
+    if (!area || !lake) return null;
+    const shorePoint = (angle, distance = 90) => ({
+      x: lake.x + Math.cos(angle) * ((lake.rx || 420) + distance),
+      y: lake.y + Math.sin(angle) * ((lake.ry || 260) + distance)
+    });
+    const pick = (angles, distance = 90) => {
+      for (const angle of angles) {
+        const point = shorePoint(angle, distance);
+        if (isPointInBoundary(point.x, point.y, area.boundary)) return point;
+      }
+      return {
+        x: lake.x + Math.min((lake.rx || 420) + distance, area.width * 0.28),
+        y: lake.y
+      };
+    };
+    const npcPoint = pick([0, Math.PI * 0.18, -Math.PI * 0.18, Math.PI], 120);
+    const mossSites = [
+      { id: "lakeward-stone", label: "lakeward stone", correct: true, ...pick([Math.PI * 0.72, Math.PI * 0.55, Math.PI * 0.9], 78) },
+      { id: "dry-silver-stone", label: "dry silver stone", correct: false, ...pick([Math.PI * 1.22, Math.PI * 1.08, Math.PI * 1.4], 135) },
+      { id: "rain-facing-stone", label: "rain-facing stone", correct: false, ...pick([-Math.PI * 0.35, -Math.PI * 0.55, -Math.PI * 0.12], 130) }
+    ];
+    const rootSites = [
+      { id: "water-root-charm", label: "water", ...pick([Math.PI * 0.05, -Math.PI * 0.05], 66) },
+      { id: "stone-root-charm", label: "stone", ...pick([Math.PI * 0.92, Math.PI * 0.82], 120) },
+      { id: "tree-root-charm", label: "tree", ...pick([-Math.PI * 0.75, -Math.PI * 0.62], 145) }
+    ];
+    return {
+      npc: makeConfiguredNpc("herbalist-hollyhock", npcPoint.x, npcPoint.y, {
+        area: HARMUSH_LAGH_AREA_NAME,
+        wandering: false,
+        startsQuest: true,
+        questChain: ["hollyhocks-mossy-errand", "hollyhocks-lake-offering", "hollyhocks-green-touch"],
+        dialogueContexts: {
+          questOffer: "Aye, I can feel a shy bit of green waking in you. If you want my teaching, start with a patient errand: find me a Moss-Covered Stone out in Harmush Lagh. The old stones here drink root-whispers better than any bottle I own, but they do not sit politely beside the road.",
+          questActive: "Still hunting the stone, are you? Keep your eyes low and your boots steady. Moss loves the quiet places, away from shouting halls and hot forge smoke.",
+          questReady: "There it is. Do not hand it over. Keep it close. A stone that has listened this long should hear what the lake has to say next.",
+          questLakeOffer: "Now take that Moss-Covered Stone to the lake and drop it in. Do not toss it like rubbish. Offer it. If something answers with teeth, keep your wits and show me you can survive the bargain.",
+          questLakeActive: "The lake has not had your offering yet. Stand near the water and drop the Moss-Covered Stone in. If the water spits trouble back, put it down cleanly.",
+          questLakeReady: "Good. The lake answered, and you answered louder. That is how a dwarf learns Sylvan work: not by pretty words, but by standing firm when the deep places blink back.",
+          questTellursaOffer: "One more lesson, and this one needs a gentler hand. A rare Tellursa wanders the Harkhar Highlands. Find it, do not butcher it, and cast Chlorophyll on it. I want to know you can mend a living thing when the mountains are trying to harden your heart.",
+          questTellursaActive: "Find the Tellursa in Harkhar Highlands and lay Chlorophyll on it. If it bolts, let it breathe and try again. Sylvan magic is not a hammer, no matter what our kin say.",
+          questTellursaReady: "Aye, that will do. You have listened to stone, water, tooth, and beast. Take this trinket. It is not fancy, but it remembers the lake better than most people do.",
+          questAfterComplete: "Keep your roots deep and your axe sharper than your pride. Harmush Lagh has more to teach, if you keep listening."
+        }
+      }),
+      questSites: { mossSites, rootSites }
+    };
+  }
+
+  function makeBarbarianHouseSite(area, passages = [], lake = null, avoidNpcs = []) {
+    if (!area) return null;
+    const houseW = 340;
+    const houseH = 270;
+    const clearOfLake = house => {
+      if (!lake) return true;
+      const pad = 70;
+      const points = [
+        { x: house.x, y: house.y },
+        { x: house.x - house.w / 2 - pad, y: house.y - house.h / 2 - pad },
+        { x: house.x + house.w / 2 + pad, y: house.y - house.h / 2 - pad },
+        { x: house.x - house.w / 2 - pad, y: house.y + house.h / 2 + pad },
+        { x: house.x + house.w / 2 + pad, y: house.y + house.h / 2 + pad }
+      ];
+      return points.every(point => !pointInPuddle(point.x, point.y, lake, 0));
+    };
+    const validHouse = house => {
+      const bounds = houseCollisionBounds(house, 90);
+      const corners = [
+        { x: bounds.x, y: bounds.y },
+        { x: bounds.x + bounds.w, y: bounds.y },
+        { x: bounds.x, y: bounds.y + bounds.h },
+        { x: bounds.x + bounds.w, y: bounds.y + bounds.h }
+      ];
+      if (!corners.every(point => isPointInBoundary(point.x, point.y, area.boundary))) return false;
+      if (pointInAnyPassage(house.x, house.y, passages, Math.max(house.w, house.h) * 0.65)) return false;
+      if (!clearOfLake(house)) return false;
+      if ((avoidNpcs || []).some(npc => Math.hypot(house.x - npc.x, house.y - npc.y) < 430)) return false;
+      return true;
+    };
+    let house = null;
+    for (let attempt = 0; attempt < 180; attempt += 1) {
+      const x = randomBetween(area.center.x - area.width * 0.36, area.center.x + area.width * 0.36);
+      const y = randomBetween(area.center.y - area.height * 0.36, area.center.y + area.height * 0.36);
+      const candidate = makeHouse("barbarian-house", x, y, houseW, houseH, {
+        label: "Barbarian House",
+        metadata: { area: HARMUSH_LAGH_AREA_NAME, name: "Barbarian House" },
+        roofTexture: "thatch"
+      });
+      if (!validHouse(candidate)) continue;
+      house = candidate;
+      break;
+    }
+    if (!house) {
+      house = makeHouse("barbarian-house", area.center.x + area.width * 0.18, area.center.y - area.height * 0.18, houseW, houseH, {
+        label: "Barbarian House",
+        metadata: { area: HARMUSH_LAGH_AREA_NAME, name: "Barbarian House" },
+        roofTexture: "thatch"
+      });
+    }
+    const interior = house.interior || house.floor;
+    const fenrir = makeConfiguredNpc("fenrir", interior.x + interior.w * 0.34, interior.y + interior.h * 0.48, {
+      area: HARMUSH_LAGH_AREA_NAME,
+      houseId: house.id,
+      wandering: false
+    });
+    const sigrid = makeConfiguredNpc("sigrid", interior.x + interior.w * 0.66, interior.y + interior.h * 0.48, {
+      area: HARMUSH_LAGH_AREA_NAME,
+      houseId: house.id,
+      wandering: false
+    });
+    return {
+      house,
+      houses: [house],
+      npcs: [fenrir, sigrid]
+    };
   }
 
   function makeLavaPuddles(area, count) {

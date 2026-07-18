@@ -1241,7 +1241,7 @@ const starterSpells = [
       const damage = spellDamageValue(this, "damage", 4, 1);
       removeInvisibility(game.player);
       const baseDuration = Number(this.duration ?? 4);
-      const freeze = { name: "Freeze", remaining: game.mode === "multiplayer" ? baseDuration : freezeDurationFor(target, baseDuration), freeze: true };
+      const freeze = { name: "Frozen", realm: "Ethereal", remaining: game.mode === "multiplayer" ? baseDuration : freezeDurationFor(target, baseDuration), freeze: true, debuff: true };
       if (game.mode === "multiplayer" && target.id) {
         sendMultiplayerAction({
           action: "spell:projectile",
@@ -1310,7 +1310,7 @@ const starterSpells = [
           tick,
           radius: this.aoeRadius * RANGE_UNIT,
           range: this.range,
-          statMod: { name: "Freeze", remaining: duration, freeze: true },
+          statMod: { name: "Frozen", realm: "Ethereal", remaining: duration, freeze: true, debuff: true },
           realmXp: true
         });
         return true;
@@ -1326,10 +1326,23 @@ const starterSpells = [
         tick,
         tickTimer: 0,
         radius: this.aoeRadius * RANGE_UNIT,
-        statMod: { name: "Freeze", remaining: duration, freeze: true },
+        statMod: { name: "Frozen", realm: "Ethereal", remaining: duration, freeze: true, debuff: true },
         realmXp: true
       });
       return true;
+    }
+  },
+  {
+    name: "Frozen Touch",
+    realm: "Ethereal",
+    lvl: 1,
+    cooldown: 0,
+    range: 0,
+    passive: true,
+    text: "Melee weapon hits have a 2% chance per LVL to make an enemy Frozen for 4 seconds.",
+    duration: 4,
+    formulas: {
+      freezeChance: { type: "stat", base: 0, perLevel: 2 }
     }
   },
   {
@@ -1984,7 +1997,7 @@ const starterSpells = [
           trail: "#f0cf63",
           dmgType: "Magical",
           range: this.range,
-          dot: { name: "Fireball", realm: "Infernal", damage: dotDamage, tick, timer: tick, remaining: duration, dmgType: "Magical", realmXp: true },
+          dot: { name: "Burning", realm: "Infernal", damage: dotDamage, tick, timer: tick, remaining: duration, dmgType: "Magical", realmXp: true },
           projectileAnimation: "fireball",
           realmXp: true
         });
@@ -2001,7 +2014,7 @@ const starterSpells = [
         speed: 330,
         trail: "#f0cf63",
         dmgType: "Magical",
-        dot: { name: "Fireball", realm: "Infernal", damage: dotDamage, tick, duration, dmgType: "Magical", realmXp: true },
+        dot: { name: "Burning", realm: "Infernal", damage: dotDamage, tick, duration, dmgType: "Magical", realmXp: true },
         projectileAnimation: "fireball",
         realmXp: true
       }));
@@ -2581,6 +2594,7 @@ const spellIconFiles = {
   "Summon Portal": "summon-portal.png",
   "Ice Bolt": "ice-bolt.png",
   "Ice Storm": "ice-storm.png",
+  "Frozen Touch": "frozen-touch.png",
   "Chain Lightning": "chain-lightning.png",
   "Grace from Above": "grace-from-above.png",
   "Divine Shield": "divine-shield.png",

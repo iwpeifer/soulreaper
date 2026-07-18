@@ -26,6 +26,7 @@ function normalizedAssetPath(assetPath) {
 }
 
 const world = loadBrowserData("data/world.js").SoulreaperWorldData;
+const items = loadBrowserData("data/items.js").SoulreaperItems;
 const npcSprites = loadBrowserData("data/npc-sprites.js").SoulreaperNpcSprites?.sprites || {};
 const questUiSource = fs.readFileSync(path.join(root, "quest-ui.js"), "utf8");
 const builtInQuestIds = new Set([...questUiSource.matchAll(/"([a-z0-9-]+)":\s*[a-zA-Z0-9_]+Quest/g)].map(match => match[1]));
@@ -34,10 +35,13 @@ const questIds = new Set([...builtInQuestIds, ...configuredQuestIds]);
 const spritePaths = new Set(Object.values(npcSprites).map(sprite => normalizedAssetPath(sprite.src)));
 const knownCustomQuestNpcs = new Map([
   ["lord-yantos", ["joining-the-gandersguard"]],
-  ["lord-rauf", ["joining-the-fenguard", "gandersville-raid"]]
+  ["lord-rauf", ["joining-the-fenguard", "gandersville-raid"]],
+  ["herbalist-hollyhock", ["hollyhocks-mossy-errand", "hollyhocks-lake-offering", "hollyhocks-green-touch"]]
 ]);
 
 const errors = [];
+if (!items?.itemTemplates?.["Moss-Covered Stone"]) errors.push("Missing item template Moss-Covered Stone.");
+
 for (const [id, requiredQuestIds] of knownCustomQuestNpcs) {
   const npc = (world.devNpcConfigs || []).find(candidate => candidate.id === id);
   if (!npc) {
@@ -49,6 +53,15 @@ for (const [id, requiredQuestIds] of knownCustomQuestNpcs) {
     const declared = npc.questId === questId || (Array.isArray(npc.questChain) && npc.questChain.includes(questId));
     if (!declared) errors.push(`${id} must declare quest ${questId}.`);
   }
+  if (id === "herbalist-hollyhock") {
+    const offer = String(npc.dialogueContexts?.questOffer || "");
+    if (!offer.includes("Aye, I can feel")) errors.push("herbalist-hollyhock is missing Dwarven first-person questOffer dialogue.");
+  }
+}
+
+const pariah = (world.devNpcConfigs || []).find(candidate => candidate.id === "pariah-blackbraid");
+if (Array.isArray(pariah?.questChain) && pariah.questChain.some(id => String(id).startsWith("hollyhocks-"))) {
+  errors.push("pariah-blackbraid must not declare Hollyhock quests.");
 }
 
 for (const npc of world.devNpcConfigs || []) {

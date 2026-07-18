@@ -16,7 +16,7 @@
       const stat = formula.stat === undefined ? "INT" : formula.stat;
       const statScale = Number(formula.statScale ?? 1);
       const caster = formula.caster || game.player;
-      const multiplier = stat ? 1 + (effectiveStat(caster, stat) * statScale) / 100 : 1;
+      const multiplier = stat ? Math.max(0, 1 + (effectiveStat(caster, stat) * statScale) / 100) : 1;
       return roundUpTenth(raw * multiplier);
     }
     return roundUpTenth(raw);
@@ -32,7 +32,7 @@
     const raw = spellFormulaBaseValue(spell, formula, base, perLevel);
     const stat = formula?.stat === undefined ? "INT" : formula.stat;
     const statScale = Number(formula?.statScale ?? 1);
-    const multiplier = stat ? 1 + (effectiveStat(caster, stat) * statScale) / 100 : 1;
+    const multiplier = stat ? Math.max(0, 1 + (effectiveStat(caster, stat) * statScale) / 100) : 1;
     return roundUpTenth(raw * multiplier);
   }
   
@@ -226,6 +226,9 @@
     }
     if (spell.name === "Poison") {
       return `Weapon attacks have a 50% chance to poison an enemy, dealing ${formatNumber(poisonTotalDamage(spell))} Mortal damage over ${formatNumber(spell.duration ?? 4)} seconds in ${formatNumber(spell.tick ?? 1)}-second ticks of ${formatNumber(poisonTickDamage(spell))}.`;
+    }
+    if (spell.name === "Frozen Touch") {
+      return `Melee weapon hits have a ${formatNumber(spellValue(spell, "freezeChance", 0, 2))}% chance to make an enemy Frozen for ${formatNumber(spell.duration ?? 4)} seconds.`;
     }
     return spell.text;
   }

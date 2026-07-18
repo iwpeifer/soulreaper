@@ -82,55 +82,96 @@
     </main>
 
     <div id="modeChoice" class="modal-backdrop">
-      <section class="modal mode-modal" role="dialog" aria-modal="true" aria-labelledby="modeChoiceTitle">
-        <h2 id="modeChoiceTitle">Create Your Soulreaper</h2>
-        <label class="name-field">
-          <span>Name</span>
-          <input id="playerNameInput" type="text" maxlength="24" autocomplete="off" placeholder="Soulreaper">
-        </label>
-        <div class="avatar-choice" aria-label="Choose character ancestry and avatar">
-          <button class="avatar-card selected" type="button" data-avatar="soulreaperMale">
-            <img src="./assets/sprites/player-bases/soulreaper-male-naked.png" alt="">
-            <span>Human Male</span>
-          </button>
-          <button class="avatar-card" type="button" data-avatar="soulreaperFemale">
-            <img src="./assets/sprites/player-bases/soulreaper-female-naked.png" alt="">
-            <span>Human Female</span>
-          </button>
-          <button class="avatar-card" type="button" data-avatar="dwarfMale">
-            <img src="./assets/sprites/player-bases/soulreaper-dwarf-male-naked.png" alt="">
-            <span>Dwarf Male</span>
-          </button>
-          <button class="avatar-card avatar-card-disabled" type="button" data-avatar="dwarfFemale" disabled aria-disabled="true">
-            <img src="./assets/sprites/player-bases/soulreaper-dwarf-female-naked.png" alt="">
-            <span>Dwarf Female</span>
-          </button>
+      <section class="modal mode-modal account-modal" role="dialog" aria-modal="true" aria-labelledby="modeChoiceTitle">
+        <header class="account-modal-header">
+          <h2 id="modeChoiceTitle">Soulreaper</h2>
+          <div id="accountStatus" class="account-status"></div>
+        </header>
+        <div id="authPanel" class="account-grid">
+          <form id="loginForm" class="account-panel">
+            <h3>Login</h3>
+            <label class="name-field"><span>Username</span><input id="loginUsernameInput" type="text" autocomplete="username"></label>
+            <label class="name-field"><span>Password</span><input id="loginPasswordInput" type="password" autocomplete="current-password"></label>
+            <button class="choice-card" type="submit"><strong>Login</strong></button>
+          </form>
+          <form id="createAccountForm" class="account-panel">
+            <h3>Create Account</h3>
+            <label class="name-field"><span>Username</span><input id="createUsernameInput" type="text" autocomplete="username"></label>
+            <label class="name-field"><span>Password</span><input id="createPasswordInput" type="password" autocomplete="new-password"></label>
+            <label class="name-field"><span>Repeat Password</span><input id="createRepeatPasswordInput" type="password" autocomplete="new-password"></label>
+            <div id="createPasswordHelp" class="field-help hidden"></div>
+            <button class="choice-card" type="submit"><strong>Create Account</strong></button>
+          </form>
         </div>
-        <div class="multiplayer-panel">
-          <h3 class="mode-heading">Multiplayer World</h3>
-          <label class="name-field multiplayer-field">
-            <span>New World Name</span>
-            <input id="multiplayerWorldInput" type="text" maxlength="32" autocomplete="off" placeholder="The Hollow Road">
-          </label>
-          <div class="multiplayer-worlds">
+        <div id="characterDashboard" class="character-dashboard hidden">
+          <aside class="character-list-panel">
             <div class="multiplayer-worlds-header">
-              <span>Existing Worlds</span>
-              <button id="refreshMultiplayerWorldsButton" class="small-button" type="button">Refresh</button>
+              <span>Characters</span>
+              <button id="refreshAccountButton" class="small-button" type="button">Refresh</button>
             </div>
-            <div id="multiplayerWorldList" class="multiplayer-world-list" aria-live="polite">
-              <span class="multiplayer-world-empty">Loading worlds...</span>
+            <div id="characterList" class="character-list"></div>
+          </aside>
+          <section class="character-detail-panel">
+            <form id="createCharacterForm" class="account-panel">
+              <h3>Create Character</h3>
+              <label class="name-field"><span>Name</span><input id="playerNameInput" type="text" maxlength="24" autocomplete="off" placeholder="Soulreaper"></label>
+              <div id="characterNameHelp" class="field-help hidden"></div>
+              <div class="race-choice-grid">
+                <button class="creation-image-button selected" type="button" data-race-choice="human" aria-label="Human">
+                  <img src="./assets/UI/human.png" alt="Human">
+                </button>
+                <button class="creation-image-button" type="button" data-race-choice="dwarf" aria-label="Dwarf">
+                  <img src="./assets/UI/dwarves.png" alt="Dwarf">
+                </button>
+                <button class="creation-image-button placeholder" type="button" data-race-choice="elf" aria-label="Elf" disabled aria-disabled="true">
+                  <img src="./assets/UI/elves.png" alt="Elf">
+                </button>
+                <button class="creation-image-button placeholder" type="button" data-race-choice="drow" aria-label="Drow" disabled aria-disabled="true">
+                  <img src="./assets/UI/drow.png" alt="Drow">
+                </button>
+              </div>
+              <div class="sex-toggle-row">
+                <button class="creation-image-button sex-toggle-card" type="button" data-sex-toggle aria-label="Male">
+                  <img src="./assets/UI/male.png" alt="Male">
+                </button>
+              </div>
+              <button class="choice-card" type="submit"><strong>Create Character</strong></button>
+            </form>
+            <div class="multiplayer-panel">
+              <h3 class="mode-heading">World</h3>
+              <label class="name-field multiplayer-field">
+                <span>New World Name</span>
+                <input id="multiplayerWorldInput" type="text" maxlength="32" autocomplete="off" placeholder="The Hollow Road">
+              </label>
+              <div class="multiplayer-worlds">
+                <div class="multiplayer-worlds-header">
+                  <span>Active Worlds</span>
+                  <button id="refreshMultiplayerWorldsButton" class="small-button" type="button">Refresh</button>
+                </div>
+                <div id="multiplayerWorldList" class="multiplayer-world-list" aria-live="polite">
+                  <span class="multiplayer-world-empty">Loading worlds...</span>
+                </div>
+              </div>
+              <div class="choice-grid multiplayer-choice-grid">
+                <button class="choice-card" type="button" data-multiplayer-action="resume">
+                  <strong>Resume Last World</strong>
+                  <small>Continue where selected character logged off.</small>
+                </button>
+                <button class="choice-card" type="button" data-multiplayer-action="create">
+                  <strong>Create New World</strong>
+                  <small>Enter from your character's starting location.</small>
+                </button>
+                <button class="choice-card" type="button" data-multiplayer-action="join">
+                  <strong>Join Selected World</strong>
+                  <small>Enter from your character's starting location.</small>
+                </button>
+                <button class="choice-card danger" type="button" data-delete-character>
+                  <strong>Delete Character</strong>
+                  <small>Requires confirmation.</small>
+                </button>
+              </div>
             </div>
-          </div>
-          <div class="choice-grid multiplayer-choice-grid">
-            <button class="choice-card" type="button" data-multiplayer-action="create">
-              <strong>Create New World</strong>
-              <small>Create a named shared world.</small>
-            </button>
-            <button class="choice-card" type="button" data-multiplayer-action="join">
-              <strong>Join Existing World</strong>
-              <small>Use the selected world from the list.</small>
-            </button>
-          </div>
+          </section>
         </div>
       </section>
     </div>
@@ -365,14 +406,14 @@
     <script src="./data/item-art.js?v=gold-jewelry-20260712"></script>
     <script src="./data/npc-sprites.js"></script>
     <script src="./data/monsters.js?v=loot-duplicate-rolls-20260706"></script>
-    <script src="./data/world.js?v=editor-save-1784197252010"></script>
+    <script src="./data/world.js?v=editor-save-1784344732793"></script>
     <script src="./data/spells.js?v=portal-ingame-choice-20260713"></script>
     <script src="./npc-interactions.js"></script>
-    <script src="./map-generation.js?v=editor-save-1784197252010"></script>
+    <script src="./map-generation.js?v=editor-save-1784344732793"></script>
     <script src="./spell-runtime.js"></script>
     <script src="./inventory-ui.js?v=enchantment-avatar-channels-20260703"></script>
     <script src="./spell-ui.js?v=skills-crafting-tab-20260706"></script>
     <script src="./quest-ui.js?v=quest-hardening-20260708"></script>
-    <script src="./game.js?v=editor-save-1784197252010"></script>
+    <script src="./game.js?v=editor-save-1784344732793"></script>
   </body>
 </html>

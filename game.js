@@ -37,11 +37,28 @@ let targetWindowBody = null;
 let targetWindowSignature = "";
 let effectsWindowBody = null;
 let effectsWindowSignature = "";
+let petWindowBody = null;
+let petWindowSignature = "";
 const logEl = document.querySelector("#log");
 const rightPanel = document.querySelector(".right-panel");
 const chronicleTab = document.querySelector("#chronicleTab");
 const chatLogTab = document.querySelector("#chatLogTab");
 const modeChoice = document.querySelector("#modeChoice");
+const accountStatus = document.querySelector("#accountStatus");
+const authPanel = document.querySelector("#authPanel");
+const characterDashboard = document.querySelector("#characterDashboard");
+const loginForm = document.querySelector("#loginForm");
+const createAccountForm = document.querySelector("#createAccountForm");
+const createCharacterForm = document.querySelector("#createCharacterForm");
+const characterList = document.querySelector("#characterList");
+const refreshAccountButton = document.querySelector("#refreshAccountButton");
+const loginUsernameInput = document.querySelector("#loginUsernameInput");
+const loginPasswordInput = document.querySelector("#loginPasswordInput");
+const createUsernameInput = document.querySelector("#createUsernameInput");
+const createPasswordInput = document.querySelector("#createPasswordInput");
+const createRepeatPasswordInput = document.querySelector("#createRepeatPasswordInput");
+const createPasswordHelp = document.querySelector("#createPasswordHelp");
+const characterNameHelp = document.querySelector("#characterNameHelp");
 const playerNameInput = document.querySelector("#playerNameInput");
 const multiplayerWorldInput = document.querySelector("#multiplayerWorldInput");
 const multiplayerWorldList = document.querySelector("#multiplayerWorldList");
@@ -136,6 +153,7 @@ runtimeUiStyle.textContent = `
   }
 `;
 document.head.appendChild(runtimeUiStyle);
+// Legacy inventory event bindings still attach to this node; pet commands now live in the Pet window.
 const petCommandMenu = document.createElement("div");
 petCommandMenu.className = "pet-command-menu hidden";
 document.body.appendChild(petCommandMenu);
@@ -147,8 +165,14 @@ teamWindow.className = "team-window hidden";
 teamWindow.innerHTML = `<div class="team-window-header">Team</div><div class="team-member-list"></div>`;
 document.body.appendChild(teamWindow);
 let characterFactionList = null;
+let characterRealmList = null;
 let minimapWindowCanvas = null;
 let minimapWindowCtx = null;
+let minimapZoomHoldTimer = null;
+let minimapZoomHoldPointerId = null;
+const MIN_MAP_ZOOM = 8;
+const MAX_MAP_ZOOM = 64;
+const DEFAULT_MAP_ZOOM = 28;
 let floatingWindowsReady = false;
 let floatingFitFrame = 0;
 let floatingFitDirty = false;
@@ -159,16 +183,40 @@ const floatingFitPaneCache = new WeakMap();
 let spellHudSignature = "";
 let statusEffectHudSignature = "";
 let characterFactionSignature = "";
+let characterRealmSignature = "";
 let nextSharedEntityId = 1;
 const PET_DURATION_SECONDS = 150;
 const REMOTE_COMBAT_SOUND_RANGE = 1100;
+const SPELL_MEMORIZATION_SECONDS = 5;
+const SPELL_LINEUP_COUNT = 3;
+window.SoulreaperSpellLineupCount = SPELL_LINEUP_COUNT;
+const SOUND_VOLUME_STORAGE_KEY = "soulreaperSoundVolume.v1";
 const levelUpGongAudio = new Audio("./assets/audio/level-up-gong.wav");
 levelUpGongAudio.preload = "auto";
 const soundEffectCache = {};
 
+function loadSoundVolume() {
+  try {
+    const value = Number(localStorage.getItem(SOUND_VOLUME_STORAGE_KEY));
+    return Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 1;
+  } catch {
+    return 1;
+  }
+}
+
+function setSoundVolume(value) {
+  const volume = Math.max(0, Math.min(1, Number(value)));
+  game.soundVolume = Number.isFinite(volume) ? volume : 1;
+  try {
+    localStorage.setItem(SOUND_VOLUME_STORAGE_KEY, String(game.soundVolume));
+  } catch {}
+  renderOptionsWindow();
+}
+
 function playLevelUpGong() {
   try {
     levelUpGongAudio.currentTime = 0;
+    levelUpGongAudio.volume = game?.soundVolume ?? 1;
     const playback = levelUpGongAudio.play();
     if (playback?.catch) playback.catch(() => {});
   } catch {}
@@ -186,6 +234,7 @@ function playSoundEffect(name) {
   try {
     const audio = soundEffectCache[src] ||= new Audio(src);
     audio.currentTime = 0;
+    audio.volume = game?.soundVolume ?? 1;
     const playback = audio.play();
     if (playback?.catch) playback.catch(() => {});
   } catch {}
@@ -1010,15 +1059,8 @@ function drawableAvatarImage(image) {
   return Boolean(image.complete && (image.naturalWidth || image.width));
 }
 
-const femaleAvatarEquipmentOffset = { x: -3, y: 3 };
-
 function avatarEquipmentDrawOffset(avatar, size) {
-  if (avatarGenderForAvatar(avatar) !== "female") return { x: 0, y: 0 };
-  const scale = size / 128;
-  return {
-    x: femaleAvatarEquipmentOffset.x * scale,
-    y: femaleAvatarEquipmentOffset.y * scale
-  };
+  return { x: 0, y: 0 };
 }
 
 function isHeldAvatarLayer(layer) {
@@ -1026,11 +1068,10 @@ function isHeldAvatarLayer(layer) {
 }
 
 function heldAvatarLayerAnchor(layer, avatar, size, layerX, layerY) {
-  const gender = avatarGenderForAvatar(avatar);
   const offHand = layer?.slot === "Off-Hand";
   const scale = size / 128;
   const x = layerX + size * (offHand ? 0.29 : 0.71);
-  const y = layerY + size * (gender === "female" ? 0.61 : 0.59);
+  const y = layerY + size * 0.59;
   return {
     x: x + (offHand ? -3 : 3) * scale,
     y: y + (offHand ? 1 : 0) * scale
@@ -1481,6 +1522,49 @@ function updatePlayerSpellTimers(dt) {
   }
 }
 
+function startSpellMemorization(spell) {
+  if (!spell || spell.passive) return false;
+  spell.memorizing = SPELL_MEMORIZATION_SECONDS;
+  spell.memorizationDuration = SPELL_MEMORIZATION_SECONDS;
+  spell.memorizationReadyFlash = 0;
+  spell.memorizationReadyFlashed = false;
+  spellHudSignature = "";
+  return true;
+}
+
+function clearSpellMemorization(spell) {
+  if (!spell) return false;
+  delete spell.memorizing;
+  delete spell.memorizationDuration;
+  delete spell.memorizationReadyFlash;
+  delete spell.memorizationReadyFlashed;
+  return true;
+}
+
+function spellMemorizing(spell) {
+  return Math.max(0, Number(spell?.memorizing) || 0);
+}
+
+function updateSpellMemorization(dt) {
+  let changed = false;
+  for (const spell of game.player.spells || []) {
+    if (!spell) continue;
+    if (spell.memorizationReadyFlash > 0) {
+      spell.memorizationReadyFlash = Math.max(0, Number(spell.memorizationReadyFlash) - dt);
+      if (spell.memorizationReadyFlash <= 0) changed = true;
+    }
+    if (spellMemorizing(spell) <= 0) continue;
+    const next = Math.max(0, spellMemorizing(spell) - dt);
+    spell.memorizing = next;
+    if (next <= 0 && !spell.memorizationReadyFlashed) {
+      spell.memorizationReadyFlashed = true;
+      spell.memorizationReadyFlash = 1.2;
+      changed = true;
+    }
+  }
+  if (changed) spellHudSignature = "";
+}
+
 function normalizeStats(stats = {}) {
   const usesNewNames = stats.BLOCK !== undefined || stats.FOCUS !== undefined || stats.DEF_NEW !== undefined;
   return {
@@ -1566,8 +1650,8 @@ const statDescriptions = {
   ATK: "Attack. Adds damage to weapon attacks.",
   DEF: "Defense. Reduces incoming Physical damage.",
   SPD: "Speed. Increases movement speed.",
-  AGL: "Agility. Reduces weapon attack interval.",
-  INT: "Intellect. Increases spell damage by 1% per point.",
+  AGL: "Agility. Positive AGL reduces weapon attack interval; negative AGL slows base attack speed by 1% per point below zero.",
+  INT: "Intellect. Positive INT increases spell damage by 1% per point; negative INT lowers magic damage by 1% per point below zero.",
   FOCUS: "Focus. Each point gives +1% chance to critically hit for 250% damage.",
   BLOCK: "Block. Each point gives +1% chance to block an incoming attack.",
   RESIST: "Resist. Reduces incoming Magical damage from each Realm.",
@@ -1585,9 +1669,9 @@ const initialPlayerState = {
   xp: 0,
   gold: 0,
   nextXp: 30,
-  hp: 15,
-  maxHp: 15,
-  stats: { HP: 15, ATK: 0, DEF: 0, SPD: 0, AGL: 0, INT: 0, FOCUS: 0, BLOCK: 0, REGEN: 1, RESIST: 0 },
+  hp: 20,
+  maxHp: 20,
+  stats: { HP: 20, ATK: 0, DEF: 0, SPD: 0, AGL: 0, INT: 0, FOCUS: 0, BLOCK: 0, REGEN: 1, RESIST: 0 },
   resistances: {},
   virtue: 0,
   realm: "Mortal",
@@ -1614,11 +1698,12 @@ const initialPlayerState = {
   spellLevels: {},
   spellCooldownMods: {},
   spellTimers: {},
-  spellLineups: Array(6).fill(null),
+  spellLineups: Array(SPELL_LINEUP_COUNT).fill(null),
   realmProgress: {},
   craftingProgress: {},
   factionStandings: {},
   gvadaStarterMagic: null,
+  sybilStarterMagic: null,
   lastDeath: null,
   spells: [],
   soulsActive: 0,
@@ -1682,13 +1767,25 @@ const game = {
   pointerInArena: false,
   pausedByPointer: false,
   uiDirty: true,
+  soundVolume: loadSoundVolume(),
+  account: {
+    username: "",
+    characters: [],
+    selectedCharacterId: "",
+    race: "human",
+    sex: "male",
+    message: "",
+    loading: false
+  },
   lastPlayerDamageAt: 0,
   pestilentAuraTick: 0,
   auraRealmXpTimers: {},
   spellHudCooldownBars: [],
+  spellHudMemorizationBars: [],
   spellHudPills: [],
   selectedTarget: null,
   pendingLevelChoices: null,
+  loopErrorLogged: false,
   shopContactLatch: false,
   trainerContactLatch: false,
   friendlyNpcContactLatches: {},
@@ -1714,7 +1811,7 @@ const game = {
   inspectMobs: false,
   showCollision: false,
   mapVisible: true,
-  mapZoom: 16,
+  mapZoom: DEFAULT_MAP_ZOOM,
   devItemShop: false,
   activeShopkeeper: null,
   activeBanker: null,
@@ -1764,16 +1861,18 @@ const game = {
 
 const FLOATING_LAYOUT_STORAGE_KEY = "soulreaperFloatingLayout.v1";
 const floatingDefaults = {
-  bar: { x: Math.max(8, Math.floor(window.innerWidth / 2) - 150), y: 10, width: 300, height: 40, locked: false, open: true },
+  bar: { x: Math.max(8, Math.floor(window.innerWidth / 2) - 165), y: 10, width: 330, height: 40, locked: false, open: true },
   character: { x: 14, y: 58, width: 286, height: 430, locked: false, open: true },
   inventory: { x: 14, y: 502, width: 300, height: 330, locked: false, open: true },
   spells: { x: Math.max(320, Math.floor(window.innerWidth / 2) - 180), y: Math.max(58, window.innerHeight - 150), width: 360, height: 96, locked: false, open: true },
   target: { x: Math.max(320, window.innerWidth - 330), y: 290, width: 260, height: 176, locked: false, open: true },
   effects: { x: Math.max(320, window.innerWidth - 330), y: 478, width: 260, height: 104, locked: false, open: true },
+  pet: { x: Math.max(320, window.innerWidth - 330), y: 594, width: 260, height: 170, locked: false, open: false },
   minimap: { x: Math.max(320, window.innerWidth - 320), y: 58, width: 292, height: 220, locked: false, open: true },
   spellbook: { x: Math.max(340, Math.floor(window.innerWidth / 2) - 260), y: 80, width: 560, height: 520, locked: false, open: false },
   questlog: { x: Math.max(360, window.innerWidth - 390), y: 300, width: 360, height: 420, locked: false, open: false },
   chronicle: { x: Math.max(330, Math.floor(window.innerWidth / 2) - 260), y: Math.max(360, window.innerHeight - 245), width: 560, height: 205, locked: false, open: true },
+  options: { x: Math.max(320, Math.floor(window.innerWidth / 2) - 140), y: 84, width: 280, height: 170, locked: false, open: false },
   shop: { x: Math.max(300, Math.floor(window.innerWidth / 2) - 190), y: 82, width: 380, height: 420, locked: false, open: false },
   bank: { x: Math.max(300, Math.floor(window.innerWidth / 2) - 215), y: 82, width: 430, height: 360, locked: false, open: false },
   trainer: { x: Math.max(330, Math.floor(window.innerWidth / 2) - 300), y: 90, width: 620, height: 520, locked: false, open: false },
@@ -1789,10 +1888,12 @@ const floatingWindowLabels = {
   spells: "Spells",
   target: "Target",
   effects: "Effects",
+  pet: "Pet",
   minimap: "Minimap",
   spellbook: "Spellbook",
   questlog: "Quest Log",
   chronicle: "Chronicle",
+  options: "Options",
   shop: "Shop",
   bank: "Bank",
   trainer: "Trainer",
@@ -1801,6 +1902,35 @@ const floatingWindowLabels = {
   dialogue: "Dialogue",
   devspawn: "Spawn Mob"
 };
+
+const floatingWindowHotkeys = {
+  character: "c",
+  inventory: "i",
+  spells: "l",
+  target: "t",
+  effects: "e",
+  pet: "p",
+  minimap: "m",
+  spellbook: "b",
+  questlog: "q",
+  chronicle: "h",
+  options: "o"
+};
+
+function hotkeyLabelHtml(label, hotkey) {
+  const text = String(label || "");
+  const key = String(hotkey || "").trim().toLowerCase();
+  if (!key) return escapeHtml(text);
+  const index = text.toLowerCase().indexOf(key);
+  if (index < 0) return escapeHtml(text);
+  return `${escapeHtml(text.slice(0, index))}<span class="window-hotkey-letter">${escapeHtml(text[index])}</span>${escapeHtml(text.slice(index + 1))}`;
+}
+
+function floatingWindowTitleHtml(id, title) {
+  return hotkeyLabelHtml(title, floatingWindowHotkeys[id]);
+}
+
+window.SoulreaperWindowHotkeyLabelHtml = floatingWindowTitleHtml;
 
 const floatingWindowRegistry = new Map();
 let floatingLayout = loadFloatingLayout();
@@ -1924,9 +2054,10 @@ function focusTooltipOwner(target) {
 }
 
 function floatingHeaderHtml(title, closable) {
+  const id = Object.entries(floatingWindowLabels).find(([, label]) => label === title)?.[0] || "";
   return `
     <div class="floating-window-header" data-floating-drag>
-      <span class="floating-window-title">${escapeHtml(title)}</span>
+      <span class="floating-window-title">${floatingWindowTitleHtml(id, title)}</span>
       <button class="floating-window-tool" type="button" data-floating-lock title="Lock">◇</button>
       ${closable ? `<button class="floating-window-tool" type="button" data-floating-close title="Close">×</button>` : ""}
     </div>
@@ -2092,16 +2223,18 @@ function createWindowBar() {
     ["spells", "✹", "Spells"],
     ["target", "◇", "Target"],
     ["effects", "✺", "Effects"],
+    ["pet", "♙", "Pet"],
     ["minimap", "◎", "Minimap"],
     ["spellbook", "✦", "Spellbook"],
     ["questlog", "!", "Quest Log"],
-    ["chronicle", "≡", "Chronicle"]
+    ["chronicle", "≡", "Chronicle"],
+    ["options", "◈", "Options"]
   ];
   bar.innerHTML = `
     <span class="window-bar-drag" data-floating-drag></span>
     ${buttons.map(([id, symbol, label]) => `
       <button class="window-bar-button" type="button" data-window-toggle="${id}" aria-label="${label}">
-        <span aria-hidden="true">${symbol}</span><span class="window-tooltip">${label}</span>
+        <span aria-hidden="true">${symbol}</span><span class="window-tooltip">${floatingWindowTitleHtml(id, label)}</span>
       </button>
     `).join("")}
     <button class="floating-window-tool" type="button" data-floating-lock title="Lock">◇</button>
@@ -2237,46 +2370,45 @@ function setupCoreFloatingWindows() {
   characterBody.innerHTML = `
     <div class="floating-tabs" id="characterTabs">${makeFloatingTabs([
       { id: "stats", label: "Stats" },
-      { id: "resistances", label: "Resistances" },
+      { id: "equipment", label: "Equipment" },
+      { id: "realm", label: "Realm" },
       { id: "faction", label: "Faction" }
     ], "stats")}<button class="floating-tab level-up-tab hidden" type="button" data-floating-tab="levelup" data-tab-label="Level Up!"><span class="attention-spark" aria-hidden="true"></span>Level Up!</button></div>
     <div class="floating-pane" data-character-pane="stats"></div>
-    <div class="floating-pane hidden" data-character-pane="resistances"></div>
+    <div class="floating-pane hidden" data-character-pane="equipment"></div>
+    <div class="floating-pane hidden" data-character-pane="realm"><div id="characterRealmList" class="realm-progress-list"></div></div>
     <div class="floating-pane hidden" data-character-pane="faction"><div id="characterFactionList" class="faction-standing-list"></div></div>
     <div class="floating-pane hidden" data-character-pane="levelup"></div>
   `;
   const statsPane = characterBody.querySelector("[data-character-pane='stats']");
-  const resistPane = characterBody.querySelector("[data-character-pane='resistances']");
+  const equipmentPane = characterBody.querySelector("[data-character-pane='equipment']");
+  const realmPane = characterBody.querySelector("[data-character-pane='realm']");
   const factionPane = characterBody.querySelector("[data-character-pane='faction']");
   const levelUpPane = characterBody.querySelector("[data-character-pane='levelup']");
   const statsFit = createFloatingFitContent(statsPane);
-  const resistFit = createFloatingFitContent(resistPane);
+  const equipmentFit = createFloatingFitContent(equipmentPane);
+  const realmFit = createFloatingFitContent(realmPane);
   const factionFit = createFloatingFitContent(factionPane);
   const levelUpFit = createFloatingFitContent(levelUpPane);
   statsFit.appendChild(playerSummary);
   statsFit.appendChild(statsGrid);
-  resistFit.appendChild(resistancesGrid);
+  statsFit.appendChild(resistancesGrid);
+  equipmentFit.appendChild(equipmentGrid);
+  characterRealmList = characterBody.querySelector("#characterRealmList");
+  realmFit.appendChild(characterRealmList);
   characterFactionList = characterBody.querySelector("#characterFactionList");
   factionFit.appendChild(characterFactionList);
   levelUpFit.appendChild(levelOptions);
 
   const inventoryBody = createFloatingShell("inventory", "Inventory", { minWidth: 258, minHeight: 230 });
   inventoryBody.innerHTML = `
-    <div class="floating-tabs" id="inventoryTabs">${makeFloatingTabs([
-      { id: "pack", label: "Pack" },
-      { id: "equipment", label: "Equipment" }
-    ], "pack")}</div>
     <div class="floating-pane" data-inventory-pane="pack"></div>
-    <div class="floating-pane hidden" data-inventory-pane="equipment"></div>
   `;
   const packPane = inventoryBody.querySelector("[data-inventory-pane='pack']");
-  const equipmentPane = inventoryBody.querySelector("[data-inventory-pane='equipment']");
   const packFit = createFloatingFitContent(packPane);
-  const equipmentFit = createFloatingFitContent(equipmentPane);
   const goldPill = goldReadout?.closest(".sheet-gold");
   if (goldPill) packFit.appendChild(goldPill);
   packFit.appendChild(inventoryGrid);
-  equipmentFit.appendChild(equipmentGrid);
 
   const spellsBody = createFloatingShell("spells", "Spells", { minWidth: 56, minHeight: 56 });
   spellsBody.appendChild(spellHudEl);
@@ -2295,6 +2427,24 @@ function setupCoreFloatingWindows() {
     statusEffectHud.classList.add("hidden");
   }
 
+  const petBody = createFloatingShell("pet", "Pet", { minWidth: 180, minHeight: 116 });
+  petWindowBody = document.createElement("div");
+  petWindowBody.className = "pet-window-list";
+  petBody.appendChild(petWindowBody);
+  petBody.addEventListener("click", handlePetWindowClick);
+
+  const optionsBody = createFloatingShell("options", "Options", { minWidth: 220, minHeight: 130 });
+  optionsBody.innerHTML = `
+    <div class="options-window">
+      <label class="options-control">
+        <span>Sound Effects</span>
+        <input id="soundVolumeRange" type="range" min="0" max="100" step="1">
+        <strong id="soundVolumeValue">100%</strong>
+      </label>
+      <button id="logoutButton" class="options-logout-button" type="button">Log Off</button>
+    </div>
+  `;
+
   const minimapBody = createFloatingShell("minimap", "Minimap", { minWidth: 190, minHeight: 150 });
   minimapWindowCanvas = document.createElement("canvas");
   minimapWindowCanvas.className = "floating-minimap-canvas";
@@ -2302,7 +2452,10 @@ function setupCoreFloatingWindows() {
   minimapWindowCanvas.height = 180;
   minimapWindowCtx = minimapWindowCanvas.getContext("2d");
   minimapBody.appendChild(minimapWindowCanvas);
-  minimapWindowCanvas.addEventListener("click", handleFloatingMinimapClick);
+  minimapWindowCanvas.addEventListener("pointerdown", handleFloatingMinimapPointerDown);
+  minimapWindowCanvas.addEventListener("pointerup", stopFloatingMinimapZoomHold);
+  minimapWindowCanvas.addEventListener("pointercancel", stopFloatingMinimapZoomHold);
+  minimapWindowCanvas.addEventListener("pointerleave", stopFloatingMinimapZoomHold);
 
   const chronicleBody = createFloatingShell("chronicle", "Chronicle", { minWidth: 320, minHeight: 150 });
   chronicleBody.innerHTML = `
@@ -2353,6 +2506,14 @@ function setupCoreFloatingWindows() {
   resizeMinimapWindowCanvas();
   updateWindowBarButtons();
   scheduleFloatingFitContent("setup");
+}
+
+function renderOptionsWindow() {
+  const range = document.querySelector("#soundVolumeRange");
+  const value = document.querySelector("#soundVolumeValue");
+  const percent = Math.round((game.soundVolume ?? 1) * 100);
+  if (range && document.activeElement !== range) range.value = String(percent);
+  if (value) value.textContent = `${percent}%`;
 }
 
 function floatingTabDescriptor(button) {
@@ -2555,8 +2716,8 @@ function detachedWindowDroppedOnSource(meta, clientX, clientY) {
 
 function paneOrderIndex(group, tabId) {
   const orders = {
-    character: ["stats", "resistances", "faction"],
-    inventory: ["pack", "equipment"],
+    character: ["stats", "equipment", "realm", "faction", "levelup"],
+    inventory: ["pack"],
     chronicle: ["all", "combat", "chat"]
   };
   const order = orders[group] || [];
@@ -2612,6 +2773,36 @@ function setLevelUpTabVisible(visible) {
   } else if (tab.classList.contains("active")) {
     setFloatingPane("character", "stats");
   }
+}
+
+function renderCharacterRealmPane() {
+  if (!characterRealmList) return;
+  const progressEntries = realmProgressRealms.map(realm => {
+    const progress = realmProgress(realm);
+    return [
+      realm,
+      Number(progress.level) || 0,
+      Number(progress.xp) || 0,
+      Number(progress.nextXp) || realmXpRequirement(Number(progress.level) || 0)
+    ];
+  });
+  const signature = progressEntries
+    .map(([realm, level, xp, nextXp]) => `${realm}:${level}:${roundUpTenth(xp)}:${roundUpTenth(nextXp)}`)
+    .join("|");
+  if (signature === characterRealmSignature) return;
+  characterRealmSignature = signature;
+  characterRealmList.innerHTML = progressEntries.map(([realm, level, xp, nextXp]) => {
+    const color = realmUiColor(realm);
+    const percent = nextXp > 0 ? Math.max(0, Math.min(100, (xp / nextXp) * 100)) : 100;
+    return `
+      <div class="realm-progress-row" style="--realm-color:${color}" tabindex="0">
+        <strong style="color:${color}">${escapeHtml(realm)}</strong>
+        <div class="realm-progress-bar"><i style="width:${percent}%"></i><span>${formatNumber(xp)} / ${formatNumber(nextXp)} XP</span></div>
+        <em>LVL ${formatNumber(level)}</em>
+      </div>
+    `;
+  }).join("");
+  markFloatingFitContentChanged("character");
 }
 
 function renderCharacterFactionPane() {
@@ -2734,6 +2925,55 @@ function drawFloatingMinimapAreaName(rect) {
   ctx.restore();
 }
 
+function stopFloatingMinimapZoomHold() {
+  const pointerId = minimapZoomHoldPointerId;
+  if (minimapZoomHoldTimer) {
+    clearInterval(minimapZoomHoldTimer);
+    minimapZoomHoldTimer = null;
+  }
+  try {
+    if (pointerId !== null && pointerId !== undefined) minimapWindowCanvas?.releasePointerCapture?.(pointerId);
+  } catch (error) {
+    // Pointer capture may already be released by the browser.
+  }
+  minimapZoomHoldPointerId = null;
+}
+
+function floatingMinimapZoomDirectionAt(event) {
+  if (!minimapWindowCanvas) return 0;
+  const rect = minimapWindowCanvas.getBoundingClientRect();
+  const mapRect = mapOverlayBounds({ left: rect.left, top: rect.top, width: rect.width, height: rect.height, floatingMap: true });
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
+  const controls = mapZoomControlBounds(mapRect);
+  if (pointInRect(x, y, controls.plus)) return 1;
+  if (pointInRect(x, y, controls.minus)) return -1;
+  return 0;
+}
+
+function startFloatingMinimapZoomHold(direction, pointerId = null) {
+  stopFloatingMinimapZoomHold();
+  minimapZoomHoldPointerId = pointerId;
+  const step = () => {
+    adjustMapZoom(direction);
+    renderFloatingMinimap();
+  };
+  step();
+  minimapZoomHoldTimer = setInterval(step, 70);
+}
+
+function handleFloatingMinimapPointerDown(event) {
+  if (event.button !== undefined && event.button !== 0) return;
+  const direction = floatingMinimapZoomDirectionAt(event);
+  if (direction) {
+    event.preventDefault();
+    minimapWindowCanvas?.setPointerCapture?.(event.pointerId);
+    startFloatingMinimapZoomHold(direction, event.pointerId);
+    return;
+  }
+  handleFloatingMinimapClick(event);
+}
+
 function handleFloatingMinimapClick(event) {
   const rect = minimapWindowCanvas.getBoundingClientRect();
   const previousMapVisible = game.mapVisible;
@@ -2796,6 +3036,15 @@ const enchantmentTemplates = {
       "REGEN": 1
     }
   },
+  "Lake Yarrow": {
+    "name": "Lake Yarrow",
+    "realm": "Sylvan",
+    "stats": {
+      "AGL": 1,
+      "RESIST": 1,
+      "REGEN": 1
+    }
+  },
   "Ember Badge": {
     "name": "Ember Badge",
     "realm": "Infernal",
@@ -2817,6 +3066,25 @@ const enchantmentTemplates = {
       "HP": 5,
       "RESIST": 1
     }
+  },
+  "Goblin Slayer": {
+    "name": "Goblin Slayer",
+    "realm": "Mortal",
+    "stats": {
+      "HP": 5,
+      "RESIST": 1
+    },
+    "requiredSlots": [
+      "Main Hand"
+    ],
+    "requiredWeaponTypes": [
+      "Bow",
+      "Slashing",
+      "Stabbing",
+      "Blunt",
+      "Axe",
+      "Spear"
+    ]
   },
   "Fenguard Sigil": {
     "name": "Fenguard Sigil",
@@ -2991,7 +3259,8 @@ function renderChronicle() {
       const kind = inferLogKind(entry.message, entry.kind);
       return view === "chronicle" ? kind === "chronicle" : kind === view;
     })
-    .slice(0, 42);
+    .slice(0, 42)
+    .reverse();
   const entries = entriesForView(game.logView);
   logEl.innerHTML = entries.map(entry => `<li>${entry.message}</li>`).join("");
   chronicleTab?.classList.toggle("active", game.logView === "all" || game.logView === "chronicle");
@@ -3004,6 +3273,10 @@ function renderChronicle() {
     list.innerHTML = entriesForView(view).map(entry => `<li>${entry.message}</li>`).join("");
   });
   dockChatInput();
+  requestAnimationFrame(() => {
+    const logs = [logEl, ...document.querySelectorAll("[data-detached-log-view]")].filter(Boolean);
+    logs.forEach(list => { list.scrollTop = list.scrollHeight; });
+  });
 }
 
 function inferLogKind(message, kind = "chronicle") {
@@ -3980,7 +4253,7 @@ function inventoryCapacityFor(item, includeBags = true) {
   return capacity;
 }
 
-function addItemToInventoryList(item, list, remaining) {
+function addItemToInventoryList(item, list, remaining, { fillEmpty = true } = {}) {
   if (item.stackable) {
     for (const stack of list) {
       if (!sameStack(stack, item)) continue;
@@ -3991,6 +4264,7 @@ function addItemToInventoryList(item, list, remaining) {
       remaining -= moved;
       if (remaining <= 0) return 0;
     }
+    if (!fillEmpty) return remaining;
     while (remaining > 0) {
       const slot = list.findIndex(inventoryItem => inventoryItem === null);
       if (slot < 0) return remaining;
@@ -4011,10 +4285,17 @@ function addInventoryItem(item) {
   if (item.stackable) {
     let remaining = itemQuantity(item);
     if (inventoryCapacityFor(item, true) < remaining) return false;
-    remaining = addItemToInventoryList(item, game.player.inventory, remaining);
+    remaining = addItemToInventoryList(item, game.player.inventory, remaining, { fillEmpty: false });
     if (remaining > 0 && !isBagItem(item)) {
       for (const bagInventory of playerBagInventories()) {
-        remaining = addItemToInventoryList(item, bagInventory, remaining);
+        remaining = addItemToInventoryList(item, bagInventory, remaining, { fillEmpty: false });
+        if (remaining <= 0) break;
+      }
+    }
+    if (remaining > 0) remaining = addItemToInventoryList(item, game.player.inventory, remaining, { fillEmpty: true });
+    if (remaining > 0 && !isBagItem(item)) {
+      for (const bagInventory of playerBagInventories()) {
+        remaining = addItemToInventoryList(item, bagInventory, remaining, { fillEmpty: true });
         if (remaining <= 0) break;
       }
     }
@@ -4859,7 +5140,14 @@ function teleportPlayerTo(point) {
 }
 
 function applyPlayerStartFromMap() {
-  const start = game.map?.playerStart || initialPlayerState;
+  const candidates = [
+    game.map?.playerStart,
+    game.map?.gandersvilleTownSquare?.center,
+    game.map?.areas?.find(area => area?.name === GANDERSVILLE_AREA_NAME)?.center,
+    game.map?.areas?.find(area => area?.name === AREA_NAME)?.center,
+    initialPlayerState
+  ];
+  const start = candidates.find(point => Number.isFinite(point?.x) && Number.isFinite(point?.y)) || { x: 0, y: 0 };
   game.startPoint = { x: start.x, y: start.y };
   game.player.x = start.x;
   game.player.y = start.y;
@@ -4883,7 +5171,9 @@ function applyRaceStartFromMap({ onlyIfAtDefault = false } = {}) {
   const start = dungeonCellCenter(game.map?.yrgmaDim, DWARF_START_CELL);
   if (!start) return false;
   if (onlyIfAtDefault) {
-    const defaultStart = game.map?.playerStart || initialPlayerState;
+    const defaultStart = Number.isFinite(game.startPoint?.x) && Number.isFinite(game.startPoint?.y)
+      ? game.startPoint
+      : game.map?.playerStart || initialPlayerState;
     if (distance(game.player, defaultStart) > 4) return false;
   }
   game.startPoint = { x: start.x, y: start.y, dungeon: DWARF_START_DUNGEON_ID, area: YRGMA_DIM_AREA_NAME };
@@ -5124,6 +5414,111 @@ function handlePortals() {
   sendMultiplayerUpdate(true);
 }
 
+function clearHollyhockMossRocks(keepId = "") {
+  game.groundItems = game.groundItems.filter(drop => !(drop.localOnly && drop.questId === "hollyhocks-mossy-errand" && drop.id !== keepId));
+}
+
+function hollyhockQuestAnchorPoint() {
+  return (game.map?.configuredNpcs || []).find(npc => npc.id === "herbalist-hollyhock" || npc.name === "Herbalist Hollyhock")
+    || game.player;
+}
+
+function randomFarHollyhockMossStonePoint(existingPoints = []) {
+  const area = areaByName(HARMUSH_LAGH_AREA_NAME);
+  const bounds = areaSamplingBounds(area);
+  if (!bounds) return null;
+  const anchor = hollyhockQuestAnchorPoint();
+  const minimumDistance = 760;
+  const minimumStoneSpacing = 320;
+  let farthest = null;
+  let farthestDistance = 0;
+  for (let attempt = 0; attempt < 420; attempt += 1) {
+    const x = randomBetween(bounds.minX, bounds.maxX);
+    const y = randomBetween(bounds.minY, bounds.maxY);
+    if (spawnAreaAt(x, y) !== HARMUSH_LAGH_AREA_NAME) continue;
+    if (!isWalkable(x, y, 18)) continue;
+    const preferenceUnit = { radius: 18, aquatic: false, amphibious: false };
+    if (terrainPreferenceSatisfied(preferenceUnit, x, y, 18) !== true) continue;
+    if (existingPoints.some(point => Math.hypot(point.x - x, point.y - y) < minimumStoneSpacing)) continue;
+    const distanceFromHollyhock = Math.hypot((anchor.x || 0) - x, (anchor.y || 0) - y);
+    if (distanceFromHollyhock >= minimumDistance) return { x, y };
+    if (distanceFromHollyhock > farthestDistance) {
+      farthestDistance = distanceFromHollyhock;
+      farthest = { x, y };
+    }
+  }
+  return farthest;
+}
+
+function spawnHollyhockMossRocks(questId = "hollyhocks-mossy-errand", count = 1) {
+  clearHollyhockMossRocks();
+  const itemTemplate = cloneItem("Moss-Covered Stone");
+  if (!itemTemplate) return null;
+  const ids = [];
+  const points = [];
+  for (let i = 0; i < Math.max(1, count); i += 1) {
+    const point = randomFarHollyhockMossStonePoint(points)
+      || randomTerrainPointInArea(HARMUSH_LAGH_AREA_NAME, 18, false, 220)
+      || randomWalkablePointNear(hollyhockQuestAnchorPoint().x, hollyhockQuestAnchorPoint().y, 760, 1600)
+      || { x: game.player.x + 900, y: game.player.y + 120 };
+    points.push(point);
+    const drop = dropGroundItem(cloneItem("Moss-Covered Stone") || structuredClone(itemTemplate), point.x, point.y, 0);
+    if (!drop) continue;
+    drop.localOnly = true;
+    drop.questId = questId;
+    drop.ownerId = localPlayerId();
+    ids.push(drop.id);
+  }
+  return ids.length ? ids : null;
+}
+
+function clearHollyhockKappa() {
+  const removed = game.enemies.filter(enemy => enemy.questSpawn === "hollyhock-kappa");
+  game.enemies = game.enemies.filter(enemy => enemy.questSpawn !== "hollyhock-kappa");
+  invalidateEnemySpatialGrid();
+  if (game.mode === "multiplayer") {
+    for (const enemy of removed) sendMultiplayerEnemyUpdate(enemy, false);
+  }
+}
+
+function spawnHollyhockKappa(origin = game.player, questId = "hollyhocks-lake-offering") {
+  clearHollyhockKappa();
+  const template = allMonsterTemplates.find(candidate => candidate.name === "Kappa");
+  if (!template) {
+    addLog("<b>Hollyhock's Lake Offering</b>: no Kappa template is available.");
+    return null;
+  }
+  const lake = (game.map?.puddles || []).find(puddle => puddle.kind === "harmush-lake");
+  const source = lake || origin || game.player;
+  const point = randomWalkablePointNear(source.x, source.y, game.player.radius + 110, 260)
+    || randomTerrainPointInArea(HARMUSH_LAGH_AREA_NAME, (template.radius || 14) * UNIT_SIZE_SCALE, false, 120)
+    || { x: game.player.x + 140, y: game.player.y };
+  const lvl = Math.max(2, Math.min(8, game.player.level || 2));
+  const enemy = makeEnemy(template, lvl, point.x, point.y, {
+    aggressive: true,
+    hostileToPlayer: true,
+    hostileToPlayerReason: "quest",
+    targetPlayerId: localPlayerId(),
+    questSpawn: "hollyhock-kappa",
+    questId,
+    questOwnerId: localPlayerId(),
+    spawnSource: "quest",
+    noRespawn: true,
+    area: HARMUSH_LAGH_AREA_NAME
+  });
+  enemy.hostileTarget = game.player;
+  game.enemies.push(enemy);
+  invalidateEnemySpatialGrid();
+  spawnFloatingText(enemy, "RISING", realmUiColor(enemy.realm), "rgba(0, 0, 0, 0.82)");
+  if (game.mode === "multiplayer") sendMultiplayerEnemyUpdate(enemy, true);
+  return enemy;
+}
+
+window.spawnHollyhockMossRocks = spawnHollyhockMossRocks;
+window.clearHollyhockMossRocks = clearHollyhockMossRocks;
+window.spawnHollyhockKappa = spawnHollyhockKappa;
+window.clearHollyhockKappa = clearHollyhockKappa;
+
 const {
   applyItemStats,
   resolveEquipmentSlot,
@@ -5270,9 +5665,16 @@ const {
   closeQuestLog,
   markQuestHovered,
   positionQuestTooltip,
+  hideQuestTooltip,
   abandonQuest,
   completeQuest,
   configuredQuest,
+  handleInventoryItemPickedUp,
+  handleHollyhockPlayerDeath,
+  updateHollyhockKappaDefeated,
+  updateHollyhockChlorophyllTellursa,
+  canDropMossCoveredRockForHollyhock,
+  canChlorophyllHollyhockTellursa,
   gvadaQuest,
   ratInfestationQuest,
   sharleneParcelQuest,
@@ -5305,7 +5707,8 @@ const {
   startGuardDialogue,
   completeGvadaScrollObjective,
   updateGvadaRealmObjective,
-  startGvadaStarterQuest
+  startGvadaStarterQuest,
+  startSybilStarterQuest
 } = window.SoulreaperQuestUI || {};
 
 function unequipItem(slot) {
@@ -5340,6 +5743,14 @@ function pickupNearbyItems() {
       if (distance(game.player, drop) > game.player.radius + drop.radius + 10) continue;
       if (game.multiplayer.pendingPickups.has(drop.id)) continue;
       if (drop.item && !hasInventoryRoomFor(drop.item)) continue;
+      if (drop.localOnly && drop.questId === "hollyhocks-mossy-errand") {
+        if (!addInventoryItem(drop.item)) return;
+        game.groundItems.splice(game.groundItems.indexOf(drop), 1);
+        addLog(`Picked up <b>${drop.item.name}</b>${drop.item.stackable ? ` x${itemQuantity(drop.item)}` : ""}.`);
+        handleInventoryItemPickedUp?.(drop.item, drop);
+        markUIDirty();
+        return;
+      }
       game.multiplayer.pendingPickups.add(drop.id);
       if (drop.localOnly) sendMultiplayerAction({ action: "pickup:match", drop: serializeGroundItem(drop), localDropId: drop.id });
       else sendMultiplayerAction({ action: "pickup", dropId: drop.id });
@@ -5367,6 +5778,7 @@ function pickupNearbyItems() {
     if (!addInventoryItem(drop.item)) return;
     game.groundItems.splice(game.groundItems.indexOf(drop), 1);
     addLog(`Picked up <b>${drop.item.name}</b>${drop.item.stackable ? ` x${itemQuantity(drop.item)}` : ""}.`);
+    handleInventoryItemPickedUp?.(drop.item, drop);
     markUIDirty();
     pickedUpSharedDrop = true;
   }
@@ -5390,6 +5802,7 @@ function grantAcceptedPickup(drop) {
   }
   if (drop.item && addInventoryItem(drop.item)) {
     addLog(`Picked up <b>${drop.item.name}</b>${drop.item.stackable ? ` x${itemQuantity(drop.item)}` : ""}.`);
+    handleInventoryItemPickedUp?.(drop.item, drop);
     markUIDirty();
   }
 }
@@ -6274,6 +6687,7 @@ function effectiveStat(unit, stat) {
     if (mod.addStats?.[stat] !== undefined) value += mod.addStats[stat];
   }
   if (unit === game.player && stat === "REGEN" && activeSpellByName("Pestilent Aura")) return 0;
+  if (stat === "AGL" || stat === "INT") return value;
   return Math.max(0, value);
 }
 
@@ -6352,7 +6766,7 @@ function freezeDurationFor(target, duration) {
 }
 
 function applyFreeze(target, duration = 4) {
-  applyUnitStatMod(target, { name: "Freeze", remaining: freezeDurationFor(target, duration), freeze: true });
+  applyUnitStatMod(target, { name: "Frozen", realm: "Ethereal", remaining: freezeDurationFor(target, duration), freeze: true, debuff: true });
   spawnFloatingText(target, "FROZEN", realmInfo.Ethereal.color, "rgba(0, 20, 70, 0.9)");
 }
 
@@ -6524,6 +6938,7 @@ function friendlyCircleTargets() {
 
 function friendlySpellTargetFailure(spell, target) {
   if (!target) return `${spell.name} needs a friendly target.`;
+  if (spell.name === "Chlorophyll" && canChlorophyllHollyhockTellursa?.(target)) return "";
   const healsFriendlyUnits = spell.name === "Basic Prayer" || spell.name === "Heavenly Light" || spell.name === "Bone Ritual";
   const targetsFriendlyUnits = healsFriendlyUnits || spell.name === "Chlorophyll" || spell.name === "Wooden Skin";
   if (celestialHealingDamagesTarget(spell, target)) return "";
@@ -6555,6 +6970,26 @@ function burningSkinSpell(unit) {
 function burningSkinDamageValue(unit) {
   const spell = burningSkinSpell(unit);
   return spell ? spellDamageValue(spell, "damage", 0, 0.5, unit) : 0;
+}
+
+function weaponIsMelee(weapon) {
+  return String(weapon?.animation || "claw").toLowerCase() !== "projectile" && (Number(weapon?.range) || 1) <= 3;
+}
+
+function frozenTouchSpell(unit = game.player) {
+  return unitActiveSpellByName(unit, "Frozen Touch");
+}
+
+function maybeApplyFrozenTouch(target, weapon, landed) {
+  if (!landed || !target || !weaponIsMelee(weapon)) return false;
+  const spell = frozenTouchSpell(game.player);
+  if (!spell) return false;
+  const chance = Math.max(0, spellValue(spell, "freezeChance", 0, 2));
+  if (Math.random() * 100 >= chance) return false;
+  applyFreeze(target, Number(spell.duration ?? 4) || 4);
+  grantRealmXP("Ethereal", spellLevel(spell));
+  addLog(`<b>Frozen Touch</b> freezes <b>${escapeHtml(target.name || "the enemy")}</b>.`);
+  return true;
 }
 
 function playerRageActive() {
@@ -6955,6 +7390,7 @@ function enemyDamageAmount(enemy, amount) {
 }
 
 function getCamera(rect = canvas.getBoundingClientRect()) {
+  if (!Number.isFinite(game.player.x) || !Number.isFinite(game.player.y)) applyPlayerStartFromMap();
   return {
     x: game.player.x - rect.width / 2,
     y: game.player.y - rect.height / 2,
@@ -7043,27 +7479,11 @@ function hoveredEnemy() {
 }
 
 function hidePetCommandMenu() {
-  petCommandMenu.classList.add("hidden");
-  petCommandMenu.innerHTML = "";
   game.activePetMenuId = null;
 }
 
 function updatePetTargetCursor() {
   canvas.classList.toggle("targeting-cursor", Boolean(game.pendingPetAttackId));
-}
-
-function showPetCommandMenu(pet, event) {
-  if (!isOwnPet(pet)) return;
-  game.activePetMenuId = pet.id;
-  const guardLabel = pet.petCommand === "guard" ? "Follow" : "Guard";
-  petCommandMenu.innerHTML = `
-    <button type="button" data-pet-action="attack">Attack</button>
-    <button type="button" data-pet-action="guard">${guardLabel}</button>
-    <button type="button" data-pet-action="release">Release</button>
-  `;
-  petCommandMenu.style.left = `${Math.min(window.innerWidth - 150, Math.max(10, event.clientX + 8))}px`;
-  petCommandMenu.style.top = `${Math.min(window.innerHeight - 120, Math.max(10, event.clientY + 8))}px`;
-  petCommandMenu.classList.remove("hidden");
 }
 
 function commandPetAttack(pet, target) {
@@ -7121,6 +7541,83 @@ function releasePet(pet) {
   if (game.mode === "multiplayer" && game.multiplayer.connected) {
     sendMultiplayerAction({ action: "pet:command", petId: pet.id, command: "release" });
   }
+}
+
+function ownedPets() {
+  return game.enemies.filter(enemy => isOwnPet(enemy) && enemy.hp > 0);
+}
+
+function renderPetWindow() {
+  if (!petWindowBody) return;
+  const pets = ownedPets();
+  const signature = pets.map(pet => {
+    ensurePetLifetime(pet);
+    const targetName = game.enemies.find(enemy => enemy.id === pet.petTargetId)?.name || "";
+    const remaining = Math.ceil(Number(pet.petTimeRemaining) || 0);
+    return [pet.id, pet.name, pet.hp, pet.maxHp, pet.petCommand, pet.petTargetId || "", targetName, remaining].join("|");
+  }).join(";");
+  if (signature === petWindowSignature) return;
+  petWindowSignature = signature;
+  if (!pets.length) {
+    updateHtmlIfChanged(petWindowBody, `<div class="pet-window-empty">No pets bound.</div>`);
+    return;
+  }
+  updateHtmlIfChanged(petWindowBody, pets.map(pet => {
+    const hp = Math.max(0, Number(pet.hp) || 0);
+    const maxHp = Math.max(1, Number(pet.maxHp) || hp || 1);
+    const duration = Math.max(0.1, Number(pet.petDuration) || PET_DURATION_SECONDS);
+    const remaining = Math.max(0, Number(pet.petTimeRemaining ?? duration) || 0);
+    const target = game.enemies.find(enemy => enemy.id === pet.petTargetId);
+    const command = pet.petCommand === "guard" ? "Guarding"
+      : pet.petCommand === "attack" && target ? `Attacking ${target.name}`
+      : "Following";
+    const guardLabel = pet.petCommand === "guard" ? "Follow" : "Guard";
+    return `
+      <div class="pet-window-card" data-pet-id="${escapeHtml(pet.id)}">
+        <div class="pet-window-header-row">
+          <strong>${escapeHtml(pet.name || "Pet")}</strong>
+          <span>${escapeHtml(command)}</span>
+        </div>
+        <div class="pet-window-meter hp"><i style="width:${Math.max(0, Math.min(100, (hp / maxHp) * 100))}%"></i></div>
+        <div class="pet-window-meter time"><i style="width:${Math.max(0, Math.min(100, (remaining / duration) * 100))}%"></i></div>
+        <div class="pet-window-meta">${formatNumber(Math.ceil(remaining))}s</div>
+        <div class="pet-window-actions">
+          <button type="button" data-pet-window-action="attack" data-pet-id="${escapeHtml(pet.id)}">Attack</button>
+          <button type="button" data-pet-window-action="guard" data-pet-id="${escapeHtml(pet.id)}">${guardLabel}</button>
+          <button type="button" data-pet-window-action="release" data-pet-id="${escapeHtml(pet.id)}">Release</button>
+        </div>
+      </div>
+    `;
+  }).join(""));
+}
+
+function handlePetWindowClick(event) {
+  const button = event.target.closest("[data-pet-window-action]");
+  if (!button) return;
+  const pet = game.enemies.find(enemy => enemy.id === button.dataset.petId && isOwnPet(enemy));
+  if (!pet) {
+    addLog("That pet is no longer bound.");
+    renderPetWindow();
+    return;
+  }
+  const action = button.dataset.petWindowAction;
+  if (action === "attack") {
+    const selected = selectedTargetUnit();
+    if (selected && commandPetAttack(pet, selected)) {
+      game.pendingPetAttackId = null;
+      updatePetTargetCursor();
+    } else {
+      game.pendingPetAttackId = pet.id;
+      updatePetTargetCursor();
+      addLog(`Choose a target for <b>${pet.name}</b>.`);
+    }
+  } else if (action === "guard") {
+    togglePetGuard(pet);
+  } else if (action === "release") {
+    releasePet(pet);
+  }
+  petWindowSignature = "";
+  renderPetWindow();
 }
 
 function tameBeast(beast, options = {}) {
@@ -7245,10 +7742,6 @@ function handleArenaClick(event) {
   const clickedUnit = enemyAtWorldPoint(worldX, worldY);
   const clickedTarget = clickedUnit || playerAtWorldPoint(worldX, worldY);
   if (clickedTarget) setSelectedTarget(clickedTarget);
-  if (clickedUnit && isOwnPet(clickedUnit)) {
-    showPetCommandMenu(clickedUnit, event);
-    return;
-  }
   hidePetCommandMenu();
   if (!game.player.weapon) return;
   if ((game.player.stunned || 0) > 0) return;
@@ -7303,6 +7796,11 @@ async function castTargetedSpell(x, y) {
 
 function castSelectedSpellOnTarget(spell, target) {
   if (!spell || playerSpellTimer(spell) > 0) return;
+  if (spellMemorizing(spell) > 0) {
+    addLog(`<b>${spell.name}</b> is still being memorized.`);
+    spellHudSignature = "";
+    return;
+  }
   if ((game.player.stunned || 0) > 0) {
     addLog("You are stunned.");
     spellHudSignature = "";
@@ -7361,6 +7859,7 @@ function castSelectedSpellOnTarget(spell, target) {
   }
   if (spell.cast?.(game, target)) {
     window.SoulreaperQuestUI?.updateCrowdControlObjective?.(spell.name, target);
+    window.SoulreaperQuestUI?.updateHollyhockChlorophyllTellursa?.(spell.name, target);
     grantSpellCastRealmXP(spell);
     playSpellSound(spell);
     setSpellOnCooldown(spell);
@@ -7380,6 +7879,10 @@ function selectTargetedSpell(index) {
   }
   if (playerSpellTimer(spell) > 0) {
     addLog(`<b>${spell.name}</b> is still cooling down.`);
+    return;
+  }
+  if (spellMemorizing(spell) > 0) {
+    addLog(`<b>${spell.name}</b> is still being memorized.`);
     return;
   }
   const mode = spellTargetMode(spell);
@@ -7500,6 +8003,7 @@ function applyDamage(target, amount, realm, sourceName, dmgType = "Magical", opt
   const bonus = mult > 1 ? " with realm advantage" : "";
   if (sourceName) addLog(`${sourceName} deals <b>${formatNumber(damage)}</b> ${realm} damage to <b>${target.name}</b>${bonus}.`, target);
   if (target.hp <= 0) {
+    if (targetWasEnemy && options.killedByPlayer !== false) window.SoulreaperQuestUI?.updateHollyhockKappaDefeated?.(target);
     if (game.mode === "multiplayer" && targetWasEnemy) {
       const index = game.enemies.indexOf(target);
       if (index >= 0) game.enemies.splice(index, 1);
@@ -7626,6 +8130,7 @@ function applyStatusDamageToPlayer(amount, realm, sourceName, dmgType = "Magical
 
 function handlePlayerDefeat() {
   resetPlayerProvokedAggroOnDeath();
+  window.SoulreaperQuestUI?.handleHollyhockPlayerDeath?.();
   playSoundEffect("game-over");
   recordPlayerDeathMarker();
   dropPlayerDeathLoot();
@@ -7680,6 +8185,7 @@ function killEnemy(enemy, { killedByPlayer = true } = {}) {
   }
   updateVirtueForKill(enemy);
   window.SoulreaperQuestUI?.updateKillQuestObjectives?.(enemy);
+  window.SoulreaperQuestUI?.updateHollyhockKappaDefeated?.(enemy);
   maybeDropSharleneParcel(enemy);
   maybeDropNapaeaSkull(enemy);
   rollLoot(enemy);
@@ -7700,7 +8206,7 @@ function updateFactionStandingForKill(enemy) {
 function factionStandingChangesForKilledFaction(killedFaction) {
   killedFaction = factionId(killedFaction);
   if (!killedFaction || !factionConfigById.has(killedFaction)) return {};
-  const changes = { [killedFaction]: -1 };
+  const changes = { [killedFaction]: -2 };
   for (const faction of devFactionConfigs) {
     if (faction.enemyFactionIds.includes(killedFaction)) {
       changes[faction.id] = (changes[faction.id] || 0) + 1;
@@ -8091,6 +8597,7 @@ function makeProjectile({
   realmXp = false,
   realmXpRealm = null,
   statMod = null,
+  postMitigationDamageMultiplier = 1,
   crit = false
 }) {
   realm = normalizeRealm(realm);
@@ -8130,6 +8637,18 @@ function makeProjectile({
     postMitigationDamageMultiplier,
     crit: Boolean(crit)
   };
+}
+
+function projectileHitRadius(projectile, target) {
+  const bowBonus = projectile?.sourceKind === "weapon" && isBowWeapon(projectile.sourceWeapon) ? 24 : 0;
+  return (target?.radius || 0) + (projectile?.radius || 0) + bowBonus;
+}
+
+function projectileIntersectsTarget(projectile, target, fromX = projectile.x, fromY = projectile.y, toX = projectile.x, toY = projectile.y) {
+  if (!projectile || !target) return false;
+  const hitRadius = projectileHitRadius(projectile, target);
+  if (Math.hypot((target.x || 0) - toX, (target.y || 0) - toY) <= hitRadius) return true;
+  return distancePointToSegment(target.x || 0, target.y || 0, fromX, fromY, toX, toY) <= hitRadius;
 }
 
 function applyProjectileDot(projectile, target) {
@@ -8286,13 +8805,35 @@ function activateWeapon(target, options = {}) {
       const landed = enemy.hp < hpBefore;
       if (landed) maybeApplyPlayerPoison(enemy);
       if (landed) maybeApplyWeaponStun(enemy, weapon);
+      if (landed) maybeApplyFrozenTouch(enemy, weapon, true);
       maybeTriggerEnemyThornShield(enemy, weapon, landed);
     }
   } else if ((weapon.animation || "claw").toLowerCase() === "projectile") {
+    const bowShot = isBowWeapon(weapon);
+    if (bowShot) {
+      const hpBefore = target.hp;
+      applyDamage(target, damage, weapon.realm, label, weapon.dmgType || "Physical", {
+        killedByPlayer: true,
+        source: game.player,
+        sourceKind: "weapon",
+        sourceWeapon: weapon,
+        offHand: Boolean(options.offHand),
+        postMitigationDamageMultiplier: options.offHand ? damageMultiplier : 1,
+        critical: roll.crit,
+        ...realmXpOptions
+      });
+      const dealt = Math.max(0, hpBefore - target.hp);
+      if (target.hp < hpBefore) {
+        maybeApplyPlayerPoison(target);
+        maybeApplyWeaponStun(target, weapon);
+      }
+      if (!realmXpOptions.realmXp) maybeGrantDaggerMasteryCritXp(weapon, dealt, roll.crit, target);
+      maybeDropProjectileAmmo({ ammoDrop: weaponAmmoName(weapon), x: game.player.x, y: game.player.y }, target);
+    }
     game.projectiles.push(makeProjectile({
       source: game.player,
       target,
-      damage,
+      damage: bowShot ? 0 : damage,
       realm: weapon.realm,
       color: "#d9bd8c",
       label,
@@ -8301,12 +8842,13 @@ function activateWeapon(target, options = {}) {
       trail: weaponProjectileTrailColor(weapon),
       owner: "player",
       dmgType: weapon.dmgType || "Physical",
-      ammoDrop: weaponAmmoName(weapon),
+      ammoDrop: bowShot ? null : weaponAmmoName(weapon),
       projectileAnimation: weapon.projectileAnimation || "ball",
       sourceKind: "weapon",
       sourceWeapon: clonePlain(weapon),
       postMitigationDamageMultiplier: options.offHand ? damageMultiplier : 1,
       crit: roll.crit,
+      visualOnly: bowShot,
       ...realmXpOptions
     }));
   } else {
@@ -8334,6 +8876,7 @@ function activateWeapon(target, options = {}) {
     const landed = target.hp < hpBefore;
     if (landed) maybeApplyPlayerPoison(target);
     if (landed) maybeApplyWeaponStun(target, weapon);
+    if (landed) maybeApplyFrozenTouch(target, weapon, true);
     maybeTriggerEnemyThornShield(target, weapon, landed);
   }
   if (options.offHand) game.player.offHandAttackTimer = attackInterval(weapon);
@@ -8556,7 +9099,7 @@ function updateEnemySpells(enemy, dt, target = game.player) {
         spell.timer = 1;
         continue;
       }
-      const healAmount = roundUpTenth((2.5 + 0.5 * spellLevel(spell)) * (1 + effectiveStat(enemy, "INT") / 100));
+      const healAmount = roundUpTenth((2.5 + 0.5 * spellLevel(spell)) * Math.max(0, 1 + effectiveStat(enemy, "INT") / 100));
       const healed = roundUpTenth(Math.min(healAmount, healTarget.maxHp - healTarget.hp));
       healTarget.hp += healed;
       spawnFloatingText(healTarget, `+${formatNumber(healed)}`, "#61d66f");
@@ -8616,7 +9159,7 @@ function updateEnemySpells(enemy, dt, target = game.player) {
         trail: "#f0cf63",
         maxDistance: spell.range * RANGE_UNIT * 1.5,
         dmgType: "Magical",
-        dot: { name: "Fireball", realm: "Infernal", damage: dotDamage, tick, timer: tick, remaining: duration, dmgType: "Magical" },
+        dot: { name: "Burning", realm: "Infernal", damage: dotDamage, tick, timer: tick, remaining: duration, dmgType: "Magical" },
         projectileAnimation: "flaming projectile"
       }));
       playSpellSound(spell);
@@ -9225,6 +9768,7 @@ function closeShopIfPlayerWalkedAway() {
 
 function updatePlayer(dt) {
   updateStatMods(game.player, dt);
+  updateSpellMemorization(dt);
   updateRegeneration(game.player, dt);
   applyLavaContactDamage(game.player, dt);
   for (const dot of [...game.player.dots]) {
@@ -9384,6 +9928,18 @@ function updatePlayer(dt) {
   } else if (!touchingNaturalistWalden) {
     game.naturalistWaldenContactLatch = false;
   }
+  const herbalistHollyhock = (game.map?.configuredNpcs || []).find(npc => npc.id === "herbalist-hollyhock" || npc.name === "Herbalist Hollyhock");
+  const touchingHerbalistHollyhock = herbalistHollyhock && distance(game.player, herbalistHollyhock) <= game.player.radius + herbalistHollyhock.radius;
+  if (touchingHerbalistHollyhock && !game.herbalistHollyhockContactLatch) {
+    game.herbalistHollyhockContactLatch = true;
+    handleTrainerContact(herbalistHollyhock);
+    if (herbalistHollyhock.shopkeeper) openShop(herbalistHollyhock);
+    startConfiguredQuestDialogue?.(herbalistHollyhock);
+    if (!trainerWindow.classList.contains("hidden")) return;
+    if (!dialogueWindow.classList.contains("hidden")) return;
+  } else if (!touchingHerbalistHollyhock) {
+    game.herbalistHollyhockContactLatch = false;
+  }
   const magisterMaimon = game.map?.magisterMaimon
     || (game.map?.configuredNpcs || []).find(npc => npc.id === "magister-maimon" || npc.name === "Magister Maimon");
   const touchingMagisterMaimon = magisterMaimon && distance(game.player, magisterMaimon) <= game.player.radius + magisterMaimon.radius;
@@ -9514,6 +10070,7 @@ function updatePlayer(dt) {
     "theodora",
     "heretic-slayleigh",
     "naturalist-walden",
+    "herbalist-hollyhock",
     "magister-maimon",
     "high-priestess-sierra",
     "barbarianess-skjoldma",
@@ -9551,6 +10108,7 @@ function updatePlayer(dt) {
   updatePestilentAura(dt);
   for (const spell of game.player.spells) {
     if (spell.passive) continue;
+    if (spellMemorizing(spell) > 0) continue;
     if ((spell.manualTarget || spell.manualCast) && !spell.autocast) continue;
     if (spell.manualTarget && spell.castAt) continue;
     if (spell.autocast && !playerUnderAttackForAutocast()) continue;
@@ -9656,6 +10214,8 @@ function updateProjectiles(dt) {
     }
 
     if (projectile.vx !== null && projectile.vy !== null) {
+      const prevX = projectile.x;
+      const prevY = projectile.y;
       const stepX = projectile.vx * dt;
       const stepY = projectile.vy * dt;
       projectile.x += stepX;
@@ -9667,12 +10227,20 @@ function updateProjectiles(dt) {
         continue;
       }
 
-      if (projectile.targetType === "player" && distance(projectile, game.player) < game.player.radius + projectile.radius) {
+      if (projectile.targetType === "player" && projectileIntersectsTarget(projectile, game.player, prevX, prevY, projectile.x, projectile.y)) {
+        if (projectile.visualOnly) {
+          game.projectiles.splice(i, 1);
+          continue;
+        }
         damagePlayer(projectile.source || { name: projectile.label.replace(/<[^>]+>/g, ""), realm: projectile.realm }, projectile.damage, projectile.realm, projectile.label, projectile.dmgType, { critical: Boolean(projectile.crit) });
         applyProjectileDotToPlayer(projectile);
         maybeDropProjectileAmmo(projectile, game.player);
         game.projectiles.splice(i, 1);
-      } else if (projectile.targetType !== "player" && distance(projectile, projectile.target) < projectile.target.radius + projectile.radius) {
+      } else if (projectile.targetType !== "player" && projectileIntersectsTarget(projectile, projectile.target, prevX, prevY, projectile.x, projectile.y)) {
+        if (projectile.visualOnly) {
+          game.projectiles.splice(i, 1);
+          continue;
+        }
         if (projectile.source?.pet && unitFriendlyToPetMaster(projectile.source, projectile.target)) {
           game.projectiles.splice(i, 1);
           continue;
@@ -9704,7 +10272,11 @@ function updateProjectiles(dt) {
     }
 
     const d = distance(projectile, projectile.target);
-    if (d < projectile.target.radius + projectile.radius) {
+    if (projectileIntersectsTarget(projectile, projectile.target)) {
+      if (projectile.visualOnly) {
+        game.projectiles.splice(i, 1);
+        continue;
+      }
       if (projectile.targetType === "player") {
         damagePlayer(projectile.source || { name: projectile.label.replace(/<[^>]+>/g, ""), realm: projectile.realm }, projectile.damage, projectile.realm, projectile.label, projectile.dmgType, { critical: Boolean(projectile.crit) });
         applyProjectileDotToPlayer(projectile);
@@ -9738,8 +10310,49 @@ function updateProjectiles(dt) {
       }
       game.projectiles.splice(i, 1);
     } else {
+      const prevX = projectile.x;
+      const prevY = projectile.y;
       projectile.x += ((projectile.target.x - projectile.x) / d) * projectile.speed * dt;
       projectile.y += ((projectile.target.y - projectile.y) / d) * projectile.speed * dt;
+      if (projectileIntersectsTarget(projectile, projectile.target, prevX, prevY, projectile.x, projectile.y)) {
+        if (projectile.visualOnly) {
+          game.projectiles.splice(i, 1);
+          continue;
+        }
+        if (projectile.targetType === "player") {
+          damagePlayer(projectile.source || { name: projectile.label.replace(/<[^>]+>/g, ""), realm: projectile.realm }, projectile.damage, projectile.realm, projectile.label, projectile.dmgType, { critical: Boolean(projectile.crit) });
+          applyProjectileDotToPlayer(projectile);
+          maybeDropProjectileAmmo(projectile, game.player);
+        } else {
+          if (projectile.source?.pet && unitFriendlyToPetMaster(projectile.source, projectile.target)) {
+            game.projectiles.splice(i, 1);
+            continue;
+          }
+          if (game.enemies.includes(projectile.source)) setEnemyTarget(projectile.target, projectile.source);
+          const hpBefore = projectile.target.hp;
+          applyDamage(projectile.target, projectile.damage, projectile.realm, projectile.label, projectile.dmgType, {
+            killedByPlayer: projectile.owner === "player",
+            source: projectile.source,
+            sourceKind: projectile.sourceKind,
+            sourceWeapon: projectile.sourceWeapon,
+            offHand: Boolean(projectile.postMitigationDamageMultiplier && projectile.postMitigationDamageMultiplier !== 1),
+            postMitigationDamageMultiplier: projectile.postMitigationDamageMultiplier || 1,
+            realmXp: Boolean(projectile.realmXp),
+            realmXpRealm: projectile.realmXpRealm,
+            critical: Boolean(projectile.crit)
+          });
+          if (projectile.statMod && projectile.target.hp > 0) applyUnitStatMod(projectile.target, projectile.statMod);
+          applyProjectileDot(projectile, projectile.target);
+          if (projectile.owner === "player" && projectile.sourceKind === "weapon" && projectile.target.hp < hpBefore) {
+            maybeApplyPlayerPoison(projectile.target);
+            maybeApplyWeaponStun(projectile.target, projectile.sourceWeapon);
+            if (!projectile.realmXp) maybeGrantDaggerMasteryCritXp(projectile.sourceWeapon || game.player.weapon, Math.max(0, hpBefore - projectile.target.hp), projectile.crit, projectile.target);
+          }
+          maybeDropProjectileAmmo(projectile, projectile.target);
+        }
+        game.projectiles.splice(i, 1);
+        continue;
+      }
       if (!isWalkable(projectile.x, projectile.y, projectile.radius)) {
         game.projectiles.splice(i, 1);
       }
@@ -10026,15 +10639,12 @@ function pointInRect(x, y, rect) {
   return x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h;
 }
 
-const MIN_MAP_ZOOM = 8;
-const MAX_MAP_ZOOM = 64;
-
 function clampMapZoom(value) {
   return Math.max(MIN_MAP_ZOOM, Math.min(MAX_MAP_ZOOM, value));
 }
 
 function adjustMapZoom(direction) {
-  game.mapZoom = clampMapZoom((game.mapZoom || 3.68) + direction);
+  game.mapZoom = clampMapZoom((game.mapZoom || DEFAULT_MAP_ZOOM) + direction);
 }
 
 function worldMapBounds(map = game.map) {
@@ -10366,7 +10976,7 @@ function drawMapOverlay(rect) {
   const bounds = worldMapBounds(game.map);
   const worldWidth = Math.max(1, bounds.maxX - bounds.minX);
   const worldHeight = Math.max(1, bounds.maxY - bounds.minY);
-  const scale = Math.min(mapRect.width / worldWidth, mapRect.height / worldHeight) * (game.mapZoom || 3.68);
+  const scale = Math.min(mapRect.width / worldWidth, mapRect.height / worldHeight) * (game.mapZoom || DEFAULT_MAP_ZOOM);
   const centerX = mapRect.x + mapRect.width / 2;
   const centerY = mapRect.y + mapRect.height / 2;
   ctx.save();
@@ -12888,6 +13498,7 @@ function serializeCharacterSave() {
     realmProgress: clonePlain(game.player.realmProgress),
     craftingProgress: clonePlain(game.player.craftingProgress),
     gvadaStarterMagic: clonePlain(game.player.gvadaStarterMagic),
+    sybilStarterMagic: clonePlain(game.player.sybilStarterMagic),
     lastDeath: clonePlain(game.player.lastDeath),
     spells: clonePlain(game.player.spells),
     spellSlotsActive: game.player.spellSlotsActive,
@@ -12925,10 +13536,11 @@ function applyCharacterSave(save) {
     learnedSpells: Array.isArray(save.learnedSpells) ? save.learnedSpells : [],
     spellLevels: save.spellLevels || {},
     spellCooldownMods: save.spellCooldownMods || {},
-    spellLineups: Array.isArray(save.spellLineups) ? save.spellLineups.slice(0, 6) : Array(6).fill(null),
+    spellLineups: Array.isArray(save.spellLineups) ? save.spellLineups.slice(0, SPELL_LINEUP_COUNT) : Array(SPELL_LINEUP_COUNT).fill(null),
     realmProgress: save.realmProgress || {},
     craftingProgress: save.craftingProgress || {},
     gvadaStarterMagic: save.gvadaStarterMagic || null,
+    sybilStarterMagic: save.sybilStarterMagic || null,
     lastDeath: save.lastDeath && Number.isFinite(Number(save.lastDeath.x)) && Number.isFinite(Number(save.lastDeath.y))
       ? { x: Number(save.lastDeath.x), y: Number(save.lastDeath.y), area: save.lastDeath.area || "" }
       : null,
@@ -12938,6 +13550,7 @@ function applyCharacterSave(save) {
   });
   game.player.inventory = Array.isArray(save.inventory) ? save.inventory.slice(0, game.player.inventory.length).map(hydrateSavedItem) : game.player.inventory;
   while (game.player.inventory.length < initialPlayerState.inventory.length) game.player.inventory.push(null);
+  while (game.player.spellLineups.length < SPELL_LINEUP_COUNT) game.player.spellLineups.push(null);
   game.player.equippedItems = {};
   for (const [slot, item] of Object.entries(save.equippedItems || {})) game.player.equippedItems[slot] = hydrateSavedItem(item);
   game.player.equipment = { ...initialPlayerState.equipment, ...(save.equipment || {}) };
@@ -12973,6 +13586,235 @@ function sendMultiplayerTell(targetName, text) {
   }
   mp.socket.send(JSON.stringify({ type: "tell", targetName, text }));
   return true;
+}
+
+function selectedAccountCharacter() {
+  const id = game.account?.selectedCharacterId || "";
+  return (game.account?.characters || []).find(character => character.id === id) || null;
+}
+
+function avatarForRaceSex(race = "human", sex = "male") {
+  if (race === "dwarf") return sex === "female" ? "dwarfFemale" : "dwarfMale";
+  return sex === "female" ? "soulreaperFemale" : "soulreaperMale";
+}
+
+function characterHasActiveWorld(character) {
+  return Boolean(character?.lastWorld && game.multiplayer.availableWorlds.some(world => world.name === character.lastWorld));
+}
+
+async function accountRequest(path, options = {}) {
+  const response = await fetch(path, {
+    credentials: "same-origin",
+    cache: "no-store",
+    ...options,
+    headers: {
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers || {})
+    }
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data.ok === false) {
+    if (response.status === 404 && path.startsWith("/api/account")) {
+      throw new Error("Account login only works from the multiplayer server. Open the game from the multiplayer server URL, not the editor server.");
+    }
+    throw new Error(data.message || `Request failed (${response.status}).`);
+  }
+  return data;
+}
+
+function applyAccountResponse(data) {
+  const account = data?.account || null;
+  game.account.username = account?.username || "";
+  game.account.characters = Array.isArray(account?.characters) ? account.characters : [];
+  if (!game.account.characters.some(character => character.id === game.account.selectedCharacterId)) {
+    game.account.selectedCharacterId = game.account.characters[0]?.id || "";
+  }
+  if (Array.isArray(data?.worlds)) {
+    game.multiplayer.availableWorlds = data.worlds
+      .map(world => ({
+        name: String(world?.name || "").trim(),
+        playerCount: Number(world?.playerCount) || 0
+      }))
+      .filter(world => world.name)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    if (!game.multiplayer.availableWorlds.some(world => world.name === game.multiplayer.selectedWorldName)) {
+      game.multiplayer.selectedWorldName = game.multiplayer.availableWorlds[0]?.name || "";
+    }
+  }
+  renderAccountHome();
+}
+
+async function refreshAccountState() {
+  game.account.loading = true;
+  game.account.message = "";
+  renderAccountHome();
+  try {
+    const data = await accountRequest("/api/account/me");
+    applyAccountResponse(data);
+  } catch (error) {
+    game.account.username = "";
+    game.account.characters = [];
+    game.account.selectedCharacterId = "";
+    game.account.message = error.message || "Login required.";
+    renderAccountHome();
+  } finally {
+    game.account.loading = false;
+    renderAccountHome();
+  }
+}
+
+function renderAccountHome() {
+  if (!modeChoice) return;
+  const loggedIn = Boolean(game.account.username);
+  authPanel?.classList.toggle("hidden", loggedIn);
+  characterDashboard?.classList.toggle("hidden", !loggedIn);
+  if (accountStatus) {
+    accountStatus.textContent = game.account.loading
+      ? "Loading..."
+      : loggedIn
+        ? `Logged in as ${game.account.username}`
+        : (game.account.message || "Create an account or log in.");
+  }
+  const race = game.account.race || "human";
+  const sex = game.account.sex || "male";
+  modeChoice.querySelectorAll("[data-race-choice]").forEach(button => {
+    button.classList.toggle("selected", button.dataset.raceChoice === race);
+  });
+  const sexButton = modeChoice.querySelector("[data-sex-toggle]");
+  if (sexButton) sexButton.setAttribute("aria-label", sex === "female" ? "Female" : "Male");
+  const sexImage = modeChoice.querySelector("[data-sex-toggle] img");
+  if (sexImage) {
+    sexImage.src = sex === "female" ? "./assets/UI/female.png" : "./assets/UI/male.png";
+    sexImage.alt = sex === "female" ? "Female" : "Male";
+  }
+  if (characterList) {
+    const characters = game.account.characters || [];
+    characterList.innerHTML = characters.length
+      ? characters.map(character => {
+          const selected = character.id === game.account.selectedCharacterId;
+          const activeWorld = characterHasActiveWorld(character);
+          const worldText = character.lastWorld
+            ? activeWorld ? character.lastWorld : "No active world"
+            : "No world yet";
+          const avatarSrc = avatarBaseSources[character.avatar] || avatarBaseSources.soulreaperMale;
+          return `
+            <button class="character-list-card${selected ? " selected" : ""}" type="button" data-character-id="${escapeHtml(character.id)}">
+              <img src="${escapeHtml(avatarSrc)}" alt="">
+              <span><strong>${escapeHtml(character.name)}</strong><small>LVL ${Number(character.level) || 1} · ${escapeHtml(character.lastArea || "Starting Area")}</small><small>${escapeHtml(worldText)}${activeWorld ? ` · ${Number(game.multiplayer.availableWorlds.find(world => world.name === character.lastWorld)?.playerCount) || 0} players` : ""}</small></span>
+            </button>
+          `;
+        }).join("")
+      : `<span class="multiplayer-world-empty">No characters yet. Create one to enter a world.</span>`;
+  }
+  renderMultiplayerWorldList();
+  const selectedCharacter = selectedAccountCharacter();
+  const canResume = characterHasActiveWorld(selectedCharacter);
+  modeChoice.querySelectorAll("[data-multiplayer-action]").forEach(button => {
+    const action = button.dataset.multiplayerAction;
+    const disabled = !selectedCharacter
+      || (action === "resume" && !canResume)
+      || (action === "join" && !game.multiplayer.selectedWorldName);
+    button.disabled = disabled;
+  });
+  const deleteButton = modeChoice.querySelector("[data-delete-character]");
+  if (deleteButton) deleteButton.disabled = !selectedCharacter;
+}
+
+function setFieldHelp(el, message = "") {
+  if (!el) return;
+  el.textContent = message;
+  el.classList.toggle("hidden", !message);
+}
+
+async function createAccountFromForm(form) {
+  const username = form === loginForm ? loginUsernameInput?.value : createUsernameInput?.value;
+  const password = form === loginForm ? loginPasswordInput?.value : createPasswordInput?.value;
+  const path = form === loginForm ? "/api/account/login" : "/api/account/create";
+  game.account.message = "";
+  setFieldHelp(createPasswordHelp, "");
+  if (form === createAccountForm) {
+    const repeatPassword = createRepeatPasswordInput?.value || "";
+    if (String(password || "").length < 8 || String(password || "").length > 128) {
+      setFieldHelp(createPasswordHelp, "Password must be 8 to 128 characters.");
+      return;
+    }
+    if (password !== repeatPassword) {
+      setFieldHelp(createPasswordHelp, "Passwords do not match.");
+      return;
+    }
+  }
+  renderAccountHome();
+  try {
+    const data = await accountRequest(path, {
+      method: "POST",
+      body: JSON.stringify({ username, password, repeatPassword: createRepeatPasswordInput?.value || "" })
+    });
+    applyAccountResponse(data);
+    if (loginPasswordInput) loginPasswordInput.value = "";
+    if (createPasswordInput) createPasswordInput.value = "";
+    if (createRepeatPasswordInput) createRepeatPasswordInput.value = "";
+  } catch (error) {
+    if (form === createAccountForm) setFieldHelp(createPasswordHelp, error.message || "Account request failed.");
+    game.account.message = error.message || "Account request failed.";
+    renderAccountHome();
+  }
+}
+
+async function createCharacterFromForm() {
+  game.account.message = "";
+  setFieldHelp(characterNameHelp, "");
+  renderAccountHome();
+  try {
+    const data = await accountRequest("/api/characters", {
+      method: "POST",
+      body: JSON.stringify({
+        name: playerNameInput?.value || "",
+        race: game.account.race || "human",
+        sex: game.account.sex || "male"
+      })
+    });
+    applyAccountResponse(data);
+    if (data.character?.id) game.account.selectedCharacterId = data.character.id;
+    if (playerNameInput) playerNameInput.value = "";
+    renderAccountHome();
+  } catch (error) {
+    setFieldHelp(characterNameHelp, error.message || "Character creation failed.");
+    game.account.message = error.message || "Character creation failed.";
+    renderAccountHome();
+  }
+}
+
+async function deleteSelectedCharacter() {
+  const character = selectedAccountCharacter();
+  if (!character) return;
+  const result = await showConfirmPrompt({
+    title: "Delete Character",
+    text: `Delete ${character.name}? This cannot be undone.`,
+    options: [
+      { label: "Delete", value: "delete" },
+      { label: "Cancel", value: "cancel" }
+    ]
+  });
+  if (result !== "delete") return;
+  try {
+    const data = await accountRequest(`/api/characters/${encodeURIComponent(character.id)}`, { method: "DELETE" });
+    applyAccountResponse(data);
+  } catch (error) {
+    game.account.message = error.message || "Could not delete character.";
+    renderAccountHome();
+  }
+}
+
+async function logoutAccount() {
+  try {
+    await accountRequest("/api/account/logout", { method: "POST" });
+  } catch {}
+  game.account.username = "";
+  game.account.characters = [];
+  game.account.selectedCharacterId = "";
+  game.account.message = "Logged off.";
+  resetGame();
+  renderAccountHome();
 }
 
 function requestMultiplayerWho() {
@@ -13037,14 +13879,12 @@ async function refreshMultiplayerWorldList() {
   mp.worldListError = "";
   renderMultiplayerWorldList();
   try {
-    const response = await fetch("/multiplayer-status", { cache: "no-store" });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const status = await response.json();
+    const status = await accountRequest("/api/worlds");
     const worlds = Array.isArray(status.worlds) ? status.worlds : [];
     mp.availableWorlds = worlds
       .map(world => ({
         name: String(world?.name || "").trim(),
-        playerCount: Array.isArray(world?.players) ? world.players.length : 0
+        playerCount: Number(world?.playerCount) || (Array.isArray(world?.players) ? world.players.length : 0)
       }))
       .filter(world => world.name)
       .sort((a, b) => a.name.localeCompare(b.name));
@@ -13055,6 +13895,7 @@ async function refreshMultiplayerWorldList() {
   } finally {
     mp.worldListLoading = false;
     renderMultiplayerWorldList();
+    renderAccountHome();
   }
 }
 
@@ -13362,6 +14203,9 @@ function serializeEnemy(enemy) {
     noWander: enemy.noWander,
     lockPosition: enemy.lockPosition,
     noLoot: enemy.noLoot,
+    questSpawn: enemy.questSpawn,
+    questId: enemy.questId,
+    questOwnerId: enemy.questOwnerId,
     pet: enemy.pet,
     masterId: enemy.masterId,
     masterName: enemy.masterName,
@@ -13453,6 +14297,9 @@ function deserializeEnemy(data, previous = null) {
     noRespawn: Boolean(data.noRespawn),
     lockPosition: data.lockPosition,
     noLoot: data.noLoot,
+    questSpawn: data.questSpawn,
+    questId: data.questId,
+    questOwnerId: data.questOwnerId,
     pet: data.pet,
     masterId: data.masterId,
     masterName: data.masterName,
@@ -13493,6 +14340,9 @@ function deserializeEnemy(data, previous = null) {
     noWander: Boolean(data.noWander),
     noRespawn: Boolean(data.noRespawn),
     noLoot: Boolean(data.noLoot),
+    questSpawn: data.questSpawn,
+    questId: data.questId,
+    questOwnerId: data.questOwnerId,
     boss: Boolean(data.boss),
     pet: Boolean(data.pet),
     masterId: data.masterId,
@@ -13730,6 +14580,10 @@ function applyMultiplayerWorldState(state, revision = null) {
   const localGroundDrops = game.groundItems.filter(drop => drop.localOnly);
   const previousEnemies = new Map(game.enemies.map(enemy => [enemy.id, enemy]));
   game.enemies = (state.enemies || []).map(data => deserializeEnemy(data, previousEnemies.get(data.id)));
+  const currentEnemyIds = new Set(game.enemies.map(enemy => enemy.id));
+  for (const enemy of previousEnemies.values()) {
+    if (!currentEnemyIds.has(enemy.id)) window.SoulreaperQuestUI?.updateHollyhockKappaDefeated?.(enemy);
+  }
   invalidateEnemySpatialGrid();
   game.projectiles = (state.projectiles || []).map(deserializeProjectile);
   game.effects = [
@@ -13930,7 +14784,8 @@ function requestMultiplayerWorld() {
   mp.socket.send(JSON.stringify({
     type: mp.pendingAction === "create" ? "world:create" : "world:join",
     world: mp.worldName,
-    characterName: game.player.name || "Soulreaper"
+    characterId: game.account.selectedCharacterId || "",
+    resume: mp.pendingAction === "resume"
   }));
 }
 
@@ -13953,7 +14808,7 @@ function disconnectMultiplayer() {
   game.multiplayer.pendingAction = "";
   game.multiplayer.hostId = null;
   game.multiplayer.isHost = false;
-  game.multiplayer.availableWorlds = [];
+  game.multiplayer.availableWorlds = game.multiplayer.availableWorlds || [];
   game.multiplayer.selectedWorldName = "";
   game.multiplayer.worldListLoading = false;
   game.multiplayer.worldListError = "";
@@ -13999,7 +14854,7 @@ function handleMultiplayerMessage(message) {
     return;
   }
   if (message.type === "world:joined") {
-    enterMultiplayerWorld(message.world, message.seed, message.hostId, message.revision || 0, message.character || null);
+    enterMultiplayerWorld(message.world, message.seed, message.hostId, message.revision || 0, message.character || null, Boolean(message.resume));
     return;
   }
   if (message.type === "world:host") {
@@ -14229,7 +15084,7 @@ function handleMultiplayerMessage(message) {
   }
 }
 
-function enterMultiplayerWorld(worldName, seed, hostId = null, revision = 0, characterSave = null) {
+function enterMultiplayerWorld(worldName, seed, hostId = null, revision = 0, characterSave = null, resume = false) {
   game.mode = "multiplayer";
   game.multiplayer.worldName = worldName || game.multiplayer.worldName;
   game.multiplayer.worldSeed = seed || game.multiplayer.worldSeed || game.multiplayer.worldName;
@@ -14245,8 +15100,9 @@ function enterMultiplayerWorld(worldName, seed, hostId = null, revision = 0, cha
   game.map = generateSeededMap(game.multiplayer.worldSeed);
   resetGroundCacheForMap();
   applyPlayerStartFromMap();
-  const resumed = applyCharacterSave(characterSave);
-  if (!resumed) applyRaceStartFromMap();
+  const hasSavedPosition = Number.isFinite(Number(characterSave?.x)) && Number.isFinite(Number(characterSave?.y));
+  const appliedSave = applyCharacterSave(characterSave);
+  if (!appliedSave || (!resume && !hasSavedPosition)) applyRaceStartFromMap();
   game.enemies = [];
   game.enemySpatialGrid = null;
   game.enemySpatialCount = 0;
@@ -14260,7 +15116,7 @@ function enterMultiplayerWorld(worldName, seed, hostId = null, revision = 0, cha
   game.groundItems = [];
   modeChoice.classList.add("hidden");
   syncPointerPause();
-  addLog(`<b>${escapeHtml(game.player.name)}</b> ${resumed ? "resumes in" : "enters"} multiplayer world <b>${escapeHtml(game.multiplayer.worldName)}</b>.`);
+  addLog(`<b>${escapeHtml(game.player.name)}</b> ${resume && appliedSave ? "resumes in" : "enters"} multiplayer world <b>${escapeHtml(game.multiplayer.worldName)}</b>.`);
   if (game.multiplayer.isHost) {
     addLog("<b>Multiplayer:</b> your browser is keeping this world moving.");
     sendMultiplayerWorldState(true);
@@ -14720,7 +15576,7 @@ function spawnBurningSkinHitEffect(target) {
   });
 }
 
-const BURNING_DOT_NAMES = ["Fireball", "Fireblast"];
+const BURNING_DOT_NAMES = ["Burning", "Fireball", "Fireblast"];
 
 function unitHasBurningDot(unit) {
   return Boolean(unit?.dots?.some(dot => BURNING_DOT_NAMES.includes(dot.name) && (dot.remaining ?? 0) > 0));
@@ -17046,6 +17902,7 @@ function statusEffectRealm(effect) {
 
 function statusEffectIsDebuff(effect) {
   if (effect.kind === "dot") return true;
+  if (effect.freeze) return true;
   if (effect.debuff || effect.negative || effect.harmful) return true;
   const statValues = Object.values(effect.addStats || {});
   const resistanceValues = Object.values(effect.addResistances || {});
@@ -17126,6 +17983,8 @@ function activeTargetStatusEffects(target) {
 }
 
 function statusEffectIconHtml(effect) {
+  if (effect?.name === "Frozen" || effect?.freeze) return spellIconHtml({ name: "Frozen Touch" }, "status-effect-img");
+  if (effect?.name === "Burning") return spellIconHtml({ name: "Fireball" }, "status-effect-img");
   const iconItem = effect.iconItem || (effect.iconGraphic ? { name: effect.name, graphic: effect.iconGraphic } : null);
   const iconSrc = iconItem ? itemIconSrc(iconItem) : "";
   if (iconSrc) {
@@ -17264,6 +18123,9 @@ function renderUI() {
   syncOpenBagInventory?.();
   renderStatusEffectHud();
   renderTargetWindow();
+  renderPetWindow();
+  renderOptionsWindow();
+  renderCharacterRealmPane();
   renderCharacterFactionPane();
   updateTrainerRealmOverlay();
   if (bankWindow && !bankWindow.classList.contains("hidden")) renderBank();
@@ -17392,6 +18254,8 @@ function renderUI() {
     spellDescription(spell),
     Boolean(spell.manualTarget || spell.manualCast || clickTargetSpellNames.has(spell.name)) ? "clickable" : "passive",
     spell.autocast ? "auto" : "manual",
+    spellMemorizing(spell) > 0 ? "memorizing" : "",
+    spell.memorizationReadyFlash > 0 ? "memorized-flash" : "",
     game.pendingSpellAssignment || "",
     game.activeTrainer ? `${game.activeTrainer.id || game.activeTrainer.name}|${game.player.gold}|${game.player.level}|${game.player.spellSlotsActive}` : ""
   ].join("|")).join(";") + `;active:${activeEntries.map(entry => entry.index).join(",")};passive:${passiveEntry?.index ?? ""}` + (game.activeTrainer ? `;trainer:${game.activeTrainer.id || game.activeTrainer.name}|${game.player.gold}|${game.player.level}|${game.player.spellSlotsActive};trainer-slot:${JSON.stringify(nextSpellSlotUnlock?.() || null)}` : "");
@@ -17402,6 +18266,7 @@ function renderUI() {
     if (spellHudEl.innerHTML) spellHudEl.innerHTML = "";
     spellHudSignature = "";
     game.spellHudCooldownBars = [];
+    game.spellHudMemorizationBars = [];
     game.spellHudPills = [];
     return;
   }
@@ -17424,6 +18289,8 @@ function renderUI() {
       const rangeText = spell.range ? `<span>Range <b>${formatNumber(spell.range)}</b></span>` : "";
       const cooldownText = spell.passive ? "Passive" : `${formatNumber(cd)}s`;
       const canAutocast = spell.autocastAvailable !== false && !spell.passive && spell.cast && !spell.castAt;
+      const memorizing = spellMemorizing(spell) > 0;
+      const memorizedFlash = Number(spell.memorizationReadyFlash) > 0;
       const training = spellTrainerState(spell, index);
       const trainerClasses = training.active
         ? ` trainer-active-spell${training.trainable ? " trainer-trainable" : " trainer-maxed"}${training.affordable ? " trainer-affordable gold-orbit" : ""}${training.trainable && !training.affordable ? " trainer-unaffordable" : ""}`
@@ -17464,9 +18331,10 @@ function renderUI() {
         `;
       }
       return `
-        <div class="spell-pill${spell.autocast ? " autocast-on" : ""}${game.pendingSpellAssignment ? " replacing-spell" : ""}${trainerClasses}" style="--spell-realm-color:${realmUi}" data-active-spell-index="${index}" role="button" tabindex="0">
-          ${training.affordable ? `<span class="attention-spark" aria-hidden="true"></span>` : ""}
-          ${spell.autocast ? `<span class="autocast-orb" aria-hidden="true"></span>` : ""}
+          <div class="spell-pill${spell.autocast ? " autocast-on" : ""}${game.pendingSpellAssignment ? " replacing-spell" : ""}${memorizing ? " memorizing-spell" : ""}${memorizedFlash ? " memorized-flash gold-orbit" : ""}${trainerClasses}" style="--spell-realm-color:${realmUi}" data-active-spell-index="${index}" role="button" tabindex="0">
+            ${training.affordable ? `<span class="attention-spark" aria-hidden="true"></span>` : ""}
+            ${memorizedFlash ? `<span class="attention-spark" aria-hidden="true"></span>` : ""}
+            ${spell.autocast ? `<span class="autocast-orb" aria-hidden="true"></span>` : ""}
           ${canAutocast ? `<button class="autocast-toggle${spell.autocast ? " active" : ""}" type="button" data-toggle-autocast="${index}" title="Toggle autocast">A</button>` : ""}
           <span class="spell-slot-face">
             ${spellIconHtml(spell, "spell-slot-icon")}
@@ -17474,6 +18342,7 @@ function renderUI() {
           </span>
           ${training.active && training.trainable && !training.affordable ? `<span class="trainer-unaffordable-overlay" aria-hidden="true"></span>` : ""}
           ${game.pendingSpellAssignment ? `<span class="spell-replace-overlay" aria-hidden="true"></span>` : ""}
+          <span class="spell-memorization-meter" aria-hidden="true"><i data-spell-memorization="${index}"></i></span>
           <div class="cooldown-bar"><i data-spell-cooldown="${index}"></i></div>
           ${spellTooltipHtml(spell, training, armorBonusText, rangeText, cooldownText, realmColor, shadowClass)}
         </div>
@@ -17496,12 +18365,13 @@ function renderUI() {
         ${trainerEmptySlotTooltipHtml(nextUnlock)}
       </div>
     ` : "";
-    spellHudEl.innerHTML = passiveHtml + activeHtml + unlockHtml;
-    spellHudSignature = nextSpellHudSignature;
-    game.spellHudCooldownBars = new Map([...spellHudEl.querySelectorAll("[data-spell-cooldown]")].map(bar => [Number(bar.dataset.spellCooldown), bar]));
-    game.spellHudPills = new Map([...spellHudEl.querySelectorAll("[data-active-spell-index]")].map(pill => [Number(pill.dataset.activeSpellIndex), pill]));
-    updateSpellsWindowLayout();
-  }
+  spellHudEl.innerHTML = passiveHtml + activeHtml + unlockHtml;
+  spellHudSignature = nextSpellHudSignature;
+  game.spellHudCooldownBars = new Map([...spellHudEl.querySelectorAll("[data-spell-cooldown]")].map(bar => [Number(bar.dataset.spellCooldown), bar]));
+  game.spellHudMemorizationBars = new Map([...spellHudEl.querySelectorAll("[data-spell-memorization]")].map(bar => [Number(bar.dataset.spellMemorization), bar]));
+  game.spellHudPills = new Map([...spellHudEl.querySelectorAll("[data-active-spell-index]")].map(pill => [Number(pill.dataset.activeSpellIndex), pill]));
+  updateSpellsWindowLayout();
+}
 
   p.spells.forEach((spell, index) => {
     if (spell.passive) return;
@@ -17509,6 +18379,13 @@ function renderUI() {
     const ready = cd > 0 ? Math.max(0, Math.min(1, 1 - spell.timer / cd)) : 1;
     const cooldownBar = game.spellHudCooldownBars.get?.(index) || game.spellHudCooldownBars[index];
     updateWidthIfChanged(cooldownBar, `${ready * 100}%`);
+    const memorizationRemaining = spellMemorizing(spell);
+    const memorizationDuration = Math.max(0.1, Number(spell.memorizationDuration) || SPELL_MEMORIZATION_SECONDS);
+    const memorizationBar = game.spellHudMemorizationBars?.get?.(index) || game.spellHudMemorizationBars?.[index];
+    if (memorizationBar) {
+      const height = memorizationRemaining > 0 ? Math.max(0, Math.min(1, memorizationRemaining / memorizationDuration)) * 100 : 0;
+      memorizationBar.style.height = `${height}%`;
+    }
     const clickableWithCooldown = cd > 0 && !spell.passive && Boolean(spell.manualTarget || spell.manualCast || clickTargetSpellNames.has(spell.name));
     const spellPill = game.spellHudPills.get?.(index) || game.spellHudPills[index];
     if (spellPill) spellPill.classList.toggle("spell-ready", clickableWithCooldown && spell.timer <= 0);
@@ -17560,6 +18437,7 @@ function spellTrainerScalingLines(spell) {
     lines.push(["RESIST", spellValue(spell, "resistBonus", 0, 0.5)]);
   }
   else if (spell.name === "Pestilent Aura") lines.push(["Umbral DMG/s", spellDamageValue(spell, "damage", 0, 0.2)]);
+  else if (spell.name === "Frozen Touch") lines.push(["Freeze Chance", `${formatNumber(spellValue(spell, "freezeChance", 0, 2))}%`]);
   else if (spell.name === "Burning Skin") lines.push(["Retaliation", `${formatNumber(spellDamageValue(spell, "damage", 0, 0.5))} Infernal`]);
   else if (Number(spell.damage) || Number(spell.damageBase) || Number(spell.damagePerLevel)) lines.push(["Damage", spellDamageValue(spell, "damage", Number(spell.damageBase) || 0, Number(spell.damagePerLevel) || 0)]);
   else if (Number(spell.heal) || Number(spell.healBase) || Number(spell.healPerLevel)) lines.push(["Heal", spellDamageValue(spell, "heal", Number(spell.healBase) || 0, Number(spell.healPerLevel) || 0)]);
@@ -17623,8 +18501,12 @@ function formatStat(key, value) {
   return value;
 }
 
+function startingSpellChoices() {
+  return starterSpells.filter(spell => !spell?.passive && typeof spell?.cast === "function");
+}
+
 function renderStarterChoices() {
-  starterSpellsEl.innerHTML = starterSpells.map((spell, index) => `
+  starterSpellsEl.innerHTML = startingSpellChoices().map((spell, index) => `
     <button class="choice-card" type="button" data-spell="${index}">
       <strong>${spell.name}</strong>
       <span>${spell.realm} / LVL ${spellLevel(spell)} / ${spell.cooldown}s</span>
@@ -17753,8 +18635,9 @@ function resetGame() {
   game.keys.clear();
   game.last = performance.now();
   game.shake = 0;
+  game.loopErrorLogged = false;
   game.mapVisible = true;
-  game.mapZoom = 16;
+  game.mapZoom = DEFAULT_MAP_ZOOM;
   game.auraRealmXpTimers = {};
   game.player = structuredClone(initialPlayerState);
   equipStartingClothes();
@@ -17861,10 +18744,7 @@ function resetGame() {
   if (multiplayerWorldInput) multiplayerWorldInput.value = "";
   renderMultiplayerWorldList();
   refreshMultiplayerWorldList();
-  if (game.player.avatar === "dwarfFemale") game.player.avatar = "soulreaperMale";
-  modeChoice.querySelectorAll("[data-avatar]").forEach(button => {
-    button.classList.toggle("selected", button.dataset.avatar === game.player.avatar);
-  });
+  renderAccountHome();
   renderQuestLog();
   syncPointerPause();
   addLog("Inventory: <b>Wooden Knife</b>.");
@@ -17874,29 +18754,45 @@ function resetGame() {
 function loop(now) {
   const dt = Math.min(0.05, (now - game.last) / 1000);
   game.last = now;
-  if (game.running) {
-    updateWanderingNpcs(dt);
-    updatePlayer(dt);
-    if (game.mode !== "multiplayer") updateEnemies(dt);
-    if (game.mode !== "multiplayer") updateProjectiles(dt);
-    updateEffects(dt);
-    updateGroundItems(dt);
-    if (game.mode !== "multiplayer" && shouldSimulateWorld()) {
-      updateEliteRespawns(dt);
-      updateSpawning(dt);
-      sendMultiplayerWorldState();
+  try {
+    if (game.running) {
+      updateWanderingNpcs(dt);
+      updatePlayer(dt);
+      if (game.mode !== "multiplayer") updateEnemies(dt);
+      if (game.mode !== "multiplayer") updateProjectiles(dt);
+      updateEffects(dt);
+      updateGroundItems(dt);
+      if (game.mode !== "multiplayer" && shouldSimulateWorld()) {
+        updateEliteRespawns(dt);
+        updateSpawning(dt);
+        sendMultiplayerWorldState();
+      }
+      updateFloatingTexts(dt);
+      updatePlayerSpeech(dt);
+      updateNpcSpeech(dt);
+      updateMultiplayerLatency();
+      sendMultiplayerUpdate();
+      if (game.multiplayer.team) renderTeamWindow();
+      game.shake = Math.max(0, game.shake - dt);
     }
-    updateFloatingTexts(dt);
-    updatePlayerSpeech(dt);
-    updateNpcSpeech(dt);
-    updateMultiplayerLatency();
-    sendMultiplayerUpdate();
-    if (game.multiplayer.team) renderTeamWindow();
-    game.shake = Math.max(0, game.shake - dt);
+    closeShopIfPlayerWalkedAway();
+  } catch (error) {
+    console.error(error);
+    if (!game.loopErrorLogged) {
+      game.loopErrorLogged = true;
+      addLog(`<b>Runtime error:</b> ${escapeHtml(error?.message || String(error))}`);
+    }
   }
-  closeShopIfPlayerWalkedAway();
-  draw();
-  renderUI();
+  try {
+    draw();
+    renderUI();
+  } catch (error) {
+    console.error(error);
+    if (!game.loopErrorLogged) {
+      game.loopErrorLogged = true;
+      addLog(`<b>Render error:</b> ${escapeHtml(error?.message || String(error))}`);
+    }
+  }
   requestAnimationFrame(loop);
 }
 
@@ -17931,7 +18827,10 @@ function handleWindowHotkey(event) {
   if (key === "m") return simpleToggle("minimap");
   if (key === "l") return simpleToggle("spells");
   if (key === "e") return simpleToggle("effects");
+  if (key === "p") return simpleToggle("pet");
   if (key === "t") return simpleToggle("target");
+  if (key === "h") return simpleToggle("chronicle");
+  if (key === "o") return simpleToggle("options");
   if (key === "q") {
     event.preventDefault();
     game.keys.delete(key);
@@ -18004,6 +18903,18 @@ window.addEventListener("keyup", event => {
 
 document.addEventListener("pointerover", event => focusTooltipOwner(event.target));
 document.addEventListener("focusin", event => focusTooltipOwner(event.target));
+
+document.addEventListener("input", event => {
+  if (event.target?.id === "soundVolumeRange") setSoundVolume(Number(event.target.value) / 100);
+  if (event.target === createPasswordInput || event.target === createRepeatPasswordInput) setFieldHelp(createPasswordHelp, "");
+  if (event.target === playerNameInput) setFieldHelp(characterNameHelp, "");
+});
+
+document.addEventListener("click", event => {
+  if (event.target?.closest?.("#logoutButton")) {
+    logoutAccount();
+  }
+});
 
 chatInput.addEventListener("keydown", event => {
   event.stopPropagation();
@@ -18170,6 +19081,11 @@ document.addEventListener("click", event => {
 });
 
 modeChoice.addEventListener("click", event => {
+  const refreshAccount = event.target.closest("#refreshAccountButton");
+  if (refreshAccount) {
+    refreshAccountState();
+    return;
+  }
   const refreshWorldsButton = event.target.closest("#refreshMultiplayerWorldsButton");
   if (refreshWorldsButton) {
     refreshMultiplayerWorldList();
@@ -18179,29 +19095,53 @@ modeChoice.addEventListener("click", event => {
   if (worldButton) {
     game.multiplayer.selectedWorldName = worldButton.dataset.worldName || "";
     renderMultiplayerWorldList();
+    renderAccountHome();
     return;
   }
-  const avatarButton = event.target.closest("[data-avatar]");
-  if (avatarButton && !avatarButton.disabled && avatarButton.getAttribute("aria-disabled") !== "true") {
-    game.player.avatar = avatarButton.dataset.avatar;
-    applyPlayerStartFromMap();
-    applyRaceStartFromMap();
-    modeChoice.querySelectorAll("[data-avatar]").forEach(button => {
-      button.classList.toggle("selected", button === avatarButton);
-    });
+  const characterButton = event.target.closest("[data-character-id]");
+  if (characterButton) {
+    game.account.selectedCharacterId = characterButton.dataset.characterId || "";
+    renderAccountHome();
+    return;
+  }
+  const raceButton = event.target.closest("[data-race-choice]");
+  if (raceButton) {
+    game.account.race = raceButton.dataset.raceChoice || "human";
+    game.player.avatar = avatarForRaceSex(game.account.race, game.account.sex);
+    renderAccountHome();
+    return;
+  }
+  if (event.target.closest("[data-sex-toggle]")) {
+    game.account.sex = game.account.sex === "female" ? "male" : "female";
+    game.player.avatar = avatarForRaceSex(game.account.race, game.account.sex);
+    renderAccountHome();
+    return;
+  }
+  if (event.target.closest("[data-delete-character]")) {
+    deleteSelectedCharacter();
     return;
   }
   const multiplayerButton = event.target.closest("[data-multiplayer-action]");
   if (multiplayerButton) {
-    game.player.name = (playerNameInput?.value || "").trim() || "Soulreaper";
+    const character = selectedAccountCharacter();
+    if (!character) {
+      game.account.message = "Choose or create a character first.";
+      renderAccountHome();
+      return;
+    }
     const action = multiplayerButton.dataset.multiplayerAction;
-    const worldName = action === "create"
-      ? (multiplayerWorldInput?.value || "").trim()
-      : (game.multiplayer.selectedWorldName || "").trim();
+    const worldName = action === "resume"
+      ? (character.lastWorld || "").trim()
+      : action === "create"
+        ? (multiplayerWorldInput?.value || "").trim()
+        : (game.multiplayer.selectedWorldName || "").trim();
     if (!worldName) {
-      addLog(action === "create"
-        ? "<b>Multiplayer:</b> enter a new world name first."
-        : "<b>Multiplayer:</b> select an existing world first.");
+      game.account.message = action === "create"
+        ? "Enter a new world name first."
+        : action === "resume"
+          ? "That character has no active world to resume."
+          : "Select an existing world first.";
+      renderAccountHome();
       return;
     }
     connectMultiplayer(worldName, action);
@@ -18209,8 +19149,46 @@ modeChoice.addEventListener("click", event => {
   }
 });
 
+loginForm?.addEventListener("submit", event => {
+  event.preventDefault();
+  createAccountFromForm(loginForm);
+});
+
+createAccountForm?.addEventListener("submit", event => {
+  event.preventDefault();
+  createAccountFromForm(createAccountForm);
+});
+
+createCharacterForm?.addEventListener("submit", event => {
+  event.preventDefault();
+  createCharacterFromForm();
+});
+
 starterSpellsEl.addEventListener("click", event => {
   event.preventDefault();
+  const button = event.target.closest("[data-spell]");
+  if (!button) return;
+  const spell = startingSpellChoices()[Number(button.dataset.spell)];
+  if (!spell) return;
+  const learned = makePlayerSpell(spell.name);
+  if (!learned) return;
+  game.mode = "singleplayer";
+  game.loopErrorLogged = false;
+  game.player.name = (playerNameInput?.value || "").trim() || game.player.name || "Soulreaper";
+  game.player.learnedSpells ||= [];
+  if (!game.player.learnedSpells.includes(learned.name)) game.player.learnedSpells.push(learned.name);
+  game.player.spells = [learned];
+  saveSpellLevel(learned);
+  applyPlayerStartFromMap();
+  applyRaceStartFromMap({ onlyIfAtDefault: true });
+  modeChoice.classList.add("hidden");
+  spellChoice.classList.add("hidden");
+  game.running = true;
+  game.pointerInArena = true;
+  spellHudSignature = "";
+  addLog(`<b>${escapeHtml(game.player.name)}</b> begins with <b>${escapeHtml(learned.name)}</b>.`);
+  renderUI();
+  syncPointerPause();
 });
 
 levelOptions.addEventListener("click", event => {
@@ -18285,7 +19263,10 @@ dialogueText.addEventListener("click", event => {
   const button = event.target.closest("[data-dialogue-choice]");
   if (!button) return;
   const choice = button.dataset.dialogueChoice;
-  if (choice) startGvadaStarterQuest?.(choice);
+  if (!choice) return;
+  if (game.pendingStarterQuestNpc === "sybil") startSybilStarterQuest?.(choice);
+  else if (game.pendingStarterQuestNpc === "gvada") startGvadaStarterQuest?.(choice);
+  game.pendingStarterQuestNpc = null;
 });
 closeDialogueButton.addEventListener("click", closeDialogue);
 
@@ -18374,6 +19355,22 @@ questList.addEventListener("focusin", event => {
   markQuestHovered(item.dataset.questId);
 });
 
+questList.addEventListener("mouseout", event => {
+  const item = event.target.closest("[data-quest-id]");
+  if (!item) return;
+  const next = event.relatedTarget;
+  if (next?.closest?.(`[data-quest-id="${CSS.escape(item.dataset.questId || "")}"]`) || next?.closest?.(".quest-floating-tooltip")) return;
+  hideQuestTooltip?.();
+});
+
+questList.addEventListener("focusout", event => {
+  const item = event.target.closest("[data-quest-id]");
+  if (!item) return;
+  const next = event.relatedTarget;
+  if (next?.closest?.(`[data-quest-id="${CSS.escape(item.dataset.questId || "")}"]`) || next?.closest?.(".quest-floating-tooltip")) return;
+  hideQuestTooltip?.();
+});
+
 questList.addEventListener("click", event => {
   const abandonButton = event.target.closest("[data-abandon-quest]");
   if (abandonButton) {
@@ -18388,6 +19385,35 @@ questList.addEventListener("click", event => {
     event.stopPropagation();
     showRewardItemPreview(rewardButton.dataset.previewReward, event);
   }
+});
+
+document.addEventListener("click", event => {
+  const tooltip = event.target.closest(".quest-floating-tooltip");
+  if (!tooltip) return;
+  const abandonButton = event.target.closest("[data-abandon-quest]");
+  if (abandonButton) {
+    event.preventDefault();
+    event.stopPropagation();
+    abandonQuest?.(abandonButton.dataset.abandonQuest);
+    hideQuestTooltip?.();
+    return;
+  }
+  const rewardButton = event.target.closest("[data-preview-reward]");
+  if (rewardButton) {
+    event.preventDefault();
+    event.stopPropagation();
+    showRewardItemPreview(rewardButton.dataset.previewReward, event);
+  }
+});
+
+document.addEventListener("mouseout", event => {
+  const tooltip = event.target.closest(".quest-floating-tooltip");
+  if (!tooltip) return;
+  const questId = tooltip.dataset.questId || "";
+  const next = event.relatedTarget;
+  if (questId && next?.closest?.(`[data-quest-id="${CSS.escape(questId)}"]`)) return;
+  if (next?.closest?.(".quest-floating-tooltip")) return;
+  hideQuestTooltip?.();
 });
 
 spellbookRealmTabs.addEventListener("click", event => {
@@ -18542,6 +19568,7 @@ equipStartingClothes();
 game.player.inventory[0] = cloneItem("Wooden Knife");
 renderStarterChoices();
 refreshMultiplayerWorldList();
+refreshAccountState();
 renderUI();
 addLog("Inventory: <b>Wooden Knife</b>. Equipped <b>Linen Shirt</b> and <b>Linen Pants</b>.");
 requestAnimationFrame(loop);

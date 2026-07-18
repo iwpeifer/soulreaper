@@ -337,7 +337,12 @@
     syncSpellbookAttention();
     const title = document.querySelector("#spellbookTitle");
     if (!game.spellbookTab || !["all", "lineups", ...realms].includes(game.spellbookTab)) game.spellbookTab = "all";
-    if (title) title.textContent = game.spellbookTab === "lineups" ? "Spell Lineups" : "Spellbook";
+    if (title) {
+      const label = game.spellbookTab === "lineups" ? "Spell Lineups" : "Spellbook";
+      title.innerHTML = window.SoulreaperWindowHotkeyLabelHtml
+        ? window.SoulreaperWindowHotkeyLabelHtml("spellbook", label)
+        : label;
+    }
     document.querySelectorAll("[data-spellbook-mode]").forEach(button => {
       button.classList.toggle("active", button.dataset.spellbookMode === (game.spellbookTab === "lineups" ? "lineups" : "spells"));
     });
@@ -380,8 +385,9 @@
   }
 
   function ensureSpellLineups() {
-    game.player.spellLineups = Array.isArray(game.player.spellLineups) ? game.player.spellLineups.slice(0, 6) : [];
-    while (game.player.spellLineups.length < 6) game.player.spellLineups.push(null);
+    const lineupCount = Number(window.SoulreaperSpellLineupCount || 3);
+    game.player.spellLineups = Array.isArray(game.player.spellLineups) ? game.player.spellLineups.slice(0, lineupCount) : [];
+    while (game.player.spellLineups.length < lineupCount) game.player.spellLineups.push(null);
   }
 
   function currentSpellLineupSnapshot() {
@@ -445,7 +451,7 @@
 
   function saveSpellLineup(index) {
     ensureSpellLineups();
-    if (!Number.isInteger(index) || index < 0 || index >= 6) return;
+    if (!Number.isInteger(index) || index < 0 || index >= Number(window.SoulreaperSpellLineupCount || 3)) return;
     const snapshot = currentSpellLineupSnapshot();
     if (!lineupHasSpells(snapshot)) {
       addLog("No prepared spells to save.");
@@ -459,7 +465,7 @@
 
   function deleteSpellLineup(index) {
     ensureSpellLineups();
-    if (!Number.isInteger(index) || index < 0 || index >= 6) return;
+    if (!Number.isInteger(index) || index < 0 || index >= Number(window.SoulreaperSpellLineupCount || 3)) return;
     game.player.spellLineups[index] = null;
     markUIDirty();
     renderSpellbookWindow();
@@ -488,6 +494,7 @@
       return false;
     }
     for (const spell of game.player.spells || []) saveSpellLevel(spell);
+    nextSpells.forEach(spell => clearSpellMemorization?.(spell));
     game.player.spells = nextSpells;
     enforceSinglePassiveSpell?.();
     if (hadDualWield && !game.player.spells.some(spell => spell?.name === "Dual Wield") && typeof window.unequipItem === "function") {
@@ -573,12 +580,13 @@
     const activeEntries = preparedActiveSpellEntries?.() || game.player.spells.map((candidate, index) => ({ spell: candidate, index })).filter(({ spell: candidate }) => !candidate?.passive);
     if (activeEntries.length < game.player.spellSlotsActive) {
       game.player.spells.push(spell);
+      startSpellMemorization?.(spell);
       clearNewSpellAlert(name);
       spellHudSignature = "";
       markUIDirty();
       renderSpellbookWindow();
       renderUI();
-      addLog(`<b>${name}</b> is prepared.`);
+      addLog(`You begin memorizing ${name}...`);
       return;
     }
     if (activeEntries.length === 1 || game.player.spellSlotsActive <= 1) {
@@ -625,6 +633,7 @@
       return;
     }
     spell.timer = playerSpellTimer(spell);
+    startSpellMemorization?.(spell);
     game.player.spells[index] = spell;
     unequipOffHandWeaponWithoutDualWield(previousSpell);
     clearNewSpellAlert(name);
@@ -635,7 +644,7 @@
     renderSpellbookWindow();
     renderUI();
     syncPointerPause();
-    addLog(`<b>${name}</b> is prepared.`);
+    addLog(`You begin memorizing ${name}...`);
   }
 
   window.SoulreaperSpellUI = {

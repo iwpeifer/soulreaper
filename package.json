@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "pg": "^8.13.1"
+  },
+  "scripts": {
+    "start": "node multiplayer-server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

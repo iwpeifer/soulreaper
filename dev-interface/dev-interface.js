@@ -12,7 +12,7 @@ const SPELL_BOOLEAN_KEYS = ["manualTarget", "autocast", "passive", "aura"];
 const SPELL_FORMULA_STATS = new Set([...STAT_KEYS, "HP", "MP"]);
 const BLOCKED_SPELL_JSON_KEYS = new Set(["cast", "castAt", "update", "onHit", "effect", "__proto__", "prototype", "constructor"]);
 const QUEST_VISIBLE_KEYS = new Set(["id", "name", "description", "objectives", "minimumLevel", "minLevel", "requiredLevel", "minimumRealm", "requiredRealm", "realmRequirement", "minimumRealmLevel", "requiredRealmLevel", "rewardXp", "rewardGold", "rewardVirtue", "rewardItem", "rewardItems", "rewardRealmXp", "realmXpRewards", "rewardText"]);
-const QUEST_OBJECTIVE_TYPES = ["item", "kill", "phase", "flag", "custom"];
+const QUEST_OBJECTIVE_TYPES = ["item", "anyItems", "kill", "phase", "flag", "custom"];
 const WEAPON_TYPES = ["Bow", "Slashing", "Stabbing", "Blunt", "Axe", "Spear"];
 const ENCHANTMENT_SLOTS = ["Main Hand", "Off-Hand", "Head", "Chest", "Legs", "Shoulders", "Hands", "Feet", "Neck", "Finger", "Wrist", "Ear", "Waist", "Cape"];
 const ARMOR_TYPES = ["Cloth", "Leather", "Chainmail", "Plate Mail", "Shield"];
@@ -2207,9 +2207,7 @@ function renderItemAvatarPreviewForGender(gender) {
   const layerSrc = tintedItemPreviewSrc(avatarSrc, avatarPreviewTints());
   const layerImage = layerSrc && layerSrc !== avatarSrc ? avatarPreviewImage(layerSrc) : avatarImage;
   if (layerImage?.complete && layerImage.naturalWidth) {
-    const layerOffsetX = gender === "female" ? -3 : 0;
-    const layerOffsetY = gender === "female" ? 3 : 0;
-    previewCtx.drawImage(layerImage, layerOffsetX, layerOffsetY, 128, 128);
+    previewCtx.drawImage(layerImage, 0, 0, 128, 128);
   }
 }
 
@@ -2403,6 +2401,7 @@ function normalizeQuestObjective(objective = {}) {
     required: Math.max(1, Math.floor(numberValue(objective.required ?? objective.count, 1)))
   };
   if (type === "item") normalized.item = objective.item || objective.name || allItemNames()[0] || "";
+  if (type === "anyItems") normalized.items = Array.isArray(objective.items) ? objective.items.filter(Boolean) : [];
   if (type === "kill") normalized.enemy = objective.enemy || objective.name || allUnitNames()[0] || "";
   if (type === "phase") normalized.completePhase = objective.completePhase || objective.phase || "";
   if (type === "flag") normalized.flag = objective.flag || "";
@@ -2414,6 +2413,7 @@ function questObjectiveRow(objective = {}) {
   const normalized = normalizeQuestObjective(objective);
   const typeOptions = QUEST_OBJECTIVE_TYPES.map(type => `<option value="${type}" ${type === normalized.type ? "selected" : ""}>${type}</option>`).join("");
   const item = normalized.item || allItemNames()[0] || "";
+  const anyItems = (normalized.items || []).join("\n");
   const enemy = normalized.enemy || allUnitNames()[0] || "";
   return `
     <div class="stack-row" data-quest-objective>
@@ -2421,6 +2421,7 @@ function questObjectiveRow(objective = {}) {
       <label><span>Label</span><input data-quest-objective-label type="text" value="${escapeHtml(normalized.label)}"></label>
       <label><span>Required</span><input data-quest-objective-required type="number" min="1" step="1" value="${normalized.required}"></label>
       <label data-quest-objective-field="item" style="${normalized.type === "item" ? "" : "display:none"}"><span>Item</span><span class="select-with-preview"><span class="loot-item-preview" data-quest-objective-item-preview>${itemPreviewHtml(item)}</span><select data-quest-objective-item>${itemSelectOptions(item)}</select></span></label>
+      <label data-quest-objective-field="anyItems" style="${normalized.type === "anyItems" ? "" : "display:none"}"><span>Any Items</span><textarea data-quest-objective-items rows="3" placeholder="Rusty Dagger&#10;Goblin Spear">${escapeHtml(anyItems)}</textarea></label>
       <label data-quest-objective-field="kill" style="${normalized.type === "kill" ? "" : "display:none"}"><span>Unit</span><select data-quest-objective-enemy>${optionHtml(allUnitNames(), enemy)}</select></label>
       <label data-quest-objective-field="phase" style="${normalized.type === "phase" ? "" : "display:none"}"><span>Complete Phase</span><input data-quest-objective-phase type="text" value="${escapeHtml(normalized.completePhase || "")}"></label>
       <label data-quest-objective-field="flag" style="${normalized.type === "flag" ? "" : "display:none"}"><span>Flag</span><input data-quest-objective-flag type="text" value="${escapeHtml(normalized.flag || "")}"></label>
@@ -2488,6 +2489,12 @@ function readQuestObjectives() {
       required: Math.max(1, Math.floor(numberValue(row.querySelector("[data-quest-objective-required]")?.value, 1)))
     };
     if (type === "item") objective.item = row.querySelector("[data-quest-objective-item]")?.value || "";
+    if (type === "anyItems") {
+      objective.items = (row.querySelector("[data-quest-objective-items]")?.value || "")
+        .split(/\r?\n|,/)
+        .map(name => name.trim())
+        .filter(Boolean);
+    }
     if (type === "kill") objective.enemy = row.querySelector("[data-quest-objective-enemy]")?.value || "";
     if (type === "phase") objective.completePhase = row.querySelector("[data-quest-objective-phase]")?.value.trim() || "";
     if (type === "flag") objective.flag = row.querySelector("[data-quest-objective-flag]")?.value.trim() || "";
@@ -2509,6 +2516,12 @@ function validateQuestObjectives(quest, errors, where = "Quest") {
     if (label) labels.add(label);
     if (!Number.isFinite(Number(objective.required)) || Number(objective.required) < 1) errors.push(`${prefix} required count must be positive.`);
     if (objective.type === "item" && !items.has(objective.item)) errors.push(`${prefix} item is invalid.`);
+    if (objective.type === "anyItems") {
+      if (!Array.isArray(objective.items) || !objective.items.length) errors.push(`${prefix} must list at least one item.`);
+      for (const itemName of objective.items || []) {
+        if (!items.has(itemName)) errors.push(`${prefix} item "${itemName}" is invalid.`);
+      }
+    }
     if (objective.type === "kill" && !units.has(objective.enemy)) errors.push(`${prefix} unit is invalid.`);
     if (objective.type === "phase" && !String(objective.completePhase || "").trim()) errors.push(`${prefix} complete phase is required.`);
     if (objective.type === "flag" && !String(objective.flag || "").trim()) errors.push(`${prefix} flag is required.`);
@@ -3300,9 +3313,10 @@ function createRecord() {
   if (state.tab === "units") {
     const groupName = state.unitGroups.monsterTemplates ? "monsterTemplates" : Object.keys(state.unitGroups)[0];
     const entries = state.unitGroups[groupName].entries;
-    entries.push(normalizeUnit({ name: uniqueName("New Unit", allUnitNames()) }));
+    const unit = normalizeUnit({ name: uniqueName("New Unit", allUnitNames()) });
+    entries.push(unit);
     rebuildUnitRefs();
-    state.unitIndex = state.unitRefs.length - 1;
+    state.unitIndex = state.unitRefs.findIndex(ref => ref.unit === unit);
   } else if (state.tab === "areas") {
     state.areas.push({ name: uniqueName("New Area", state.areas.map(area => area.name)), levelRange: { min: 1, max: 1 }, spawnRate: "Normal", spawnAmount: "Normal", connectsTo: [], environment: { groundTexture: "", features: [] }, spawnTable: [] });
     state.areaIndex = state.areas.length - 1;

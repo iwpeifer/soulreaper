@@ -238,6 +238,29 @@ const weaponTemplates = {
     "femaleAvatarSprite": "./assets/items/fang.png",
     "avatarSprite": "./assets/sprites/player-equipment/bite.png",
     "soundEffect": "./assets/audio/claw.wav",
+    "weaponTypes": [
+      "Stabbing"
+    ],
+    "goldValue": 55
+  },
+  "Claw": {
+    "name": "Claw",
+    "realm": "Mortal",
+    "hands": "One-Handed",
+    "dmgType": "Physical",
+    "dice": "1D6",
+    "speed": 100,
+    "range": 2,
+    "animation": "claw",
+    "graphic": "./assets/items/rat-claw.png",
+    "graphicSize": 30,
+    "maleAvatarSprite": "./assets/items/fang.png",
+    "femaleAvatarSprite": "./assets/items/fang.png",
+    "avatarSprite": "./assets/sprites/player-equipment/bite.png",
+    "soundEffect": "./assets/audio/claw.wav",
+    "weaponTypes": [
+      "Slashing"
+    ],
     "goldValue": 55
   },
   "Willow Branch": {
@@ -585,7 +608,7 @@ const weaponTemplates = {
     "realm": "Mortal",
     "hands": "Two-Handed",
     "dmgType": "Physical",
-    "dice": "1D4",
+    "dice": "1D6",
     "speed": 300,
     "range": 8,
     "animation": "projectile",
@@ -819,6 +842,36 @@ const weaponTemplates = {
       }
     }
   },
+  "Ice Fist": {
+    "name": "Ice Fist",
+    "realm": "Ethereal",
+    "hands": "One-Handed",
+    "dmgType": "Physical",
+    "dice": "1D6",
+    "speed": 100,
+    "range": 3,
+    "animation": "whack",
+    "graphic": "./assets/sprites/rock.png",
+    "graphicSize": 30,
+    "graphicTint": "#67bdda",
+    "maleAvatarSprite": "./assets/sprites/rock.png",
+    "femaleAvatarSprite": "./assets/sprites/rock.png",
+    "avatarSprite": "./assets/sprites/player-equipment/iron-mace.png",
+    "avatarSpriteTint": "#67bdda",
+    "soundEffect": "./assets/audio/stab.wav",
+    "category": "Melee",
+    "weaponTypes": [
+      "Blunt"
+    ],
+    "goldValue": 80,
+    "effects": {
+      "stun": {
+        "enabled": true,
+        "chance": 5,
+        "duration": 2
+      }
+    }
+  },
   "Granite Fist": {
     "name": "Granite Fist",
     "realm": "Mortal",
@@ -952,6 +1005,7 @@ const shopkeeperStartingScrolls = [
   "Scroll of Clarity",
   "Scroll of Ice Bolt",
   "Scroll of Ice Storm",
+  "Scroll of Frozen Touch",
   "Scroll of Chain Lightning",
   "Scroll of Grace from Above",
   "Scroll of Divine Shield",
@@ -982,6 +1036,7 @@ const itemTemplates = {
     "soundEffect": "./assets/audio/claw.wav",
     "graphic": "./assets/items/rat-claw.png",
     "graphicSize": 30,
+    "graphicTint": "",
     "resistances": {},
     "maleAvatarSprite": "./assets/sprites/player-equipment/male/rat-claw.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/female/rat-claw.png",
@@ -1408,6 +1463,46 @@ const itemTemplates = {
       "range": 2,
       "animation": "claw",
       "soundEffect": "./assets/audio/claw.wav",
+      "weaponTypes": [
+        "Stabbing"
+      ],
+      "goldValue": 55,
+      "graphic": "./assets/items/rat-claw.png",
+      "graphicSize": 30,
+      "maleAvatarSprite": "./assets/items/fang.png",
+      "femaleAvatarSprite": "./assets/items/fang.png",
+      "avatarSprite": "./assets/sprites/player-equipment/bite.png",
+      "statBuffs": {}
+    }
+  },
+  "Claw": {
+    "name": "Claw",
+    "rarity": "common",
+    "slot": "Main Hand",
+    "stats": {},
+    "goldValue": 55,
+    "lore": "",
+    "soundEffect": "./assets/audio/claw.wav",
+    "graphic": "./assets/items/rat-claw.png",
+    "graphicSize": 30,
+    "graphicTint": "",
+    "resistances": {},
+    "maleAvatarSprite": "./assets/items/fang.png",
+    "femaleAvatarSprite": "./assets/items/fang.png",
+    "avatarSprite": "./assets/sprites/player-equipment/bite.png",
+    "weapon": {
+      "name": "Claw",
+      "realm": "Mortal",
+      "hands": "One-Handed",
+      "dmgType": "Physical",
+      "dice": "1D6",
+      "speed": 100,
+      "range": 2,
+      "animation": "claw",
+      "soundEffect": "./assets/audio/claw.wav",
+      "weaponTypes": [
+        "Slashing"
+      ],
       "goldValue": 55,
       "graphic": "./assets/items/rat-claw.png",
       "graphicSize": 30,
@@ -2024,6 +2119,7 @@ const itemTemplates = {
     "soundEffect": "./assets/audio/turn-page.wav",
     "graphic": "./assets/items/shortbow.png",
     "graphicSize": 30,
+    "graphicTint": "",
     "resistances": {},
     "maleAvatarSprite": "./assets/sprites/player-equipment/male/shortbow.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/female/shortbow.png",
@@ -2064,6 +2160,7 @@ const itemTemplates = {
     "soundEffect": "./assets/audio/turn-page.wav",
     "graphic": "./assets/items/longbow.png",
     "graphicSize": 30,
+    "graphicTint": "",
     "resistances": {},
     "maleAvatarSprite": "./assets/sprites/player-equipment/male/longbow.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/female/longbow.png",
@@ -2073,7 +2170,7 @@ const itemTemplates = {
       "realm": "Mortal",
       "hands": "Two-Handed",
       "dmgType": "Physical",
-      "dice": "1D4",
+      "dice": "1D6",
       "speed": 300,
       "range": 8,
       "animation": "projectile",
@@ -2106,6 +2203,7 @@ const itemTemplates = {
     "soundEffect": "./assets/audio/turn-page.wav",
     "graphic": "./assets/items/shortbow.png",
     "graphicSize": 30,
+    "graphicTint": "",
     "resistances": {},
     "maleAvatarSprite": "./assets/sprites/player-equipment/male/eldwood-shortbow.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/female/eldwood-shortbow.png",
@@ -2451,6 +2549,54 @@ const itemTemplates = {
       "statBuffs": {}
     }
   },
+  "Ice Fist": {
+    "name": "Ice Fist",
+    "rarity": "common",
+    "slot": "Main Hand",
+    "stats": {},
+    "goldValue": 80,
+    "lore": "",
+    "soundEffect": "./assets/audio/stab.wav",
+    "graphic": "./assets/sprites/rock.png",
+    "graphicSize": 30,
+    "graphicTint": "#67bdda",
+    "resistances": {},
+    "maleAvatarSprite": "./assets/sprites/rock.png",
+    "femaleAvatarSprite": "./assets/sprites/rock.png",
+    "avatarSprite": "./assets/sprites/player-equipment/iron-mace.png",
+    "avatarSpriteTint": "#67bdda",
+    "weapon": {
+      "name": "Ice Fist",
+      "realm": "Ethereal",
+      "hands": "One-Handed",
+      "dmgType": "Physical",
+      "dice": "1D6",
+      "speed": 100,
+      "range": 3,
+      "animation": "whack",
+      "soundEffect": "./assets/audio/stab.wav",
+      "category": "Melee",
+      "weaponTypes": [
+        "Blunt"
+      ],
+      "effects": {
+        "stun": {
+          "enabled": true,
+          "chance": 5,
+          "duration": 2
+        }
+      },
+      "goldValue": 80,
+      "graphic": "./assets/sprites/rock.png",
+      "graphicSize": 30,
+      "graphicTint": "#67bdda",
+      "maleAvatarSprite": "./assets/sprites/rock.png",
+      "femaleAvatarSprite": "./assets/sprites/rock.png",
+      "avatarSprite": "./assets/sprites/player-equipment/iron-mace.png",
+      "avatarSpriteTint": "#67bdda",
+      "statBuffs": {}
+    }
+  },
   "Granite Fist": {
     "name": "Granite Fist",
     "rarity": "common",
@@ -2510,6 +2656,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/leather-chest.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/leather-chest.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/leather-chest.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/leather-chest.png",
     "avatarSprite": "./assets/sprites/player-equipment/leather-breastplate.png",
     "goldValue": 60,
     "graphicTint": ""
@@ -2529,6 +2676,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/cloth-head.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/cloth-head.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/leather-hood.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/leather-hood.png",
     "avatarSprite": "./assets/sprites/player-equipment/leather-hood.png",
     "avatarSpriteTint": "#3f2213",
     "goldValue": 45
@@ -2547,6 +2695,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/gloves.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/gloves.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/leather-gloves.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/leather-gloves.png",
     "avatarSprite": "./assets/sprites/player-equipment/leather-gloves.png",
     "avatarSpriteTint": "#553f25",
     "goldValue": 45,
@@ -2566,6 +2715,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/belt.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/belt.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/leather-belt.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/leather-belt.png",
     "avatarSprite": "./assets/sprites/player-equipment/leather-gloves.png",
     "goldValue": 45,
     "graphicTint": ""
@@ -2582,13 +2732,16 @@ const itemTemplates = {
     "graphic": "./assets/items/leather-bracer.png",
     "graphicSize": 30,
     "maleAvatarSprite": "./assets/sprites/player-equipment/male/leather-bracer.png",
-    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/leather-bracer.png",
+    "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/leather-wrist-right.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/leather-bracer-left.png",
     "maleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/male/leather-bracer-left.png",
     "femaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/female/leather-wrist-left.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/leather-bracer-left.png",
+    "dwarfFemaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/leather-bracer-left.png",
     "maleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/male/leather-bracer-right.png",
     "femaleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/female/leather-wrist-right.png",
     "dwarfMaleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/leather-bracer-right.png",
+    "dwarfFemaleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/leather-bracer-right.png",
     "avatarSprite": "./assets/sprites/player-equipment/leather-bracer.png",
     "goldValue": 25,
     "graphicTint": ""
@@ -2613,9 +2766,11 @@ const itemTemplates = {
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/chainmail-wrist-left.png",
     "femaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/female/chainmail-wrist-left.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/chainmail-bracer-left.png",
+    "dwarfFemaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/chainmail-bracer-left.png",
     "maleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/male/plate-bracer-right.png",
     "femaleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/female/chainmail-wrist-right.png",
     "dwarfMaleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/chainmail-bracer-right.png",
+    "dwarfFemaleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/chainmail-bracer-right.png",
     "avatarSprite": "./assets/sprites/player-equipment/leather-bracer.png",
     "avatarSpriteTint": "#c06e1b",
     "goldValue": 55
@@ -2637,11 +2792,16 @@ const itemTemplates = {
     "graphicSize": 30,
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/dominatrix-bracer-left.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/female/leather-bracer.png",
-    "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/ratzkhanite-bracer-right.png",
+    "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/ratzkhanite-bracer-left.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/ratzkhanite-bracer-left.png",
     "maleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/male/dominatrix-bracer-left.png",
     "femaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/female/dominatrix-bracer-left.png",
+    "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/ratzkhanite-bracer-left.png",
+    "dwarfFemaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/ratzkhanite-bracer-left.png",
     "maleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/male/dominatrix-bracer-right.png",
     "femaleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/female/dominatrix-bracer-right.png",
+    "dwarfMaleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/ratzkhanite-bracer-right.png",
+    "dwarfFemaleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/ratzkhanite-bracer-right.png",
     "avatarSprite": "./assets/sprites/player-equipment/leather-bracer.png",
     "goldValue": 120,
     "graphicTint": ""
@@ -2665,9 +2825,11 @@ const itemTemplates = {
     "maleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/male/plate-bracer-left.png",
     "femaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/female/plate-wrist-left.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-bracer-left.png",
+    "dwarfFemaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/plate-bracer-left.png",
     "maleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/male/plate-bracer-right.png",
     "femaleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/female/plate-wrist-right.png",
     "dwarfMaleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-bracer-right.png",
+    "dwarfFemaleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/plate-bracer-right.png",
     "avatarSprite": "./assets/sprites/player-equipment/leather-bracer.png",
     "avatarSpriteTint": "#c06e1b",
     "goldValue": 85
@@ -2689,9 +2851,11 @@ const itemTemplates = {
     "maleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/male/plate-bracer-left.png",
     "femaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/female/plate-wrist-left.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-bracer-left.png",
+    "dwarfFemaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/plate-bracer-left.png",
     "maleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/male/plate-bracer-right.png",
     "femaleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/female/plate-wrist-right.png",
     "dwarfMaleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-bracer-right.png",
+    "dwarfFemaleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/plate-bracer-right.png",
     "avatarSprite": "./assets/sprites/player-equipment/leather-bracer.png",
     "goldValue": 115,
     "graphicTint": ""
@@ -2710,6 +2874,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/leather-legs.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/leather-legs.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/leather-pants.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/leather-pants.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/leather-pants.png",
     "avatarSprite": "./assets/sprites/player-equipment/leather-pants.png",
     "goldValue": 60,
@@ -2733,6 +2898,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/dominatrix-legs.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/dominatrix-legs.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/ratzkhanite-legs.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/ratzkhanite-legs.png",
     "avatarSprite": "./assets/sprites/player-equipment/leather-pants.png",
     "goldValue": 200,
     "graphicTint": ""
@@ -2755,6 +2921,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/leather-feet.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/dominatrix-boots.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/chainmail-boots.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/chainmail-boots.png",
     "maleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/male/leather-feet.png",
     "femaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/female/dominatrix-boots.png",
     "avatarSprite": "./assets/sprites/player-equipment/leather-pants.png",
@@ -2779,6 +2946,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/dominatrix-chest.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/dominatrix-chest.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/ratzkhanite-chest.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/ratzkhanite-chest.png",
     "avatarSprite": "./assets/sprites/player-equipment/leather-pants.png",
     "goldValue": 200,
     "graphicTint": ""
@@ -2806,6 +2974,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/druid-chest.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/sylvarweave-robe.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/druid-robe.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/druid-robe.png",
     "avatarSprite": "./assets/sprites/player-equipment/leather-pants.png",
     "goldValue": 200
   },
@@ -2835,9 +3004,11 @@ const itemTemplates = {
     "maleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/male/druid-wrist-left.png",
     "femaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/female/ancient-treantwood-bracer-left.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/druid-bracer-left.png",
+    "dwarfFemaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/druid-bracer-left.png",
     "maleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/male/druid-wrist-right.png",
     "femaleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/female/ancient-treantwood-bracer-right.png",
     "dwarfMaleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/druid-bracer-right.png",
+    "dwarfFemaleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/druid-bracer-right.png",
     "avatarSprite": "./assets/sprites/player-equipment/templates/male/druid-wrist-left.png",
     "goldValue": 140
   },
@@ -2867,6 +3038,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/druid-belt.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/cat-eye-agate-belt.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/druid-belt.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/druid-belt.png",
     "maleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/male/druid-belt.png",
     "femaleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/female/cat-eye-agate-belt.png",
     "avatarSprite": "./assets/sprites/player-equipment/leather-pants.png",
@@ -2894,6 +3066,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/druid-shoulders.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/male/druid-shoulders.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/druid-shoulders.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/druid-shoulders.png",
     "avatarSprite": "./assets/sprites/player-equipment/leather-pants.png",
     "goldValue": 150
   },
@@ -2915,6 +3088,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/dominatrix-shoulders.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/dominatrix-shoulders.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/ratzkhanite-shoulder.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/ratzkhanite-shoulder.png",
     "avatarSprite": "./assets/sprites/player-equipment/leather-pants.png",
     "goldValue": 200,
     "graphicTint": ""
@@ -2933,6 +3107,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/leather-feet.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/leather-feet.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/leather-boots.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/leather-boots.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/leather-boots.png",
     "avatarSprite": "./assets/sprites/player-equipment/leather-boots.png",
     "goldValue": 45,
@@ -2952,6 +3127,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/leather-shoulders.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/leather-shoulders.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/leather-shoulders.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/leather-shoulders.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/leather-shoulders.png",
     "avatarSprite": "./assets/sprites/player-equipment/leather-pauldrons.png",
     "goldValue": 45,
@@ -2971,6 +3147,7 @@ const itemTemplates = {
     "graphicSize": 30,
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/dominatrix-shoulders.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/dominatrix-shoulders.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/ratzkhanite-shoulder.png",
     "avatarSprite": "./assets/sprites/player-equipment/leather-pauldrons.png",
     "goldValue": 45,
     "graphicTint": ""
@@ -2991,6 +3168,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/plate-shoulders.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/plate-shoulders.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-shoulders.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/plate-shoulders.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-shoulders.png",
     "dwarfMaleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-shoulders.png",
     "avatarSprite": "./assets/sprites/player-equipment/leather-pauldrons.png",
@@ -3011,6 +3189,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/cloth-head.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/cloth-head.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/cloth-hood.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/cloth-hood.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/cloth-hood.png",
     "avatarSprite": "./assets/sprites/player-equipment/spidersilk-cowl.png",
     "goldValue": 40,
@@ -3030,6 +3209,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/cloth-chest.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/cloth-chest.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/cloth-chest.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/cloth-chest.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/cloth-chest.png",
     "avatarSprite": "./assets/sprites/player-equipment/spidersilk-shirt.png",
     "goldValue": 50,
@@ -3107,6 +3287,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/cloth-legs.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/cloth-legs.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/cloth-pants.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/pants.png",
     "avatarSprite": "./assets/sprites/player-equipment/spidersilk-shirt.png",
     "avatarSpriteTint": "#d09849",
     "goldValue": 50
@@ -3125,6 +3306,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/gloves.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/gloves.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/leather-gloves.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/leather-gloves.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/leather-gloves.png",
     "avatarSprite": "./assets/sprites/player-equipment/spidersilk-gloves.png",
     "avatarSpriteTint": "#acae93",
@@ -3140,12 +3322,13 @@ const itemTemplates = {
       "RESIST": 0.5
     },
     "lore": "",
-    "graphic": "./assets/sprites/player-equipment/templates/dwarf-male/cloth-belt.png",
+    "graphic": "./assets/items/sash-belt.png",
     "graphicSize": 30,
     "graphicTint": "#a3a3a3",
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/belt.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/belt.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/cloth-belt.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/robe-belt.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/cloth-belt.png",
     "avatarSprite": "./assets/sprites/player-equipment/spidersilk-gloves.png",
     "avatarSpriteTint": "#acae93",
@@ -3165,6 +3348,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/belt.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/belt.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/cloth-belt.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/robe-belt.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/cloth-belt.png",
     "avatarSprite": "./assets/sprites/player-equipment/spidersilk-gloves.png",
     "goldValue": 25,
@@ -3184,6 +3368,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/cloth-legs.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/cloth-legs.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/cloth-pants.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/pants.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/cloth-pants.png",
     "avatarSprite": "./assets/sprites/player-equipment/spidersilk-pants.png",
     "goldValue": 40,
@@ -3203,6 +3388,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/shoes.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/shoes.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/shoes.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/shoes.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/male/shoes.png",
     "avatarSprite": "./assets/sprites/player-equipment/spidersilk-slippers.png",
     "goldValue": 40,
@@ -3222,6 +3408,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/cloth-shoulders.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/cloth-shoulders.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/cloth-shoulders.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/cloth-shoulders.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/cloth-shoulders.png",
     "avatarSprite": "./assets/sprites/player-equipment/spidersilk-slippers.png",
     "goldValue": 40,
@@ -3268,6 +3455,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/cloth-head.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/cloth-head.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/cloth-hood.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/cloth-hood.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/cloth-hood.png",
     "avatarSprite": "./assets/sprites/player-equipment/eldweave-hood.png",
     "avatarSpriteTint": "#176b0a",
@@ -3291,6 +3479,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/gloves.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/gloves.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/leather-gloves.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/leather-gloves.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/leather-gloves.png",
     "avatarSprite": "./assets/sprites/player-equipment/eldweave-gloves.png",
     "avatarSpriteTint": "#176b0a",
@@ -3314,6 +3503,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/cloth-legs.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/cloth-legs.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/cloth-pants.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/pants.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/cloth-pants.png",
     "avatarSprite": "./assets/sprites/player-equipment/eldweave-pants.png",
     "avatarSpriteTint": "#176b0a",
@@ -3337,6 +3527,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/leather-feet.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/leather-feet.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/leather-boots.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/leather-boots.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/leather-boots.png",
     "avatarSprite": "./assets/sprites/player-equipment/eldweave-boots.png",
     "avatarSpriteTint": "#176b0a",
@@ -3360,6 +3551,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/cloth-shoulders.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/cloth-shoulders.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/cloth-shoulders.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/cloth-shoulders.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/cloth-shoulders.png",
     "avatarSprite": "./assets/sprites/player-equipment/eldweave-shoulderpads.png",
     "avatarSpriteTint": "#176b0a",
@@ -3384,6 +3576,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/chainmail-chest.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/chainmail-chest.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/chainmail-chest.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/chainmail-chest.png",
     "avatarSprite": "./assets/sprites/player-equipment/iron-chainmail-vest.png",
     "avatarSpriteTint": "#c06e1b",
     "goldValue": 95
@@ -3404,6 +3597,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/plate-chest.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/plate-chest.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-chest.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/plate-chest.png",
     "dwarfMaleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-chest.png",
     "avatarSprite": "./assets/sprites/player-equipment/iron-chainmail-vest.png",
     "avatarSpriteTint": "#c06e1b",
@@ -3424,6 +3618,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/plate-chest.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/plate-chest.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-chest.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/plate-chest.png",
     "avatarSprite": "./assets/sprites/player-equipment/iron-chainmail-vest.png",
     "goldValue": 175,
     "graphicTint": ""
@@ -3444,6 +3639,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/plate-head.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/plate-head.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-helmet.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/plate-head.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-helmet.png",
     "avatarSprite": "./assets/sprites/player-equipment/iron-spangenhelm.png",
     "avatarSpriteTint": "#c06e1b",
@@ -3464,6 +3660,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/plate-head.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/plate-head.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-helmet.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/plate-head.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-helmet.png",
     "avatarSprite": "./assets/sprites/player-equipment/iron-spangenhelm.png",
     "goldValue": 140,
@@ -3485,6 +3682,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/chainmail-hood.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/chainmail-head.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/chainmail-coif.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/chainmail-head.png",
     "avatarSprite": "./assets/sprites/player-equipment/iron-spangenhelm.png",
     "avatarSpriteTint": "#c06e1b",
     "goldValue": 75
@@ -3508,6 +3706,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/chainmail-legs.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/chainmail-legs.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/chainmail-legs.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/chainmail-legst.png",
     "avatarSprite": "./assets/sprites/player-equipment/chainmail-pants.png",
     "avatarSpriteTint": "#5b3815",
     "avatarSpriteChannels": {
@@ -3531,6 +3730,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/plate-legs.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/plate-legs.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-legs.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/plate-legs.png",
     "dwarfMaleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-legs.png",
     "avatarSprite": "./assets/sprites/player-equipment/chainmail-pants.png",
     "avatarSpriteTint": "#c06e1b",
@@ -3551,6 +3751,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/plate-legs.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/plate-legs.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-legs.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/plate-legs.png",
     "avatarSprite": "./assets/sprites/player-equipment/chainmail-pants.png",
     "goldValue": 175,
     "graphicTint": ""
@@ -3574,6 +3775,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/gloves.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/gloves.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/leather-gloves.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/plate-gloves.png",
     "avatarSprite": "./assets/sprites/player-equipment/chainmail-gloves.png",
     "avatarSpriteTint": "#c06e1b",
     "goldValue": 75
@@ -3594,6 +3796,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/gloves.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/gloves.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-gloves.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/plate-gloves.png",
     "dwarfMaleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-gloves.png",
     "avatarSprite": "./assets/sprites/player-equipment/chainmail-gloves.png",
     "avatarSpriteTint": "#c06e1b",
@@ -3614,6 +3817,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/gloves.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/gloves.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-gloves.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/plate-gloves.png",
     "avatarSprite": "./assets/sprites/player-equipment/chainmail-gloves.png",
     "goldValue": 140,
     "graphicTint": ""
@@ -3633,6 +3837,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/male/iron-pauldrons.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/female/iron-pauldrons.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-shoulders.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/plate-shoulders.png",
     "avatarSprite": "./assets/sprites/player-equipment/iron-pauldrons.png",
     "goldValue": 140,
     "graphicTint": ""
@@ -3656,6 +3861,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/chainmail-shoulders.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/chainmail-shoulders.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/chainmail-shoulders.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/chainmail-shoulders.png",
     "avatarSprite": "./assets/sprites/player-equipment/iron-pauldrons.png",
     "avatarSpriteTint": "#c06e1b",
     "goldValue": 75
@@ -3675,6 +3881,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/male/iron-boots.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/female/iron-boots.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-boots.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/plate-boots.png",
     "avatarSprite": "./assets/sprites/player-equipment/iron-boots.png",
     "goldValue": 30,
     "graphicTint": ""
@@ -3698,8 +3905,8 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/leather-feet.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/leather-feet.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/chainmail-boots.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/chainmail-boots.png",
     "avatarSprite": "./assets/sprites/player-equipment/iron-boots.png",
-    "avatarSpriteTint": "#f4871a",
     "avatarSpriteChannels": {
       "metal": "#c06e1b"
     },
@@ -3721,6 +3928,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/plate-feet.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/plate-feet.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-boots.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/plate-boots.png",
     "dwarfMaleRightWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-boots.png",
     "avatarSprite": "./assets/sprites/player-equipment/iron-boots.png",
     "avatarSpriteTint": "#c06e1b",
@@ -3741,21 +3949,24 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/plate-feet.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/plate-feet.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/plate-boots.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/plate-boots.png",
     "avatarSprite": "./assets/sprites/player-equipment/iron-boots.png",
     "goldValue": 140,
     "graphicTint": ""
   },
   "Bone Necklace": {
     "name": "Bone Necklace",
-    "rarity": "common",
+    "rarity": "uncommon",
     "slot": "Neck",
     "stats": {
-      "SPD": 1,
-      "AGL": 3
+      "AGL": 1
     },
     "lore": "",
     "graphic": "./assets/items/bone-necklace.png",
     "graphicSize": 30,
+    "resistances": {
+      "Umbral": 1
+    },
     "goldValue": 75,
     "graphicTint": ""
   },
@@ -4632,8 +4843,8 @@ const itemTemplates = {
       "Celestial": 5,
       "Infernal": 5
     },
-    "maleAvatarSprite": "./assets/sprites/player-equipment/male/bloody-emblem.png",
-    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/bloody-emblem.png",
+    "maleAvatarSprite": "./assets/items/medallion-with-glowing-rune.png",
+    "femaleAvatarSprite": "./assets/items/medallion-with-glowing-rune.png",
     "avatarSprite": "./assets/sprites/player-equipment/bloody-emblem.png",
     "avatarSpriteChannels": {
       "metal": "#3e0404",
@@ -4656,6 +4867,7 @@ const itemTemplates = {
     "femaleAvatarSprite": "./assets/sprites/player-equipment/female/wooden-shield.png",
     "avatarSprite": "./assets/sprites/player-equipment/wooden-shield.png",
     "goldValue": 70,
+    "shield": true,
     "graphicTint": ""
   },
   "Dorin's Shield": {
@@ -4672,6 +4884,7 @@ const itemTemplates = {
     "femaleAvatarSprite": "./assets/sprites/player-equipment/female/wooden-shield.png",
     "avatarSprite": "./assets/sprites/player-equipment/wooden-shield.png",
     "goldValue": 70,
+    "shield": true,
     "graphicTint": ""
   },
   "Iron Shield": {
@@ -4679,8 +4892,9 @@ const itemTemplates = {
     "rarity": "common",
     "slot": "Off-Hand",
     "stats": {
-      "SPD": -0.5,
-      "BLOCK": 10
+      "SPD": -1.5,
+      "AGL": -1.5,
+      "BLOCK": 15
     },
     "lore": "",
     "graphic": "./assets/items/iron-shield.png",
@@ -4688,8 +4902,28 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/male/iron-shield.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/female/iron-shield.png",
     "avatarSprite": "./assets/sprites/player-equipment/iron-shield.png",
-    "goldValue": 115,
+    "goldValue": 165,
+    "shield": true,
     "graphicTint": ""
+  },
+  "Bronze Shield": {
+    "name": "Bronze Shield",
+    "rarity": "common",
+    "slot": "Off-Hand",
+    "stats": {
+      "SPD": -1,
+      "AGL": -1,
+      "BLOCK": 10
+    },
+    "lore": "",
+    "graphic": "./assets/items/iron-shield.png",
+    "graphicSize": 30,
+    "graphicTint": "#c06e1b",
+    "maleAvatarSprite": "./assets/sprites/player-equipment/male/iron-shield.png",
+    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/iron-shield.png",
+    "avatarSprite": "./assets/sprites/player-equipment/iron-shield.png",
+    "goldValue": 115,
+    "shield": true
   },
   "Kneecap of the Whisperer": {
     "name": "Kneecap of the Whisperer",
@@ -4715,6 +4949,7 @@ const itemTemplates = {
     "femaleAvatarSprite": "./assets/items/cogars-kneecap.png",
     "avatarSprite": "./assets/sprites/player-equipment/iron-shield.png",
     "goldValue": 300,
+    "shield": true,
     "graphicTint": ""
   },
   "Rat-Skin Shawl": {
@@ -4729,6 +4964,9 @@ const itemTemplates = {
     "graphic": "./assets/items/capelet.png",
     "graphicSize": 30,
     "graphicTint": "#3b1c07",
+    "maleAvatarSprite": "./assets/sprites/player-equipment/male/rat-skin-shawl.png",
+    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/rat-skin-shawl.png",
+    "avatarSprite": "./assets/sprites/player-equipment/rat-skin-shawl.png",
     "avatarSpriteTint": "#3b1c07",
     "goldValue": 30
   },
@@ -4755,13 +4993,9 @@ const itemTemplates = {
     "graphicTint": ""
   },
   "Tabard of Whisperspring": {
-    "resistances": {
-      "Sylvan": 5
-    },
     "name": "Tabard of Whisperspring",
     "rarity": "rare",
     "slot": "Cape",
-    "goldValue": 410,
     "stats": {
       "SPD": 1,
       "AGL": 5,
@@ -4773,34 +5007,15 @@ const itemTemplates = {
     "lore": "",
     "graphic": "./assets/items/tabard.png",
     "graphicSize": 30,
-    "graphicTint": "#469f2d"
-  },
-  "Diarrhealm Robe": {
-    "advanced": {},
-    "name": "Diarrhealm Robe",
-    "rarity": "epic",
-    "slot": "Chest",
-    "stats": {
-      "HP": 20,
-      "ATK": 15,
-      "DEF": 10,
-      "SPD": 5,
-      "AGL": 10,
-      "INT": 10,
-      "FOCUS": 5,
-      "BLOCK": 5,
-      "RESIST": 5,
-      "REGEN": 3
+    "graphicTint": "#469f2d",
+    "resistances": {
+      "Sylvan": 5
     },
-    "lore": "\"Few have ever encountered the forgotten Diarrhealm, and fewer still have survived to speak of it\"",
-    "graphic": "./assets/items/elaborate-robe.png",
-    "graphicSize": 30,
-    "graphicTint": "#44420e",
-    "maleAvatarSprite": "./assets/sprites/player-equipment/male/diarrhealm-robe.png",
-    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/diarrhealm-robe.png",
-    "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/robe.png",
-    "avatarSprite": "./assets/sprites/player-equipment/diarrhealm-robe.png",
-    "goldValue": 1405
+    "maleAvatarSprite": "./assets/sprites/player-equipment/male/tabard-of-whisperspring.png",
+    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/tabard-of-whisperspring.png",
+    "avatarSprite": "./assets/sprites/player-equipment/tabard-of-whisperspring.png",
+    "avatarSpriteTint": "#469f2d",
+    "goldValue": 410
   },
   "Linen Shirt": {
     "stunEnabled": false,
@@ -4817,6 +5032,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/shirt.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/shirt.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/shirt.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/shirt.png",
     "avatarSprite": "./assets/sprites/player-equipment/new-item.png",
     "goldValue": 10,
     "graphicTint": ""
@@ -4837,6 +5053,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/shirt.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/shirt.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/shirt.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/shirt.png",
     "avatarSprite": "./assets/sprites/player-equipment/new-item.png",
     "avatarSpriteTint": "#b80000",
     "goldValue": 15
@@ -4857,6 +5074,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/shirt.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/shirt.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/shirt.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/shirt.png",
     "avatarSprite": "./assets/sprites/player-equipment/new-item.png",
     "avatarSpriteTint": "#e8e8e8",
     "goldValue": 15
@@ -4877,6 +5095,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/shirt.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/shirt.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/shirt.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/shirt.png",
     "avatarSprite": "./assets/sprites/player-equipment/new-item.png",
     "avatarSpriteTint": "#000000",
     "goldValue": 15
@@ -4897,6 +5116,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/shirt.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/shirt.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/shirt.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/shirt.png",
     "avatarSprite": "./assets/sprites/player-equipment/new-item.png",
     "avatarSpriteTint": "#4d6680",
     "goldValue": 15
@@ -4916,6 +5136,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/pants.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/pants.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/pants.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/pants.png",
     "avatarSprite": "./assets/sprites/player-equipment/new-item.png",
     "goldValue": 10,
     "graphicTint": ""
@@ -4936,6 +5157,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/pants.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/pants.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/pants.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/pants.png",
     "avatarSprite": "./assets/sprites/player-equipment/new-item.png",
     "avatarSpriteTint": "#4d6680",
     "goldValue": 15
@@ -4956,6 +5178,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/pants.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/pants.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/pants.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/pants.png",
     "avatarSprite": "./assets/sprites/player-equipment/new-item.png",
     "avatarSpriteTint": "#e8e8e8",
     "goldValue": 15
@@ -4976,6 +5199,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/pants.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/pants.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/pants.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/pants.png",
     "avatarSprite": "./assets/sprites/player-equipment/new-item.png",
     "avatarSpriteTint": "#000000",
     "goldValue": 15
@@ -4992,6 +5216,20 @@ const itemTemplates = {
     "femaleAvatarSprite": "./assets/items/severed-goblin-head.png",
     "avatarSprite": "./assets/sprites/player-equipment/goblin-fang.png",
     "goldValue": 10,
+    "graphicTint": ""
+  },
+  "Bisonar Head": {
+    "name": "Bisonar Head",
+    "rarity": "common",
+    "slot": "Off-Hand",
+    "stats": {},
+    "lore": "",
+    "graphic": "./assets/items/bisonar-head.png",
+    "graphicSize": 30,
+    "maleAvatarSprite": "./assets/items/severed-goblin-head.png",
+    "femaleAvatarSprite": "./assets/items/severed-goblin-head.png",
+    "avatarSprite": "./assets/sprites/player-equipment/goblin-fang.png",
+    "goldValue": 35,
     "graphicTint": ""
   },
   "Alchemist's Belt": {
@@ -5016,6 +5254,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/belt.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/belt.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/leather-belt.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/leather-belt.png",
     "dwarfMaleLeftWristAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/leather-belt.png",
     "avatarSprite": "./assets/sprites/player-equipment/new-item.png",
     "graphicTint": ""
@@ -5035,8 +5274,32 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/straw-hat.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/straw-hat.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/straw-hat.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/straw-hat.png",
     "avatarSprite": "./assets/sprites/player-equipment/new-item.png",
     "goldValue": 15,
+    "graphicTint": ""
+  },
+  "Strange Water Dish": {
+    "stunEnabled": false,
+    "stunChance": 0,
+    "stunDuration": 2,
+    "advanced": {},
+    "name": "Strange Water Dish",
+    "rarity": "uncommon",
+    "slot": "Head",
+    "stats": {
+      "RESIST": 0.5,
+      "REGEN": 1
+    },
+    "lore": "\"The water in this dish seemed to be the source of power for the creature it once belonged to\"",
+    "graphic": "./assets/items/water-dish.png",
+    "graphicSize": 30,
+    "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/water-dish.png",
+    "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/water-dish.png",
+    "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/water-dish.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/water-dish.png",
+    "avatarSprite": "./assets/sprites/player-equipment/new-item.png",
+    "goldValue": 20,
     "graphicTint": ""
   },
   "Crown of the Glade Mother": {
@@ -5068,6 +5331,7 @@ const itemTemplates = {
     "maleAvatarSprite": "./assets/sprites/player-equipment/templates/male/druid-head.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/templates/female/crown-of-the-glade-mother.png",
     "dwarfMaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-male/druid-head.png",
+    "dwarfFemaleAvatarSprite": "./assets/sprites/player-equipment/templates/dwarf-female/druid-head.png",
     "avatarSprite": "./assets/sprites/player-equipment/new-item.png",
     "goldValue": 200,
     "graphicTint": ""
@@ -5897,6 +6161,68 @@ const itemTemplates = {
     "stackable": true,
     "graphicTint": ""
   },
+  "Strength Potion": {
+    "consumable": {
+      "color": "brown",
+      "label": "brown bottle",
+      "duration": 60,
+      "addStats": {
+        "ATK": 6
+      },
+      "text": "+6 ATK for 60 seconds"
+    },
+    "name": "Strength Potion",
+    "rarity": "common",
+    "slot": "Supply",
+    "stats": {},
+    "lore": "",
+    "graphic": "./assets/items/ether.png",
+    "graphicSize": 30,
+    "graphicChannels": {
+      "gem": "#5c0505"
+    },
+    "maleAvatarSprite": "./assets/sprites/player-equipment/male/agility-potion.png",
+    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/agility-potion.png",
+    "avatarSprite": "./assets/sprites/player-equipment/agility-potion.png",
+    "avatarSpriteChannels": {
+      "gem": "#b35c09"
+    },
+    "soundEffect": "./assets/audio/generic-celestial-offensive-spell.wav",
+    "maxStack": 20,
+    "stackable": true,
+    "graphicTint": ""
+  },
+  "Focus Potion": {
+    "consumable": {
+      "color": "yellow",
+      "label": "yellow bottle",
+      "duration": 60,
+      "addStats": {
+        "FOCUS": 15
+      },
+      "text": "+15 FOCUS for 60 seconds"
+    },
+    "name": "Focus Potion",
+    "rarity": "common",
+    "slot": "Supply",
+    "stats": {},
+    "lore": "",
+    "graphic": "./assets/items/ether.png",
+    "graphicSize": 30,
+    "graphicChannels": {
+      "gem": "#ffbb00"
+    },
+    "maleAvatarSprite": "./assets/sprites/player-equipment/male/agility-potion.png",
+    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/agility-potion.png",
+    "avatarSprite": "./assets/sprites/player-equipment/agility-potion.png",
+    "avatarSpriteChannels": {
+      "gem": "#b35c09"
+    },
+    "soundEffect": "./assets/audio/generic-celestial-offensive-spell.wav",
+    "maxStack": 20,
+    "stackable": true,
+    "graphicTint": ""
+  },
   "Soothing Potion": {
     "consumable": {
       "color": "green",
@@ -6335,7 +6661,7 @@ const itemTemplates = {
   "Gandersguard Sigil": {
     "consumable": {
       "enchantment": "Gandersguard Sigil",
-      "text": "Permanently imbues a weapon or piece of wearable equipment with the Gandersguard Sigil Enchantment: +5 HP, +2 RESIST."
+      "text": "Permanently imbues a weapon or piece of wearable equipment with the Gandersguard Sigil Enchantment: +5 HP, +1 RESIST."
     },
     "name": "Gandersguard Sigil",
     "rarity": "uncommon",
@@ -6346,6 +6672,33 @@ const itemTemplates = {
     "graphicSize": 30,
     "graphicChannels": {
       "gem": "#11b056"
+    },
+    "maleAvatarSprite": "./assets/sprites/player-equipment/male/faerie-sigil.png",
+    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/faerie-sigil.png",
+    "avatarSprite": "./assets/sprites/player-equipment/faerie-sigil.png",
+    "avatarSpriteChannels": {
+      "metal": "#bb5cc1",
+      "gem": "#16a800"
+    },
+    "goldValue": 0,
+    "soundEffect": "./assets/audio/generic-celestial-buff.wav",
+    "graphicTint": ""
+  },
+  "Rune of Goblin Slaying": {
+    "consumable": {
+      "enchantment": "Goblin Slayer",
+      "text": "Permanently imbues a weapon with the Goblin Slayer Enchantment: +5 HP, +1 RESIST."
+    },
+    "name": "Rune of Goblin Slaying",
+    "rarity": "uncommon",
+    "slot": "Supply",
+    "stats": {},
+    "lore": "",
+    "graphic": "./assets/items/medallion-with-glowing-rune.png",
+    "graphicSize": 30,
+    "graphicChannels": {
+      "metal": "#624122",
+      "gem": "#000000"
     },
     "maleAvatarSprite": "./assets/sprites/player-equipment/male/faerie-sigil.png",
     "femaleAvatarSprite": "./assets/sprites/player-equipment/female/faerie-sigil.png",
@@ -6523,6 +6876,25 @@ const itemTemplates = {
     "soundEffect": "./assets/audio/poison.wav",
     "maxStack": 20,
     "stackable": true,
+    "graphicTint": ""
+  },
+  "Lake Yarrow": {
+    "consumable": {
+      "enchantment": "Lake Yarrow",
+      "text": "Permanently imbues a weapon or piece of wearable equipment with the Lake Yarrow Enchantment: +5 HP, +1 RESIST, +1 AGL"
+    },
+    "name": "Lake Yarrow",
+    "rarity": "common",
+    "slot": "Material",
+    "stats": {},
+    "lore": "",
+    "graphic": "./assets/items/sprig-of-houndstongue.png",
+    "graphicSize": 30,
+    "glow": true,
+    "glowColor": "#68a85e",
+    "maleAvatarSprite": "./assets/sprites/player-equipment/male/new-item.png",
+    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/new-item.png",
+    "avatarSprite": "./assets/sprites/player-equipment/new-item.png",
     "graphicTint": ""
   },
   "Scroll of Magic Missile": {
@@ -6928,6 +7300,18 @@ const itemTemplates = {
     "graphic": "",
     "graphicTint": ""
   },
+  "Scroll of Frozen Touch": {
+    "name": "Scroll of Frozen Touch",
+    "rarity": "common",
+    "slot": "Scroll",
+    "stats": {},
+    "goldValue": 75,
+    "scroll": {
+      "spellName": "Frozen Touch"
+    },
+    "graphic": "",
+    "graphicTint": ""
+  },
   "Scroll of Chain Lightning": {
     "name": "Scroll of Chain Lightning",
     "rarity": "common",
@@ -7314,6 +7698,22 @@ const itemTemplates = {
     "stackable": true,
     "graphicTint": ""
   },
+  "Mustelid Pelt": {
+    "name": "Mustelid Pelt",
+    "rarity": "poor",
+    "slot": "Material",
+    "stats": {},
+    "lore": "",
+    "graphic": "./assets/items/brown-pelt.png",
+    "graphicSize": 30,
+    "graphicTint": "#e3e3e3",
+    "maleAvatarSprite": "./assets/sprites/player-equipment/male/rat-pelt.png",
+    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/rat-pelt.png",
+    "avatarSprite": "./assets/sprites/player-equipment/rat-pelt.png",
+    "goldValue": 2,
+    "maxStack": 20,
+    "stackable": true
+  },
   "Spider Silk": {
     "name": "Spider Silk",
     "rarity": "common",
@@ -7651,6 +8051,25 @@ const itemTemplates = {
     "stackable": true,
     "graphicTint": ""
   },
+  "Musk Gland": {
+    "name": "Musk Gland",
+    "rarity": "common",
+    "slot": "Material",
+    "stats": {},
+    "lore": "",
+    "graphic": "./assets/items/venom-sac.png",
+    "graphicSize": 30,
+    "graphicTint": "#693e1b",
+    "graphicChannels": {
+      "metal": "#ff8800"
+    },
+    "maleAvatarSprite": "./assets/sprites/player-equipment/male/rat-pelt.png",
+    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/rat-pelt.png",
+    "avatarSprite": "./assets/sprites/player-equipment/rat-pelt.png",
+    "goldValue": 10,
+    "maxStack": 20,
+    "stackable": true
+  },
   "Toad Venom Sack": {
     "name": "Toad Venom Sack",
     "rarity": "common",
@@ -7703,6 +8122,25 @@ const itemTemplates = {
     "stackable": true,
     "graphicTint": ""
   },
+  "Imp Wing": {
+    "name": "Imp Wing",
+    "rarity": "poor",
+    "slot": "Material",
+    "stats": {},
+    "lore": "",
+    "graphic": "./assets/items/bat-wing.png",
+    "graphicSize": 30,
+    "graphicTint": "#771818",
+    "graphicChannels": {
+      "metal": "#ff0000"
+    },
+    "maleAvatarSprite": "./assets/sprites/player-equipment/male/rat-pelt.png",
+    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/rat-pelt.png",
+    "avatarSprite": "./assets/sprites/player-equipment/rat-pelt.png",
+    "goldValue": 10,
+    "maxStack": 20,
+    "stackable": true
+  },
   "Drake Wing": {
     "name": "Drake Wing",
     "rarity": "common",
@@ -7741,6 +8179,22 @@ const itemTemplates = {
     "maxStack": 20,
     "stackable": true,
     "graphicTint": ""
+  },
+  "Snow Leopard Pelt": {
+    "name": "Snow Leopard Pelt",
+    "rarity": "common",
+    "slot": "Material",
+    "stats": {},
+    "lore": "",
+    "graphic": "./assets/items/grey-pelt.png",
+    "graphicSize": 30,
+    "graphicTint": "#d6d6d6",
+    "maleAvatarSprite": "./assets/sprites/player-equipment/male/wolf-pelt.png",
+    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/wolf-pelt.png",
+    "avatarSprite": "./assets/sprites/player-equipment/wolf-pelt.png",
+    "goldValue": 20,
+    "maxStack": 20,
+    "stackable": true
   },
   "Bear Pelt": {
     "name": "Bear Pelt",
@@ -7974,6 +8428,25 @@ const itemTemplates = {
     "maxStack": 20,
     "stackable": true,
     "graphicTint": ""
+  },
+  "Essense of Fire": {
+    "name": "Essense of Fire",
+    "rarity": "common",
+    "slot": "Material",
+    "stats": {},
+    "lore": "",
+    "graphic": "./assets/sprites/player-equipment/ether.png",
+    "graphicSize": 30,
+    "graphicTint": "#ff0000",
+    "graphicChannels": {
+      "gem": "#ff4d00"
+    },
+    "maleAvatarSprite": "./assets/sprites/player-equipment/male/ether.png",
+    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/ether.png",
+    "avatarSprite": "./assets/sprites/player-equipment/ether.png",
+    "goldValue": 2,
+    "maxStack": 20,
+    "stackable": true
   },
   "Sharlene's Parcel": {
     "name": "Sharlene's Parcel",
@@ -8563,6 +9036,209 @@ const itemTemplates = {
     "goldValue": 60,
     "maxStack": 20,
     "stackable": true
+  },
+  "Healing Compound": {
+    "stunEnabled": false,
+    "stunChance": 0,
+    "stunDuration": 2,
+    "advanced": {},
+    "name": "Healing Compound",
+    "rarity": "common",
+    "slot": "Material",
+    "stats": {},
+    "lore": "",
+    "graphic": "./assets/items/powder.png",
+    "graphicSize": 30,
+    "graphicChannels": {
+      "metal": "#a81a1a"
+    },
+    "maleAvatarSprite": "./assets/sprites/player-equipment/male/new-item.png",
+    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/new-item.png",
+    "avatarSprite": "./assets/sprites/player-equipment/new-item.png",
+    "goldValue": 20,
+    "graphicTint": ""
+  },
+  "Strengthening Compound": {
+    "stunEnabled": false,
+    "stunChance": 0,
+    "stunDuration": 2,
+    "advanced": {},
+    "name": "Strengthening Compound",
+    "rarity": "common",
+    "slot": "Material",
+    "stats": {},
+    "lore": "",
+    "graphic": "./assets/items/powder.png",
+    "graphicSize": 30,
+    "graphicChannels": {
+      "metal": "#64311b"
+    },
+    "maleAvatarSprite": "./assets/sprites/player-equipment/male/new-item.png",
+    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/new-item.png",
+    "avatarSprite": "./assets/sprites/player-equipment/new-item.png",
+    "goldValue": 20,
+    "graphicTint": ""
+  },
+  "Soothing Compound": {
+    "stunEnabled": false,
+    "stunChance": 0,
+    "stunDuration": 2,
+    "advanced": {},
+    "name": "Soothing Compound",
+    "rarity": "common",
+    "slot": "Material",
+    "stats": {},
+    "lore": "",
+    "graphic": "./assets/items/powder.png",
+    "graphicSize": 30,
+    "graphicChannels": {
+      "metal": "#028000"
+    },
+    "maleAvatarSprite": "./assets/sprites/player-equipment/male/new-item.png",
+    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/new-item.png",
+    "avatarSprite": "./assets/sprites/player-equipment/new-item.png",
+    "goldValue": 20,
+    "graphicTint": ""
+  },
+  "Energizing Compound": {
+    "stunEnabled": false,
+    "stunChance": 0,
+    "stunDuration": 2,
+    "advanced": {},
+    "name": "Energizing Compound",
+    "rarity": "common",
+    "slot": "Material",
+    "stats": {},
+    "lore": "",
+    "graphic": "./assets/items/powder.png",
+    "graphicSize": 30,
+    "maleAvatarSprite": "./assets/sprites/player-equipment/male/new-item.png",
+    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/new-item.png",
+    "avatarSprite": "./assets/sprites/player-equipment/new-item.png",
+    "goldValue": 20,
+    "graphicTint": ""
+  },
+  "Magic Resistant Compound": {
+    "stunEnabled": false,
+    "stunChance": 0,
+    "stunDuration": 2,
+    "advanced": {},
+    "name": "Magic Resistant Compound",
+    "rarity": "common",
+    "slot": "Material",
+    "stats": {},
+    "lore": "",
+    "graphic": "./assets/items/powder.png",
+    "graphicSize": 30,
+    "graphicChannels": {
+      "metal": "#501c69"
+    },
+    "maleAvatarSprite": "./assets/sprites/player-equipment/male/new-item.png",
+    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/new-item.png",
+    "avatarSprite": "./assets/sprites/player-equipment/new-item.png",
+    "goldValue": 20,
+    "graphicTint": ""
+  },
+  "Concentration Compound": {
+    "stunEnabled": false,
+    "stunChance": 0,
+    "stunDuration": 2,
+    "advanced": {},
+    "name": "Concentration Compound",
+    "rarity": "common",
+    "slot": "Material",
+    "stats": {},
+    "lore": "",
+    "graphic": "./assets/items/powder.png",
+    "graphicSize": 30,
+    "graphicChannels": {
+      "metal": "#998c00"
+    },
+    "maleAvatarSprite": "./assets/sprites/player-equipment/male/new-item.png",
+    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/new-item.png",
+    "avatarSprite": "./assets/sprites/player-equipment/new-item.png",
+    "goldValue": 20,
+    "graphicTint": ""
+  },
+  "Agility Compound": {
+    "stunEnabled": false,
+    "stunChance": 0,
+    "stunDuration": 2,
+    "advanced": {},
+    "name": "Agility Compound",
+    "rarity": "common",
+    "slot": "Material",
+    "stats": {},
+    "lore": "",
+    "graphic": "./assets/items/powder.png",
+    "graphicSize": 30,
+    "graphicChannels": {
+      "metal": "#ce6a0d"
+    },
+    "maleAvatarSprite": "./assets/sprites/player-equipment/male/new-item.png",
+    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/new-item.png",
+    "avatarSprite": "./assets/sprites/player-equipment/new-item.png",
+    "goldValue": 20,
+    "graphicTint": ""
+  },
+  "Relaxing Compound": {
+    "stunEnabled": false,
+    "stunChance": 0,
+    "stunDuration": 2,
+    "advanced": {},
+    "name": "Relaxing Compound",
+    "rarity": "common",
+    "slot": "Material",
+    "stats": {},
+    "lore": "",
+    "graphic": "./assets/items/powder.png",
+    "graphicSize": 30,
+    "graphicChannels": {
+      "metal": "#374fc8"
+    },
+    "maleAvatarSprite": "./assets/sprites/player-equipment/male/new-item.png",
+    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/new-item.png",
+    "avatarSprite": "./assets/sprites/player-equipment/new-item.png",
+    "goldValue": 20,
+    "graphicTint": ""
+  },
+  "Moss-Covered Rock": {
+    "stunEnabled": false,
+    "stunChance": 0,
+    "stunDuration": 2,
+    "advanced": {},
+    "name": "Moss-Covered Rock",
+    "rarity": "common",
+    "slot": "Material",
+    "stats": {},
+    "lore": "",
+    "graphic": "./assets/sprites/rock.png",
+    "graphicSize": 30,
+    "graphicTint": "#0a4700",
+    "maleAvatarSprite": "./assets/sprites/player-equipment/male/new-item.png",
+    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/new-item.png",
+    "avatarSprite": "./assets/sprites/player-equipment/new-item.png",
+    "noDrop": true,
+    "noSell": true
+  },
+  "Moss-Covered Stone": {
+    "stunEnabled": false,
+    "stunChance": 0,
+    "stunDuration": 2,
+    "advanced": {},
+    "name": "Moss-Covered Stone",
+    "rarity": "common",
+    "slot": "Material",
+    "stats": {},
+    "lore": "",
+    "graphic": "./assets/sprites/rock.png",
+    "graphicSize": 30,
+    "graphicTint": "#0a4700",
+    "maleAvatarSprite": "./assets/sprites/player-equipment/male/new-item.png",
+    "femaleAvatarSprite": "./assets/sprites/player-equipment/female/new-item.png",
+    "avatarSprite": "./assets/sprites/player-equipment/new-item.png",
+    "noDrop": true,
+    "noSell": true
   }
 };
 

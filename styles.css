@@ -65,8 +65,7 @@ button {
   .quest-reward-button,
   .restart-button,
   .item-actions button,
-  .team-invite-actions button,
-  .pet-command-menu button
+  .team-invite-actions button
 ) {
   border: 7px solid transparent;
   border-image: var(--button-frame-image) 30 / 7px / 0 round;
@@ -94,8 +93,7 @@ button {
   .quest-reward-button,
   .restart-button,
   .item-actions button,
-  .team-invite-actions button,
-  .pet-command-menu button
+  .team-invite-actions button
 ):hover,
 :where(
   .sheet-gold,
@@ -116,8 +114,7 @@ button {
   .quest-reward-button,
   .restart-button,
   .item-actions button,
-  .team-invite-actions button,
-  .pet-command-menu button
+  .team-invite-actions button
 ):focus-visible {
   background: var(--button-bg-hover);
   box-shadow: var(--button-shadow-hover);
@@ -142,8 +139,7 @@ button {
   .quest-reward-button,
   .restart-button,
   .item-actions button,
-  .team-invite-actions button,
-  .pet-command-menu button
+  .team-invite-actions button
 ):active {
   transform: translateY(2px);
   box-shadow: var(--button-shadow-active);
@@ -472,6 +468,109 @@ h2 {
   overflow: visible;
 }
 
+#petFloatingWindow {
+  min-width: 180px;
+  min-height: 116px;
+}
+
+.pet-window-list {
+  display: grid;
+  gap: 8px;
+  height: 100%;
+  overflow: auto;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.pet-window-empty {
+  display: grid;
+  place-items: center;
+  min-height: 58px;
+  border: 1px dashed rgba(217, 185, 95, 0.28);
+  color: rgba(242, 237, 227, 0.72);
+  font: 700 0.75rem Georgia, serif;
+}
+
+.pet-window-card {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid rgba(101, 86, 61, 0.74);
+  background: rgba(17, 16, 14, 0.52);
+}
+
+.pet-window-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  color: var(--text);
+  font-size: 0.72rem;
+}
+
+.pet-window-header-row strong,
+.pet-window-header-row span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pet-window-header-row strong {
+  color: var(--gold);
+}
+
+.pet-window-meter {
+  height: 5px;
+  border: 1px solid rgba(0, 0, 0, 0.62);
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.pet-window-meter i {
+  display: block;
+  height: 100%;
+}
+
+.pet-window-meter.hp i {
+  background: #62d36d;
+}
+
+.pet-window-meter.time i {
+  background: #f0cf63;
+}
+
+.pet-window-meta {
+  color: rgba(242, 237, 227, 0.68);
+  font-size: 0.66rem;
+  text-align: right;
+}
+
+.pet-window-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.pet-window-actions button {
+  min-width: 0;
+  border: 1px solid rgba(101, 86, 61, 0.78);
+  background: rgba(30, 27, 22, 0.92);
+  color: var(--text);
+  padding: 5px 4px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pet-window-actions button:hover,
+.pet-window-actions button:focus-visible {
+  border-color: var(--gold);
+  color: var(--gold);
+  outline: none;
+}
+
 .floating-window-header {
   display: flex;
   align-items: center;
@@ -492,6 +591,10 @@ h2 {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.window-hotkey-letter {
+  color: #ffffff;
 }
 
 .floating-window-tool {
@@ -839,7 +942,8 @@ h2 {
 }
 
 .character-summary-list,
-.faction-standing-list {
+.faction-standing-list,
+.realm-progress-list {
   display: grid;
   gap: 7px;
 }
@@ -875,6 +979,49 @@ h2 {
 #chronicleFloatingWindow .floating-window-body {
   display: flex;
   flex-direction: column;
+}
+
+.options-window {
+  display: grid;
+  gap: 14px;
+}
+
+.options-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px 44px;
+  align-items: center;
+  gap: 10px;
+  color: var(--gold);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.options-control input {
+  width: 100%;
+}
+
+.options-control strong {
+  color: var(--text);
+  text-align: right;
+}
+
+.options-logout-button {
+  border: 1px solid rgba(217, 185, 95, 0.36);
+  background: rgba(20, 18, 15, 0.88);
+  color: var(--gold);
+  padding: 8px 10px;
+  cursor: pointer;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.options-logout-button:hover,
+.options-logout-button:focus-visible {
+  border-color: var(--gold);
+  outline: none;
 }
 
 .detached-chronicle-window .floating-window-body {
@@ -978,7 +1125,9 @@ h2 {
   font-size: clamp(0.48rem, 1.1vw, 0.58rem);
 }
 
-#characterFloatingWindow .faction-standing-list {
+#characterFloatingWindow .faction-standing-list,
+#characterFloatingWindow .realm-progress-list,
+.floating-fit-window .realm-progress-list {
   height: 100%;
   min-height: 0;
   display: grid;
@@ -987,22 +1136,36 @@ h2 {
 }
 
 #characterFloatingWindow .faction-standing-list .stat-row,
-#characterFloatingWindow .realm-progress-row {
+#characterFloatingWindow .realm-progress-list .stat-row,
+#characterFloatingWindow .realm-progress-row,
+.floating-fit-window .realm-progress-row {
   min-height: 0;
   padding: clamp(2px, 0.8vh, 7px);
 }
 
-#characterFloatingWindow .realm-progress-row {
+#characterFloatingWindow .realm-progress-row,
+.floating-fit-window .realm-progress-row {
   grid-template-columns: minmax(44px, 0.9fr) minmax(0, 1fr) minmax(28px, 0.55fr);
   gap: clamp(2px, 0.9vw, 8px);
 }
 
 #characterFloatingWindow .realm-progress-row strong,
 #characterFloatingWindow .realm-progress-row em,
-#characterFloatingWindow .realm-progress-bar span {
+.floating-fit-window .realm-progress-row strong,
+.floating-fit-window .realm-progress-row em {
   min-width: 0;
   overflow: hidden;
   font-size: clamp(0.42rem, 1vw, 0.62rem);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#characterFloatingWindow .realm-progress-bar span,
+.floating-fit-window .realm-progress-bar span {
+  min-width: 0;
+  overflow: hidden;
+  font-size: clamp(0.34rem, 0.8vw, 0.46rem);
+  line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1838,34 +2001,6 @@ h2 {
   text-align: left;
 }
 
-.pet-command-menu {
-  position: fixed;
-  z-index: 45;
-  display: grid;
-  gap: 4px;
-  min-width: 130px;
-  padding: 6px;
-  border: 1px solid #5d5140;
-  background: rgba(18, 16, 14, 0.96);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.42);
-}
-
-.pet-command-menu button {
-  border: 1px solid #3f372d;
-  background: #24201b;
-  color: #f2ede3;
-  padding: 5px 8px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.pet-command-menu button:hover,
-.pet-command-menu button:focus-visible {
-  border-color: var(--gold);
-  color: var(--gold);
-  outline: none;
-}
-
 .equip-button .item-tooltip {
   left: auto;
   right: 0;
@@ -2564,6 +2699,36 @@ h2 {
   pointer-events: none;
 }
 
+.spell-memorization-meter {
+  position: absolute;
+  z-index: 6;
+  inset: 7px 7px auto;
+  height: 56px;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: 2px;
+}
+
+.spell-memorization-meter i {
+  display: block;
+  width: 100%;
+  height: 0%;
+  background: rgba(198, 24, 24, 0.48);
+  box-shadow: inset 0 0 12px rgba(255, 44, 44, 0.42);
+}
+
+.spell-pill.memorizing-spell {
+  cursor: wait;
+}
+
+.spell-pill.memorized-flash::before {
+  animation: attentionPulse 0.55s ease-in-out 1 alternate !important;
+}
+
+.spell-pill.memorized-flash::after {
+  animation: glassSheen 0.75s ease-out 1 !important;
+}
+
 .spell-pill.replacing-spell:hover .spell-replace-overlay {
   border: 3px solid #fff;
   background: rgba(240, 207, 99, 0.44);
@@ -3150,6 +3315,244 @@ h2 {
 
 .mode-modal {
   width: min(640px, 100%);
+}
+
+.account-modal {
+  width: min(920px, calc(100vw - 28px));
+  max-height: calc(100vh - 28px);
+  overflow: auto;
+}
+
+.account-modal-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.account-status {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.account-grid,
+.character-dashboard {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.account-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.character-dashboard {
+  grid-template-columns: minmax(240px, 0.8fr) minmax(360px, 1.2fr);
+}
+
+.account-panel {
+  border: 1px solid rgba(217, 185, 95, 0.24);
+  background: rgba(11, 10, 9, 0.42);
+  padding: 12px;
+}
+
+.account-panel h3 {
+  margin: 0;
+  color: var(--gold);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.field-help {
+  margin-top: 8px;
+  border: 1px solid rgba(216, 78, 66, 0.42);
+  background: rgba(69, 18, 14, 0.42);
+  color: #ffc4b8;
+  padding: 7px 9px;
+  font-size: 0.76rem;
+  line-height: 1.25;
+}
+
+.account-panel .choice-card,
+.multiplayer-choice-grid .choice-card {
+  min-height: 58px;
+  padding: 10px 12px;
+}
+
+.choice-card.selected {
+  border-color: var(--gold);
+  background: #2b261e;
+  box-shadow: var(--button-shadow-hover);
+}
+
+.choice-card.danger {
+  color: #ffb9a8;
+}
+
+.choice-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.segmented-controls,
+.race-choice-grid {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.segmented-controls {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.race-choice-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.sex-toggle-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.creation-image-button {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.creation-image-button img {
+  display: block;
+  width: 100%;
+  max-width: 82px;
+  aspect-ratio: 1;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.race-choice-grid .creation-image-button {
+  min-height: 112px;
+}
+
+.race-choice-grid .creation-image-button img {
+  max-width: min(100%, 184px);
+  aspect-ratio: 16 / 10;
+}
+
+.sex-toggle-row .creation-image-button img {
+  max-width: 92px;
+}
+
+.creation-image-button:hover img,
+.creation-image-button:focus-visible img,
+.creation-image-button.selected img {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  filter: drop-shadow(0 0 8px rgba(217, 185, 95, 0.45));
+}
+
+.creation-image-button:focus-visible {
+  outline: none;
+}
+
+.creation-image-button.placeholder {
+  cursor: not-allowed;
+  opacity: 0.46;
+  filter: grayscale(0.75);
+}
+
+.creation-image-button.placeholder:hover img,
+.creation-image-button.placeholder:focus-visible img {
+  outline: none;
+  filter: none;
+}
+
+.small-button {
+  border: 1px solid rgba(217, 185, 95, 0.28);
+  background: rgba(17, 16, 14, 0.85);
+  color: var(--gold);
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.small-button:hover,
+.small-button:focus-visible {
+  border-color: var(--gold);
+  outline: none;
+}
+
+.character-list-panel,
+.character-detail-panel {
+  min-width: 0;
+}
+
+.character-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  max-height: 466px;
+  overflow: auto;
+}
+
+.character-list-card {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 74px;
+  border: 1px solid rgba(217, 185, 95, 0.22);
+  background: rgba(18, 15, 11, 0.68);
+  color: var(--text);
+  padding: 7px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.character-list-card:hover,
+.character-list-card:focus-visible,
+.character-list-card.selected {
+  border-color: rgba(217, 185, 95, 0.82);
+  background: rgba(66, 50, 25, 0.68);
+  outline: none;
+}
+
+.character-list-card img {
+  width: 54px;
+  height: 58px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.character-list-card span,
+.character-list-card small,
+.character-list-card strong {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.character-list-card strong {
+  color: var(--gold);
+  font-size: 0.92rem;
+}
+
+.character-list-card small {
+  color: var(--muted);
+  font-size: 0.72rem;
 }
 
 .name-field {
@@ -5037,6 +5440,15 @@ h2 {
   display: block;
 }
 
+.quest-item:hover .quest-tooltip:not(.quest-floating-tooltip),
+.quest-item:focus-within .quest-tooltip:not(.quest-floating-tooltip) {
+  display: none;
+}
+
+.quest-floating-tooltip:not(.hidden) {
+  display: block;
+}
+
 .quest-reward-button {
   position: relative;
   overflow: visible;
@@ -5361,8 +5773,7 @@ h2 {
   .quest-reward-button,
   .restart-button,
   .item-actions button,
-  .team-invite-actions button,
-  .pet-command-menu button
+  .team-invite-actions button
 ) {
   border: 7px solid transparent;
   border-image: var(--button-frame-image) 30 / 7px / 0 round;
@@ -5389,8 +5800,7 @@ h2 {
   .quest-reward-button,
   .restart-button,
   .item-actions button,
-  .team-invite-actions button,
-  .pet-command-menu button
+  .team-invite-actions button
 ):hover,
 :where(
   .sheet-gold,
@@ -5411,8 +5821,7 @@ h2 {
   .quest-reward-button,
   .restart-button,
   .item-actions button,
-  .team-invite-actions button,
-  .pet-command-menu button
+  .team-invite-actions button
 ):focus-visible {
   border-image: var(--button-frame-image) 30 / 7px / 0 round;
   background: var(--button-bg-hover);
@@ -5438,8 +5847,7 @@ h2 {
   .quest-reward-button,
   .restart-button,
   .item-actions button,
-  .team-invite-actions button,
-  .pet-command-menu button
+  .team-invite-actions button
 ):active {
   transform: translateY(2px);
   box-shadow: var(--button-shadow-active);

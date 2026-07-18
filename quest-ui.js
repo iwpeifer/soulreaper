@@ -1,7 +1,13 @@
 // Quest log, quest completion, and NPC dialogue helpers for Soulreaper.
 (function () {
+  const questFloatingTooltip = document.createElement("div");
+  questFloatingTooltip.className = "quest-tooltip quest-floating-tooltip hidden";
+  document.body.appendChild(questFloatingTooltip);
+
   function normalizeQuestState() {
     if (!game) return false;
+    const oldHollyhockChanged = removeOldHollyhockQuests();
+    const hollyhockRewardRepaired = repairHollyhockLakeCharmReward();
     const beforeActive = Array.isArray(game.quests) ? game.quests.length : 0;
     const beforeCompleted = Array.isArray(game.completedQuests) ? game.completedQuests.length : 0;
     const completed = [];
@@ -22,7 +28,43 @@
     }
     game.completedQuests = completed;
     game.quests = active;
-    return beforeActive !== active.length || beforeCompleted !== completed.length;
+    return oldHollyhockChanged || hollyhockRewardRepaired || beforeActive !== active.length || beforeCompleted !== completed.length;
+  }
+
+  function itemListHasNamedItem(items, itemName, seen = new Set()) {
+    if (!Array.isArray(items)) return false;
+    for (const item of items) {
+      if (!item || typeof item !== "object") continue;
+      if (seen.has(item)) continue;
+      seen.add(item);
+      if (item.name === itemName) return true;
+      if (itemListHasNamedItem(item.inventory, itemName, seen)) return true;
+      if (itemListHasNamedItem(item.contents, itemName, seen)) return true;
+    }
+    return false;
+  }
+
+  function playerHasNamedItemAnywhere(itemName) {
+    return itemListHasNamedItem(game.player?.inventory, itemName)
+      || itemListHasNamedItem(Object.values(game.player?.equippedItems || {}), itemName)
+      || itemListHasNamedItem(game.player?.bank?.inventory, itemName);
+  }
+
+  function repairHollyhockLakeCharmReward() {
+    const itemName = "Lake Yarrow";
+    if (!Array.isArray(game.completedQuests) || !game.completedQuests.includes("hollyhocks-green-touch")) return false;
+    if (game.player.hollyhockLakeCharmRewardRepaired || playerHasNamedItemAnywhere(itemName)) {
+      game.player.hollyhockLakeCharmRewardRepaired = true;
+      return false;
+    }
+    const delivered = deliverQuestRewardItem(itemName);
+    if (delivered) {
+      game.player.hollyhockLakeCharmRewardRepaired = true;
+      addLog("<b>Herbalist Hollyhock</b>'s missing quest reward has been restored.");
+      markUIDirty();
+      return true;
+    }
+    return false;
   }
 
   function renderQuestLog() {
@@ -79,6 +121,8 @@
     let current = 0;
     if (objective.type === "item") {
       current = inventoryItemCount(objective.item || objective.name || "");
+    } else if (objective.type === "anyItems") {
+      current = (objective.items || []).reduce((sum, itemName) => sum + inventoryItemCount(itemName), 0);
     } else if (objective.type === "kill") {
       current = Number(quest.kills?.[objective.enemy] ?? quest.killCount ?? 0) || 0;
     } else if (objective.type === "phase") {
@@ -140,20 +184,33 @@
 
   function positionQuestTooltip(item) {
     const tooltip = item?.querySelector?.(".quest-tooltip");
-    if (!tooltip) return;
+    if (!tooltip || !questFloatingTooltip) return;
     const rect = item.getBoundingClientRect();
     const width = Math.min(360, Math.max(240, window.innerWidth - 16));
-    const left = Math.max(8, rect.left - width - 10);
+    let left = rect.right + 10;
+    if (left + width > window.innerWidth - 8) left = rect.left - width - 10;
+    left = Math.max(8, Math.min(window.innerWidth - width - 8, left));
     const top = Math.max(8, Math.min(rect.top, window.innerHeight - 80));
-    tooltip.style.setProperty("--quest-tooltip-width", `${width}px`);
-    tooltip.style.setProperty("--quest-tooltip-left", `${left}px`);
-    tooltip.style.setProperty("--quest-tooltip-top", `${top}px`);
+    questFloatingTooltip.innerHTML = tooltip.innerHTML;
+    questFloatingTooltip.dataset.questId = item.dataset.questId || "";
+    questFloatingTooltip.style.setProperty("--quest-tooltip-width", `${width}px`);
+    questFloatingTooltip.style.setProperty("--quest-tooltip-left", `${left}px`);
+    questFloatingTooltip.style.setProperty("--quest-tooltip-top", `${top}px`);
+    questFloatingTooltip.classList.remove("hidden");
     requestAnimationFrame(() => {
-      const tooltipRect = tooltip.getBoundingClientRect();
+      const tooltipRect = questFloatingTooltip.getBoundingClientRect();
       if (tooltipRect.bottom <= window.innerHeight - 8) return;
       const adjustedTop = Math.max(8, window.innerHeight - tooltipRect.height - 8);
-      tooltip.style.setProperty("--quest-tooltip-top", `${adjustedTop}px`);
+      questFloatingTooltip.style.setProperty("--quest-tooltip-top", `${adjustedTop}px`);
     });
+  }
+
+  function hideQuestTooltip() {
+    questFloatingTooltip?.classList.add("hidden");
+    if (questFloatingTooltip) {
+      questFloatingTooltip.innerHTML = "";
+      questFloatingTooltip.dataset.questId = "";
+    }
   }
 
   async function abandonQuest(id) {
@@ -165,8 +222,10 @@
     });
     if (!confirmed) return false;
     game.quests = game.quests.filter(candidate => candidate?.id !== quest.id);
-    if (quest.id === "gvada-starter-magic" && game.player.gvadaStarterMagic?.spellName) {
-      game.player.gvadaStarterMagic = { ...game.player.gvadaStarterMagic, phase: "abandoned" };
+    for (const profile of Object.values(starterQuestProfiles)) {
+      if (quest.id === profile.questId && game.player[profile.playerKey]?.spellName) {
+        game.player[profile.playerKey] = { ...game.player[profile.playerKey], phase: "abandoned" };
+      }
     }
     game.questLogAlert = false;
     addLog(`Abandoned quest: <b>${quest.name}</b>.`);
@@ -284,12 +343,28 @@
 
   function npcDialogueContext(speaker, key, fallback = "", replacements = {}) {
     const contexts = speaker?.dialogueContexts && typeof speaker.dialogueContexts === "object" ? speaker.dialogueContexts : {};
-    let text = contexts[key] ?? speaker?.[key] ?? fallback;
+    let text = contexts[key] ?? speaker?.[key] ?? hollyhockDefaultDialogueContext(speaker, key) ?? fallback;
     text = String(text || "");
     for (const [token, value] of Object.entries(replacements)) {
       text = text.replaceAll(`{${token}}`, String(value));
     }
     return text;
+  }
+
+  function hollyhockDefaultDialogueContext(speaker, key) {
+    if (speaker?.id !== "herbalist-hollyhock" && speaker?.name !== "Herbalist Hollyhock") return "";
+    return {
+      questOffer: "Aye, I can feel a shy bit of green waking in you. If you want my teaching, start with a patient errand: find me a Moss-Covered Stone out in Harmush Lagh. The old stones here drink root-whispers better than any bottle I own, but they do not sit politely beside the road.",
+      questActive: "Still hunting the stone, are you? Keep your eyes low and your boots steady. Moss loves the quiet places, away from shouting halls and hot forge smoke.",
+      questReady: "There it is. Do not hand it over. Keep it close. A stone that has listened this long should hear what the lake has to say next.",
+      questLakeOffer: "Now take that Moss-Covered Stone to the lake and drop it in. Do not toss it like rubbish. Offer it. If something answers with teeth, keep your wits and show me you can survive the bargain.",
+      questLakeActive: "The lake has not had your offering yet. Stand near the water and drop the Moss-Covered Stone in. If the water spits trouble back, put it down cleanly.",
+      questLakeReady: "Good. The lake answered, and you answered louder. That is how a dwarf learns Sylvan work: not by pretty words, but by standing firm when the deep places blink back.",
+      questTellursaOffer: "One more lesson, and this one needs a gentler hand. A rare Tellursa wanders the Harkhar Highlands. Find it, do not butcher it, and cast Chlorophyll on it. I want to know you can mend a living thing when the mountains are trying to harden your heart.",
+      questTellursaActive: "Find the Tellursa in Harkhar Highlands and lay Chlorophyll on it. If it bolts, let it breathe and try again. Sylvan magic is not a hammer, no matter what our kin say.",
+      questTellursaReady: "Aye, that will do. You have listened to stone, water, tooth, and beast. Take this trinket. It is not fancy, but it remembers the lake better than most people do.",
+      questAfterComplete: "Keep your roots deep and your axe sharper than your pride. Harmush Lagh has more to teach, if you keep listening."
+    }[key] || "";
   }
 
   function giveQuestScrollIfNeeded(scrollName, spellName) {
@@ -302,6 +377,10 @@
   }
 
   function questObjectivesComplete(quest) {
+    if (quest?.id === "hollyhocks-mossy-errand" && quest.phase === "find-moss-covered-rock" && inventoryItemCount("Moss-Covered Stone") > 0) {
+      updateHollyhockMossRockPickedUp();
+      return true;
+    }
     const objectives = questObjectivesFor(quest);
     if (!objectives.length) return false;
     return objectives.every(objective => {
@@ -313,12 +392,26 @@
   function consumeQuestObjectiveItems(quest) {
     let consumed = false;
     for (const objective of questObjectivesFor(quest)) {
-      if (objective.type !== "item") continue;
-      const itemName = objective.item || objective.name || "";
       const required = Math.max(1, Math.floor(Number(objective.required ?? objective.count ?? 1) || 1));
-      if (!itemName || inventoryItemCount(itemName) < required) continue;
-      removeInventoryStack(itemName, required);
-      consumed = true;
+      if (objective.type === "item") {
+        const itemName = objective.item || objective.name || "";
+        if (!itemName || inventoryItemCount(itemName) < required) continue;
+        removeInventoryStack(itemName, required);
+        consumed = true;
+      } else if (objective.type === "anyItems") {
+        let remaining = required;
+        const itemNames = Array.isArray(objective.items) ? objective.items : [];
+        const total = itemNames.reduce((sum, itemName) => sum + inventoryItemCount(itemName), 0);
+        if (total < required) continue;
+        for (const itemName of itemNames) {
+          if (remaining <= 0) break;
+          const take = Math.min(remaining, inventoryItemCount(itemName));
+          if (take <= 0) continue;
+          removeInventoryStack(itemName, take);
+          remaining -= take;
+          consumed = true;
+        }
+      }
     }
     return consumed;
   }
@@ -328,6 +421,9 @@
   }
 
   function questChainIdsForNpc(speaker) {
+    if (speaker?.id === "herbalist-hollyhock" || speaker?.name === "Herbalist Hollyhock") {
+      return ["hollyhocks-mossy-errand", "hollyhocks-lake-offering", "hollyhocks-green-touch"];
+    }
     const ids = Array.isArray(speaker?.questChain) && speaker.questChain.length
       ? speaker.questChain
       : [speaker?.questId];
@@ -359,6 +455,14 @@
   function questById(id) {
     const factories = {
       "gvada-starter-magic": gvadaQuest,
+      "sybil-starter-magic": sybilStarterQuest,
+      "hollyhocks-mossy-errand": hollyhocksMossyErrandQuest,
+      "hollyhocks-lake-offering": hollyhocksLakeOfferingQuest,
+      "hollyhocks-green-touch": hollyhocksGreenTouchQuest,
+      "fenrirs-goblin-iron": fenrirsGoblinIronQuest,
+      "fenrirs-badgeri-rivals": fenrirsBadgeriRivalsQuest,
+      "fenrirs-corvari-wings": fenrirsCorvariWingsQuest,
+      "fenrirs-bisonar-head": fenrirsBisonarHeadQuest,
       "rat-infestation": ratInfestationQuest,
       "pantry-pests": pantryPestsQuest,
       "fen-patrol": fenPatrolQuest,
@@ -450,6 +554,49 @@
       .replaceAll("{playerRealmLevel}", String(realmRequirement ? (realmProgress(realmRequirement.realm)?.level || 0) : ""));
   }
 
+  function npcQuestContextKey(speaker, baseKey, questId) {
+    if (speaker?.id === "fenrir") {
+      if (questId === "fenrirs-badgeri-rivals") {
+        return ({
+          questOffer: "questBadgeriOffer",
+          questActive: "questBadgeriActive",
+          questReady: "questBadgeriReady"
+        })[baseKey] || baseKey;
+      }
+      if (questId === "fenrirs-corvari-wings") {
+        return ({
+          questOffer: "questCorvariOffer",
+          questActive: "questCorvariActive",
+          questReady: "questCorvariReady"
+        })[baseKey] || baseKey;
+      }
+      if (questId === "fenrirs-bisonar-head") {
+        return ({
+          questOffer: "questBisonarOffer",
+          questActive: "questBisonarActive",
+          questReady: "questBisonarReady"
+        })[baseKey] || baseKey;
+      }
+      return baseKey;
+    }
+    if (speaker?.id !== "herbalist-hollyhock") return baseKey;
+    if (questId === "hollyhocks-lake-offering") {
+      return ({
+        questOffer: "questLakeOffer",
+        questActive: "questLakeActive",
+        questReady: "questLakeReady"
+      })[baseKey] || baseKey;
+    }
+    if (questId === "hollyhocks-green-touch") {
+      return ({
+        questOffer: "questTellursaOffer",
+        questActive: "questTellursaActive",
+        questReady: "questTellursaReady"
+      })[baseKey] || baseKey;
+    }
+    return baseKey;
+  }
+
   function receiveQuestIfEligible(quest, speakerOrOptions = null) {
     if (!quest) return { received: false, blockedText: "" };
     if (game.completedQuests.includes(quest.id)) return { received: false, blockedText: "" };
@@ -474,6 +621,122 @@
       rewardGold: 50,
       phase: "choose-spell",
       objectives: [{ type: "phase", completePhase: "return-to-gvada", label: "Realm LVL Gained", required: 1 }],
+      new: true
+    });
+  }
+
+  function sybilStarterQuest() {
+    return configuredQuest({
+      id: "sybil-starter-magic",
+      name: "Sybil's Lesson",
+      description: "Sybil Ladybeard has given you a starter spell scroll and a dwarf's warning: practice until your matching Realm LVL increases, then return to her.",
+      rewardXp: 100,
+      rewardGold: 50,
+      phase: "choose-spell",
+      objectives: [{ type: "phase", completePhase: "return-to-sybil", label: "Realm LVL Gained", required: 1 }],
+      new: true
+    });
+  }
+
+  function hollyhocksMossyErrandQuest() {
+    return configuredQuest({
+      id: "hollyhocks-mossy-errand",
+      name: "Hollyhock's Mossy Errand",
+      description: "Find one of the Moss-Covered Stones hidden somewhere in Harmush Lagh and bring it back to Hollyhock.",
+      phase: "find-moss-covered-rock",
+      minimumRealm: "Sylvan",
+      minimumRealmLevel: 1,
+      rewardXp: 80,
+      rewardGold: 40,
+      rewardItem: "Scroll of Wooden Skin",
+      objectives: [{ type: "phase", completePhase: "return-to-hollyhock", label: "Moss-Covered Stone Found", required: 1 }],
+      new: true
+    });
+  }
+
+  function hollyhocksLakeOfferingQuest() {
+    return configuredQuest({
+      id: "hollyhocks-lake-offering",
+      name: "Hollyhock's Lake Offering",
+      description: "Drop Hollyhock's Moss-Covered Stone into the Harmush Lagh lake and face whatever answers.",
+      phase: "drop-rock-in-lake",
+      minimumRealm: "Sylvan",
+      minimumRealmLevel: 1,
+      rewardXp: 120,
+      rewardGold: 60,
+      rewardItem: "Scroll of Chlorophyll",
+      objectives: [
+        { type: "phase", completePhase: "defeat-kappa", label: "Rock Dropped Into Lake", required: 1 },
+        { type: "phase", completePhase: "return-to-hollyhock", label: "Kappa Defeated", required: 1 }
+      ],
+      new: true
+    });
+  }
+
+  function hollyhocksGreenTouchQuest() {
+    return configuredQuest({
+      id: "hollyhocks-green-touch",
+      name: "Hollyhock's Green Touch",
+      description: "Find a rare Tellursa roaming Harkhar Highlands and cast Chlorophyll on it.",
+      phase: "chlorophyll-tellursa",
+      minimumRealm: "Sylvan",
+      minimumRealmLevel: 1,
+      rewardXp: 180,
+      rewardGold: 100,
+      rewardItem: "Lake Yarrow",
+      objectives: [{ type: "phase", completePhase: "return-to-hollyhock", label: "Tellursa Touched With Chlorophyll", required: 1 }],
+      new: true
+    });
+  }
+
+  function fenrirsGoblinIronQuest() {
+    return configuredQuest({
+      id: "fenrirs-goblin-iron",
+      name: "Fenrir's Goblin Trophies",
+      description: "Fenrir wants proof that goblins have been bled. Bring him four Goblin Heads.",
+      rewardXp: 220,
+      rewardGold: 90,
+      rewardItem: "Rune of Goblin Slaying",
+      objectives: [{ type: "item", item: "Goblin Head", label: "Goblin Heads Collected", required: 4 }],
+      new: true
+    });
+  }
+
+  function fenrirsBadgeriRivalsQuest() {
+    return configuredQuest({
+      id: "fenrirs-badgeri-rivals",
+      name: "Fenrir's Badgeri Rivals",
+      description: "Fenrir wants the Badgeri humbled. Kill four Badgeri Bruisers and four Badgeri Shamans.",
+      rewardXp: 340,
+      rewardGold: 140,
+      objectives: [
+        { type: "kill", enemy: "Badgeri Bruiser", label: "Badgeri Bruisers Slain", required: 4 },
+        { type: "kill", enemy: "Badgeri Shaman", label: "Badgeri Shamans Slain", required: 4 }
+      ],
+      new: true
+    });
+  }
+
+  function fenrirsCorvariWingsQuest() {
+    return configuredQuest({
+      id: "fenrirs-corvari-wings",
+      name: "Fenrir's Corvari Wings",
+      description: "Fenrir wants trophies from the Corvari. Bring him six Corvari Wings.",
+      rewardXp: 400,
+      rewardGold: 165,
+      objectives: [{ type: "item", item: "Corvari Wing", label: "Corvari Wings Collected", required: 6 }],
+      new: true
+    });
+  }
+
+  function fenrirsBisonarHeadQuest() {
+    return configuredQuest({
+      id: "fenrirs-bisonar-head",
+      name: "Fenrir's Bisonar Head",
+      description: "Fenrir wants the head of a Bisonar as proof that the highland herds can bleed.",
+      rewardXp: 500,
+      rewardGold: 220,
+      objectives: [{ type: "item", item: "Bisonar Head", label: "Bisonar Head Collected", required: 1 }],
       new: true
     });
   }
@@ -606,7 +869,7 @@
   }
   
   function realmNameHtml(realm) {
-    const color = realmInfo[realm]?.color || "#f2ede3";
+    const color = typeof realmUiColor === "function" ? realmUiColor(realm) : "#f2ede3";
     const shadowClass = realm === "Umbral" ? " shadow-text" : "";
     return `<b class="${shadowClass.trim()}" style="color:${color}">${realm}</b>`;
   }
@@ -723,8 +986,64 @@
     Sylvan: "Juan Tabo in Gandersville Town Hall can train Sylvan spells."
   };
 
+  const starterQuestProfiles = {
+    gvada: {
+      id: "gvada",
+      questId: "gvada-starter-magic",
+      npcName: "Gvada",
+      mapKey: "gvada",
+      playerKey: "gvadaStarterMagic",
+      returnPhase: "return-to-gvada",
+      questFactory: gvadaQuest,
+      chooseText: "This world is dangerous, soulreaper. You are going to need to learn some magic if you mean to survive it. Choose one scroll, and choose carefully enough.",
+      chosenIntro: choice => `${choice.scroll.replace("Scroll of ", "")}. Good. You will need magic if you intend to survive in a world that keeps sharpening its teeth.`,
+      completedText: "Good. Now you understand the first rule: power grows when you use it. Keep training your Realms, and seek out the trainers I told you about.",
+      lessonPages: [
+        "Good. A Soulreaper without magic is just a wanderer with a sharp stick. Now listen closely: Soulreaper Trainers can improve active spells for gold, but only spells you have prepared in your active slots.",
+        "Magic damage is different from Physical damage. Physical attacks are reduced by DEF. Magical attacks are reduced by Realm RESIST. Spells and magical weapons usually deal Magical damage, so watch what sort of enemy you are facing.",
+        { html: `Every spell and many weapons belong to a Realm. ${realmNameHtml("Celestial")} burns ${realmNameHtml("Umbral")} more fiercely. ${realmNameHtml("Umbral")} devours ${realmNameHtml("Sylvan")}. ${realmNameHtml("Sylvan")} disrupts ${realmNameHtml("Ethereal")}. ${realmNameHtml("Ethereal")} pierces ${realmNameHtml("Infernal")}. ${realmNameHtml("Infernal")} scorches ${realmNameHtml("Celestial")}. ${realmNameHtml("Mortal")} is plain, but reliable, and has no special weakness or advantage.` },
+        "Starting at level 6, a Soulreaper Trainer can unlock additional Spell Slots for you, for a price. More spells means more answers when the woods stop being polite."
+      ],
+      afterText: "Be smart out there, young soulreaper. We will surely meet again.",
+      updateLog: "Gvada's Lesson updated: return to <b>Gvada</b> for further guidance."
+    },
+    sybil: {
+      id: "sybil",
+      questId: "sybil-starter-magic",
+      npcName: "Sybil Ladybeard",
+      playerKey: "sybilStarterMagic",
+      returnPhase: "return-to-sybil",
+      questFactory: sybilStarterQuest,
+      chooseText: "The mountain does not forgive soft hands, traveler. Take one scroll, take these potions, and learn quickly before the highlands test your bones.",
+      chosenIntro: choice => `${choice.scroll.replace("Scroll of ", "")}. A sturdy choice. Dwarf wisdom says a spell unpracticed is no better than an axe left to rust.`,
+      completedText: "Good. You have put the spell to work and felt the Realm answer. Keep at it, and the stone under your feet will have reason to respect you.",
+      lessonPages: [
+        "You have the makings of a survivor. Remember this: a dwarf does not trust a tool until it has been swung in danger, and a spell is a tool like any hammer.",
+        "Physical blows test armor and DEF. Magic tests Realm RESIST. Learn what your enemy is made of before you spend your strength against it.",
+        { html: `The Realms grind against each other like old clans. ${realmNameHtml("Celestial")} breaks ${realmNameHtml("Umbral")}, ${realmNameHtml("Umbral")} gnaws ${realmNameHtml("Sylvan")}, ${realmNameHtml("Sylvan")} tangles ${realmNameHtml("Ethereal")}, ${realmNameHtml("Ethereal")} cuts ${realmNameHtml("Infernal")}, and ${realmNameHtml("Infernal")} burns ${realmNameHtml("Celestial")}. ${realmNameHtml("Mortal")} stands plain and stubborn.` },
+        "When you are stronger, trainers can unlock more Spell Slots. More prepared spells means fewer reasons to die stupidly."
+      ],
+      afterText: "Keep your pack stocked and your beard out of the fire.",
+      updateLog: "Sybil's Lesson updated: return to <b>Sybil Ladybeard</b> for further guidance."
+    }
+  };
+
+  function starterQuestProfile(profileId = "gvada") {
+    return starterQuestProfiles[profileId] || starterQuestProfiles.gvada;
+  }
+
+  function starterQuestSpeaker(profile) {
+    if (profile.mapKey) return game.map?.[profile.mapKey] || null;
+    return dialogueSpeakerCandidates().find(candidate => String(candidate.id || "") === "sybil-ladybeard"
+      || String(candidate.name || "") === profile.npcName) || null;
+  }
+
+  function starterQuestByPlayer(profile) {
+    return game.quests.find(candidate => candidate.id === profile.questId);
+  }
+
   function gvadaQuestByPlayer() {
-    return game.quests.find(candidate => candidate.id === "gvada-starter-magic");
+    return starterQuestByPlayer(starterQuestProfiles.gvada);
   }
 
   function gvadaStarterChoiceBySpell(spellName) {
@@ -735,64 +1054,96 @@
     return makeSpell(spellName)?.realm || "Mortal";
   }
 
-  function gvadaQuestDescription(realm, targetLevel, phase = "practice-spell") {
-    if (phase === "return-to-gvada") {
-      return `Your ${realm} Realm LVL has increased. Return to Gvada for further guidance.`;
+  function starterQuestDescription(profile, realm, targetLevel, phase = "practice-spell") {
+    if (phase === profile.returnPhase) {
+      return `Your ${realm} Realm LVL has increased. Return to ${profile.npcName} for further guidance.`;
     }
-    return `Practice with your starter spell until your ${realm} Realm LVL increases, then return to Gvada.`;
+    return `Practice with your starter spell until your ${realm} Realm LVL increases, then return to ${profile.npcName}.`;
   }
 
-  function giveGvadaStarterScroll(choice) {
+  function gvadaQuestDescription(realm, targetLevel, phase = "practice-spell") {
+    return starterQuestDescription(starterQuestProfiles.gvada, realm, targetLevel, phase);
+  }
+
+  function giveStarterItem(itemName, ownerName, quantity = 1) {
+    let delivered = 0;
+    for (let i = 0; i < quantity; i += 1) {
+      const item = cloneItem(itemName);
+      if (!item) continue;
+      if (addInventoryItem(item)) delivered += 1;
+      else {
+        const point = playerDropPoint();
+        dropGroundItem(item, point.x, point.y);
+        addLog(`Inventory full. <b>${itemName}</b> was dropped.`);
+        delivered += 1;
+      }
+    }
+    if (delivered > 0 && quantity > 1) addLog(`${ownerName} gave you <b>${quantity} ${itemName}s</b>.`);
+    return delivered > 0;
+  }
+
+  function giveStarterScrollAndPotions(profile, choice) {
     const item = cloneItem(choice.scroll);
     if (!item) return false;
     if (addInventoryItem(item)) {
-      addLog(`Gvada gave you <b>${choice.scroll}</b>.`);
-      return true;
+      addLog(`${profile.npcName} gave you <b>${choice.scroll}</b>.`);
+    } else {
+      const point = playerDropPoint();
+      dropGroundItem(item, point.x, point.y);
+      addLog(`Inventory full. <b>${choice.scroll}</b> was dropped.`);
     }
-    const point = playerDropPoint();
-    dropGroundItem(item, point.x, point.y);
-    addLog(`Inventory full. <b>${choice.scroll}</b> was dropped.`);
+    giveStarterItem("Healing Potion", profile.npcName, 2);
     return true;
   }
 
-  function startGvadaStarterQuest(spellName, options = {}) {
+  function startStarterQuest(profileId, spellName, options = {}) {
+    const profile = starterQuestProfile(profileId);
     const giveScroll = options.giveScroll !== false;
-    const gvada = game.map?.gvada;
+    const speaker = options.speaker || starterQuestSpeaker(profile);
     const choice = gvadaStarterChoiceBySpell(spellName);
     if (!choice) return;
     const realm = gvadaStarterRealm(spellName);
     const progress = realmProgress(realm);
     const targetLevel = (progress.level || 0) + 1;
-    if (giveScroll) giveGvadaStarterScroll(choice);
-    let quest = gvadaQuestByPlayer();
+    if (giveScroll) giveStarterScrollAndPotions(profile, choice);
+    let quest = starterQuestByPlayer(profile);
     if (!quest) {
-      quest = gvadaQuest();
+      quest = profile.questFactory();
       receiveQuest(quest);
     }
     quest.phase = "practice-spell";
     quest.starterSpell = spellName;
     quest.starterRealm = realm;
     quest.targetRealmLevel = targetLevel;
-    quest.description = gvadaQuestDescription(realm, targetLevel);
+    quest.description = starterQuestDescription(profile, realm, targetLevel);
     quest.new = true;
-    game.player.gvadaStarterMagic = { spellName, realm, targetRealmLevel: targetLevel, phase: "practice-spell" };
+    game.player[profile.playerKey] = { spellName, realm, targetRealmLevel: targetLevel, phase: "practice-spell" };
     game.realmTabAlert = true;
     game.questLogAlert = true;
-    if (gvada) gvada.spoken = true;
-    openDialogue("Gvada", [
-      `${choice.scroll.replace("Scroll of ", "")}. Good. You will need magic if you intend to survive in a world that keeps sharpening its teeth.`,
+    if (speaker) speaker.spoken = true;
+    openDialogue(profile.npcName, [
+      profile.chosenIntro(choice),
       gvadaTrainerHints[realm] || "There are trainers nearby who can help you strengthen that Realm.",
       `Learn the scroll from your inventory, practice the spell, and come back after your ${realm} Realm LVL increases.`
-    ], gvada);
+    ], speaker);
     renderQuestLog();
     markUIDirty();
   }
 
-  function openGvadaStarterChoice() {
+  function startGvadaStarterQuest(spellName, options = {}) {
+    startStarterQuest("gvada", spellName, options);
+  }
+
+  function startSybilStarterQuest(spellName, options = {}) {
+    startStarterQuest("sybil", spellName, options);
+  }
+
+  function openStarterChoice(profileId, speaker = null) {
+    const profile = starterQuestProfile(profileId);
     const choices = gvadaStarterChoices.map(choice => {
       const spell = makeSpell(choice.spell);
       const realm = spell?.realm || "Mortal";
-      const realmColor = realmInfo[realm]?.color || realmInfo.Mortal.color;
+      const realmColor = typeof realmUiColor === "function" ? realmUiColor(realm) : "#f2ede3";
       const shadowClass = realm === "Umbral" ? " shadow-text" : "";
       return {
         value: choice.spell,
@@ -811,17 +1162,23 @@
         `
       };
     });
-    openDialogue("Gvada", {
-      text: "This world is dangerous, soulreaper. You are going to need to learn some magic if you mean to survive it. Choose one scroll, and choose carefully enough.",
+    game.pendingStarterQuestNpc = profile.id;
+    openDialogue(profile.npcName, {
+      text: profile.chooseText,
       choices,
       choiceLayout: "spell-icons"
-    }, game.map?.gvada);
+    }, speaker || starterQuestSpeaker(profile));
+  }
+
+  function openGvadaStarterChoice() {
+    openStarterChoice("gvada", game.map?.gvada);
   }
   
   function closeDialogue() {
     dialogueWindow.classList.add("hidden");
     game.dialoguePages = [];
     game.dialoguePageIndex = 0;
+    game.pendingStarterQuestNpc = null;
     dialogueNextButton.classList.add("hidden");
     syncPointerPause();
   }
@@ -1267,36 +1624,38 @@
     const gvada = game.map?.gvada;
     if (!gvada) return;
     if (!allowNpcInteraction(gvada)) return;
-    const quest = gvadaQuestByPlayer();
-    const completed = game.completedQuests.includes("gvada-starter-magic");
+    startStarterNpcDialogue("gvada", gvada);
+  }
+
+  function startStarterNpcDialogue(profileId, speaker = null) {
+    const profile = starterQuestProfile(profileId);
+    speaker ||= starterQuestSpeaker(profile);
+    if (!speaker) return;
+    const quest = starterQuestByPlayer(profile);
+    const completed = game.completedQuests.includes(profile.questId);
     if (!quest && !completed) {
-      const previousChoice = game.player.gvadaStarterMagic?.spellName;
+      const previousChoice = game.player[profile.playerKey]?.spellName;
       if (previousChoice) {
-        startGvadaStarterQuest(previousChoice, { giveScroll: false });
+        startStarterQuest(profile.id, previousChoice, { giveScroll: false, speaker });
         return;
       }
-      openGvadaStarterChoice();
+      openStarterChoice(profile.id, speaker);
       renderQuestLog();
       return;
     }
-    if (quest?.phase === "return-to-gvada") {
+    if (quest?.phase === profile.returnPhase) {
       completeQuest(quest);
-      game.player.gvadaStarterMagic = { ...(game.player.gvadaStarterMagic || {}), phase: "completed" };
-      gvada.lessonGiven = true;
-      openDialogue("Gvada", "Good. Now you understand the first rule: power grows when you use it. Keep training your Realms, and seek out the trainers I told you about.", gvada);
-    } else if (completed && !gvada.lessonGiven) {
-      gvada.lessonGiven = true;
-      openDialogue("Gvada", [
-        "Good. A Soulreaper without magic is just a wanderer with a sharp stick. Now listen closely: Soulreaper Trainers can improve active spells for gold, but only spells you have prepared in your active slots.",
-        "Magic damage is different from Physical damage. Physical attacks are reduced by DEF. Magical attacks are reduced by Realm RESIST. Spells and magical weapons usually deal Magical damage, so watch what sort of enemy you are facing.",
-        { html: `Every spell and many weapons belong to a Realm. ${realmNameHtml("Celestial")} burns ${realmNameHtml("Umbral")} more fiercely. ${realmNameHtml("Umbral")} devours ${realmNameHtml("Sylvan")}. ${realmNameHtml("Sylvan")} disrupts ${realmNameHtml("Ethereal")}. ${realmNameHtml("Ethereal")} pierces ${realmNameHtml("Infernal")}. ${realmNameHtml("Infernal")} scorches ${realmNameHtml("Celestial")}. ${realmNameHtml("Mortal")} is plain, but reliable, and has no special weakness or advantage.` },
-        "Starting at level 6, a Soulreaper Trainer can unlock additional Spell Slots for you, for a price. More spells means more answers when the woods stop being polite."
-      ], gvada);
+      game.player[profile.playerKey] = { ...(game.player[profile.playerKey] || {}), phase: "completed" };
+      speaker.lessonGiven = true;
+      openDialogue(profile.npcName, profile.completedText, speaker);
+    } else if (completed && !speaker.lessonGiven) {
+      speaker.lessonGiven = true;
+      openDialogue(profile.npcName, profile.lessonPages, speaker);
     } else if (completed) {
-      openDialogue("Gvada", "Be smart out there, young soulreaper. We will surely meet again.", gvada);
+      openDialogue(profile.npcName, profile.afterText, speaker);
     } else {
-      const realm = quest?.starterRealm || game.player.gvadaStarterMagic?.realm || "Mortal";
-      openDialogue("Gvada", `Learn your scroll, practice your spell, and return after your ${realm} Realm LVL increases.`, gvada);
+      const realm = quest?.starterRealm || game.player[profile.playerKey]?.realm || "Mortal";
+      openDialogue(profile.npcName, `Learn your scroll, practice your spell, and return after your ${realm} Realm LVL increases.`, speaker);
     }
     renderQuestLog();
   }
@@ -1414,10 +1773,16 @@
   }
 
   function startConfiguredQuestDialogue(speaker = null) {
-    const hasQuestSource = speaker?.questId || (Array.isArray(speaker?.questChain) && speaker.questChain.length);
-    if (!speaker || !speaker.startsQuest || !hasQuestSource) return false;
+    const fallbackQuestIds = questChainIdsForNpc(speaker);
+    const hasQuestSource = speaker?.questId || (Array.isArray(speaker?.questChain) && speaker.questChain.length) || fallbackQuestIds.length;
+    const hollyhockFallback = speaker?.id === "herbalist-hollyhock" || speaker?.name === "Herbalist Hollyhock";
+    if (!speaker || (!speaker.startsQuest && !hollyhockFallback) || !hasQuestSource) return false;
     if (!allowNpcInteraction(speaker)) return true;
     const questId = questChainQuestIdForNpc(speaker) || speaker.questId;
+    if (questId === "sybil-starter-magic") {
+      startStarterNpcDialogue("sybil", speaker);
+      return true;
+    }
     const active = activeQuestById(questId);
     let text = "";
     if ((speaker.id === "widow-elowen" || speaker.name === "Widow Elowen")
@@ -1435,19 +1800,23 @@
     } else if (!questId || game.completedQuests.includes(questId)) {
       text = npcDialogueContext(speaker, "questAfterComplete", speaker.dialogue || "Thank you again.");
     } else if (active && questObjectivesComplete(active)) {
-      text = npcDialogueContext(speaker, "questReady", "You have done what I asked. Thank you.");
+      text = npcDialogueContext(speaker, npcQuestContextKey(speaker, "questReady", questId), "You have done what I asked. Thank you.");
       consumeQuestObjectiveItems(active);
       completeQuest(active);
       markUIDirty();
     } else if (active) {
-      text = npcDialogueContext(speaker, "questActive", active.description || "Please finish what I asked of you.");
+      handleHollyhockDialogueMaintenance(speaker, active);
+      text = npcDialogueContext(speaker, npcQuestContextKey(speaker, "questActive", questId), active.description || "Please finish what I asked of you.");
     } else {
       const quest = questById(questId);
-      text = npcDialogueContext(speaker, "questOffer", quest?.description || speaker.dialogue || "");
+      const offerKey = npcQuestContextKey(speaker, "questOffer", questId);
+      text = npcDialogueContext(speaker, offerKey, quest?.description || speaker.dialogue || "");
       const offer = receiveQuestIfEligible(quest, speaker);
       if (offer.received) {
         handleConfiguredQuestAccepted(speaker, offer.received === true ? activeQuestById(questId) : offer.received);
-        text = npcDialogueContext(speaker, questId === "pantry-pests" ? "questAccepted" : "questOffer", text);
+        handleHollyhockQuestAccepted(speaker, offer.received === true ? activeQuestById(questId) : offer.received);
+        const acceptedKey = questId === "pantry-pests" ? "questAccepted" : offerKey;
+        text = npcDialogueContext(speaker, acceptedKey, text);
         markUIDirty();
       } else {
         text = offer.blockedText || text;
@@ -1499,23 +1868,6 @@
     return true;
   }
 
-  function handleInventoryItemDropped(item, point) {
-    if (!item || item.name !== "Mourning Flowers") return false;
-    const quest = activeQuestById("flowers-for-the-grave");
-    if (!quest) return false;
-    const graveyard = ganderswoodFenGraveyardAt(point.x, point.y);
-    if (!graveyard) return false;
-    quest.phase = "flowers-placed";
-    quest.description = "You placed Widow Elowen's flowers in the Ganderswood Fen graveyard.";
-    setQuestObjectiveProgress(quest, "Flowers Placed", 1);
-    spawnElowensBeloved(graveyard);
-    completeQuest(quest);
-    markUIDirty();
-    renderQuestLog();
-    renderUI();
-    return true;
-  }
-  
   function startSharleneDialogue() {
     const sharlene = game.map?.sharlene;
     if (!sharlene) return;
@@ -2224,25 +2576,29 @@
   }
 
   function updateGvadaRealmObjective(realm) {
-    const quest = gvadaQuestByPlayer();
-    if (!quest || quest.phase !== "practice-spell") return false;
-    if (normalizeRealm(quest.starterRealm || game.player.gvadaStarterMagic?.realm) !== normalizeRealm(realm)) return false;
-    const progress = realmProgress(realm);
-    const targetLevel = Number(quest.targetRealmLevel || game.player.gvadaStarterMagic?.targetRealmLevel || 1);
-    if ((progress.level || 0) < targetLevel) return false;
-    quest.phase = "return-to-gvada";
-    quest.description = gvadaQuestDescription(normalizeRealm(realm), targetLevel, "return-to-gvada");
-    quest.new = true;
-    game.player.gvadaStarterMagic = {
-      ...(game.player.gvadaStarterMagic || {}),
-      realm: normalizeRealm(realm),
-      targetRealmLevel: targetLevel,
-      phase: "return-to-gvada"
-    };
-    game.questLogAlert = true;
-    addLog("Gvada's Lesson updated: return to <b>Gvada</b> for further guidance.");
-    renderQuestLog();
-    return true;
+    let updated = false;
+    for (const profile of Object.values(starterQuestProfiles)) {
+      const quest = starterQuestByPlayer(profile);
+      if (!quest || quest.phase !== "practice-spell") continue;
+      if (normalizeRealm(quest.starterRealm || game.player[profile.playerKey]?.realm) !== normalizeRealm(realm)) continue;
+      const progress = realmProgress(realm);
+      const targetLevel = Number(quest.targetRealmLevel || game.player[profile.playerKey]?.targetRealmLevel || 1);
+      if ((progress.level || 0) < targetLevel) continue;
+      quest.phase = profile.returnPhase;
+      quest.description = starterQuestDescription(profile, normalizeRealm(realm), targetLevel, profile.returnPhase);
+      quest.new = true;
+      game.player[profile.playerKey] = {
+        ...(game.player[profile.playerKey] || {}),
+        realm: normalizeRealm(realm),
+        targetRealmLevel: targetLevel,
+        phase: profile.returnPhase
+      };
+      game.questLogAlert = true;
+      addLog(profile.updateLog);
+      updated = true;
+    }
+    if (updated) renderQuestLog();
+    return updated;
   }
 
   function updateCrowdControlObjective(spellName, target = null) {
@@ -2351,6 +2707,223 @@
 
   function hostileQuestTarget(target) {
     return Boolean(target && game.enemies.includes(target) && !target.pet && target !== game.player);
+  }
+
+  function completeHollyhockPhaseQuest(questId, expectedPhase, label, description, logText) {
+    const quest = game.quests.find(candidate => candidate.id === questId);
+    if (!quest || quest.phase !== expectedPhase) return false;
+    setQuestObjectiveProgress(quest, label, questObjectivesFor(quest)[0]?.required || 1);
+    quest.phase = "return-to-hollyhock";
+    quest.description = description;
+    quest.new = true;
+    game.questLogAlert = true;
+    addLog(logText);
+    renderQuestLog();
+    return true;
+  }
+
+  function removeOldHollyhockQuests() {
+    const oldIds = new Set(["the-stone-that-drinks", "roots-under-the-mountain", "the-lake-keeps-its-teeth"]);
+    const activeBefore = Array.isArray(game.quests) ? game.quests.length : 0;
+    const completedBefore = Array.isArray(game.completedQuests) ? game.completedQuests.length : 0;
+    game.quests = (Array.isArray(game.quests) ? game.quests : []).filter(quest => !oldIds.has(quest?.id));
+    game.completedQuests = (Array.isArray(game.completedQuests) ? game.completedQuests : []).filter(id => !oldIds.has(id));
+    return activeBefore !== game.quests.length || completedBefore !== game.completedQuests.length;
+  }
+
+  function consumeHollyhockTurnInItems(quest) {
+    return false;
+  }
+
+  function activeHollyhockMossStoneDrops() {
+    return (game.groundItems || []).filter(drop =>
+      drop?.questId === "hollyhocks-mossy-errand"
+      && drop?.item?.name === "Moss-Covered Stone"
+    );
+  }
+
+  function spawnHollyhockMossRocksForQuest(quest) {
+    if (!quest) return false;
+    const existing = activeHollyhockMossStoneDrops();
+    if (existing.length >= 2) {
+      quest.mossRocksSpawned = true;
+      quest.mossRockDropIds = existing.map(drop => drop.id);
+      return false;
+    }
+    if (typeof window.spawnHollyhockMossRocks !== "function") return false;
+    const spawned = window.spawnHollyhockMossRocks(quest.id, 2);
+    if (!spawned) {
+      grantQuestStartItem("Moss-Covered Stone");
+      quest.mossRockFallbackGranted = true;
+      addLog("<b>Hollyhock</b> presses a Moss-Covered Stone into your hands. The mountain is being stubborn today.");
+      return true;
+    }
+    quest.mossRocksSpawned = true;
+    quest.mossRockDropIds = spawned;
+    addLog("<b>Hollyhock</b>: Moss-Covered Stones are hidden somewhere in Harmush Lagh.");
+    return true;
+  }
+
+  function ensureHollyhockLakeRock(quest) {
+    if (!quest || quest.phase !== "drop-rock-in-lake") return false;
+    if (inventoryItemCount("Moss-Covered Stone") > 0) return false;
+    grantQuestStartItem("Moss-Covered Stone");
+    quest.rockReplaced = true;
+    addLog("<b>Hollyhock</b> gives you another Moss-Covered Stone.");
+    return true;
+  }
+
+  function updateHollyhockMossRockPickedUp(drop = null) {
+    const quest = game.quests.find(candidate => candidate.id === "hollyhocks-mossy-errand");
+    if (!quest || quest.phase !== "find-moss-covered-rock") return false;
+    quest.phase = "return-to-hollyhock";
+    quest.description = "You found a Moss-Covered Stone in Harmush Lagh. Return to Herbalist Hollyhock.";
+    setQuestObjectiveProgress(quest, "Moss-Covered Stone Found", 1);
+    setQuestObjectiveProgress(quest, "Moss-Covered Rock Found", 1);
+    quest.new = true;
+    game.questLogAlert = true;
+    window.clearHollyhockMossRocks?.(drop?.id || "");
+    addLog("<b>Hollyhock's Mossy Errand</b> updated: return to Herbalist Hollyhock.");
+    renderQuestLog();
+    return true;
+  }
+
+  function updateHollyhockLakeOfferingDropped(point = null) {
+    const quest = game.quests.find(candidate => candidate.id === "hollyhocks-lake-offering");
+    if (!quest || quest.phase !== "drop-rock-in-lake") return false;
+    quest.phase = "defeat-kappa";
+    quest.description = "A Kappa has risen from the lake. Defeat it, then return to Herbalist Hollyhock.";
+    setQuestObjectiveProgress(quest, "Rock Dropped Into Lake", 1);
+    quest.kappaDefeated = false;
+    quest.kappaSpawned = true;
+    quest.new = true;
+    game.questLogAlert = true;
+    window.spawnHollyhockKappa?.(point || game.player, quest.id);
+    addLog("<b>Hollyhock's Lake Offering</b> updated: defeat the Kappa.");
+    renderQuestLog();
+    return true;
+  }
+
+  function isHollyhockLakeOfferingKappa(enemy = null, quest = null) {
+    if (!enemy) return false;
+    if (enemy.questSpawn === "hollyhock-kappa" || enemy.questId === "hollyhocks-lake-offering") return true;
+    const name = String(enemy.name || enemy.templateName || "").trim().toLowerCase();
+    if (name !== "kappa") return false;
+    if (!quest || quest.phase !== "defeat-kappa") return false;
+    const enemyArea = enemy.area || areaAt(enemy.x || 0, enemy.y || 0)?.name || "";
+    return enemyArea === "Harmush Lagh";
+  }
+
+  function updateHollyhockKappaDefeated(enemy = null) {
+    const quest = game.quests.find(candidate => candidate.id === "hollyhocks-lake-offering");
+    if (!quest || quest.phase !== "defeat-kappa") return false;
+    if (!isHollyhockLakeOfferingKappa(enemy, quest)) return false;
+    quest.phase = "return-to-hollyhock";
+    quest.description = "You defeated the Kappa from the Harmush Lagh lake. Return to Herbalist Hollyhock.";
+    quest.kappaDefeated = true;
+    setQuestObjectiveProgress(quest, "Rock Dropped Into Lake", 1);
+    setQuestObjectiveProgress(quest, "Kappa Defeated", 1);
+    quest.new = true;
+    game.questLogAlert = true;
+    addLog("<b>Hollyhock's Lake Offering</b> updated: return to Herbalist Hollyhock.");
+    renderQuestLog();
+    return true;
+  }
+
+  function updateHollyhockChlorophyllTellursa(spellName = "", target = null) {
+    if (spellName !== "Chlorophyll") return false;
+    if (!target || String(target.name || target.templateName || "") !== "Tellursa") return false;
+    if ((areaAt(target.x || 0, target.y || 0)?.name || target.area) !== "Harkhar Highlands") return false;
+    return completeHollyhockPhaseQuest(
+      "hollyhocks-green-touch",
+      "chlorophyll-tellursa",
+      "Tellursa Touched With Chlorophyll",
+      "You cast Chlorophyll on a Tellursa in Harkhar Highlands. Return to Herbalist Hollyhock.",
+      "<b>Hollyhock's Green Touch</b> updated: return to Herbalist Hollyhock."
+    );
+  }
+
+  function canDropMossCoveredRockForHollyhock(item = null) {
+    if (item && item.name !== "Moss-Covered Stone") return false;
+    const quest = game.quests.find(candidate => candidate.id === "hollyhocks-lake-offering");
+    return Boolean(quest && quest.phase === "drop-rock-in-lake");
+  }
+
+  function canChlorophyllHollyhockTellursa(target = null) {
+    const quest = game.quests.find(candidate => candidate.id === "hollyhocks-green-touch");
+    if (!quest || quest.phase !== "chlorophyll-tellursa") return false;
+    if (!target || String(target.name || target.templateName || "") !== "Tellursa") return false;
+    return (areaAt(target.x || 0, target.y || 0)?.name || target.area) === "Harkhar Highlands";
+  }
+
+  function handleHollyhockQuestAccepted(speaker, quest) {
+    if (!quest || speaker?.id !== "herbalist-hollyhock") return false;
+    if (quest.id === "hollyhocks-mossy-errand") {
+      spawnHollyhockMossRocksForQuest(quest);
+      return true;
+    }
+    if (quest.id === "hollyhocks-lake-offering") {
+      ensureHollyhockLakeRock(quest);
+      return true;
+    }
+    return false;
+  }
+
+  function handleHollyhockDialogueMaintenance(speaker, quest) {
+    if (!quest || speaker?.id !== "herbalist-hollyhock") return false;
+    if (quest.id === "hollyhocks-mossy-errand" && quest.phase === "find-moss-covered-rock") return spawnHollyhockMossRocksForQuest(quest);
+    if (quest.id === "hollyhocks-lake-offering" && quest.phase === "drop-rock-in-lake") return ensureHollyhockLakeRock(quest);
+    return false;
+  }
+
+  function handleHollyhockPlayerDeath() {
+    const quest = game.quests.find(candidate => candidate.id === "hollyhocks-lake-offering");
+    if (!quest || quest.phase !== "defeat-kappa") return false;
+    quest.phase = "drop-rock-in-lake";
+    quest.description = "You fell before defeating the Kappa. Talk to Herbalist Hollyhock for another Moss-Covered Stone and try the lake offering again.";
+    quest.kappaSpawned = false;
+    quest.kappaDefeated = false;
+    quest.new = true;
+    game.questLogAlert = true;
+    window.clearHollyhockKappa?.();
+    renderQuestLog();
+    return true;
+  }
+
+  function handleInventoryItemPickedUp(item = null, drop = null) {
+    if (item?.name === "Moss-Covered Stone" && drop?.questId === "hollyhocks-mossy-errand") {
+      return updateHollyhockMossRockPickedUp(drop);
+    }
+    return false;
+  }
+
+  function handleInventoryItemDropped(item, point) {
+    if (item?.name === "Moss-Covered Stone" && canDropMossCoveredRockForHollyhock(item)) {
+      const lake = (game.map?.puddles || []).find(puddle => puddle.kind === "harmush-lake");
+      const playerNearLake = lake && Math.hypot((game.player.x || 0) - lake.x, (game.player.y || 0) - lake.y) <= Math.max(lake.rx || 0, lake.ry || 0) + 150;
+      const dropNearLake = lake && Math.hypot((point.x || 0) - lake.x, (point.y || 0) - lake.y) <= Math.max(lake.rx || 0, lake.ry || 0) + 80;
+      if (!playerNearLake && !dropNearLake) {
+        addLog("Stand near the Harmush Lagh lake before dropping the Moss-Covered Stone.");
+        addInventoryItem(item);
+        return true;
+      }
+      updateHollyhockLakeOfferingDropped(lake || point);
+      return true;
+    }
+    if (!item || item.name !== "Mourning Flowers") return false;
+    const quest = activeQuestById("flowers-for-the-grave");
+    if (!quest) return false;
+    const graveyard = ganderswoodFenGraveyardAt(point.x, point.y);
+    if (!graveyard) return false;
+    quest.phase = "flowers-placed";
+    quest.description = "You placed Widow Elowen's flowers in the Ganderswood Fen graveyard.";
+    setQuestObjectiveProgress(quest, "Flowers Placed", 1);
+    spawnElowensBeloved(graveyard);
+    completeQuest(quest);
+    markUIDirty();
+    renderQuestLog();
+    renderUI();
+    return true;
   }
 
   function updateFaerieFireObjective(target = null) {
@@ -2534,6 +3107,7 @@
     closeQuestLog,
     markQuestHovered,
     positionQuestTooltip,
+    hideQuestTooltip,
     abandonQuest,
     completeQuest,
     configuredQuest,
@@ -2543,6 +3117,13 @@
     receiveQuestIfEligible,
     questChainQuestIdForNpc,
     gvadaQuest,
+    hollyhocksMossyErrandQuest,
+    hollyhocksLakeOfferingQuest,
+    hollyhocksGreenTouchQuest,
+    fenrirsGoblinIronQuest,
+    fenrirsBadgeriRivalsQuest,
+    fenrirsCorvariWingsQuest,
+    fenrirsBisonarHeadQuest,
     ratInfestationQuest,
     investigateRatWarrenQuest,
     ratkinMenaceQuest,
@@ -2602,6 +3183,12 @@
     startRaufDialogue,
     startConfiguredQuestDialogue,
     handleInventoryItemDropped,
+    handleInventoryItemPickedUp,
+    handleHollyhockPlayerDeath,
+    updateHollyhockKappaDefeated,
+    updateHollyhockChlorophyllTellursa,
+    canDropMossCoveredRockForHollyhock,
+    canChlorophyllHollyhockTellursa,
     startGuardDialogue,
     completeGvadaScrollObjective,
     updateGvadaRealmObjective,
@@ -2623,6 +3210,7 @@
     updateWeaponsMasteryObjective,
     updateShieldMasteryObjective,
     updateKillQuestObjectives,
-    startGvadaStarterQuest
+    startGvadaStarterQuest,
+    startSybilStarterQuest
   };
 })();

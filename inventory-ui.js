@@ -180,7 +180,7 @@
             <button type="button" data-item-action="drop">Drop</button>
           </div>
         `;
-    } else if (item.noDrop) {
+    } else if (item.noDrop && !window.SoulreaperQuestUI?.canDropMossCoveredRockForHollyhock?.(item)) {
       itemActionMenu.innerHTML = `
           <div class="action-item-preview">${renderItemContents(item, true)}${itemTooltipHtml(item)}</div>
           <span>Quest item</span>
@@ -209,6 +209,7 @@
 
   let openBagItem = null;
   let bagPanelDrag = null;
+  let openBagSignature = "";
 
   function openedBagIndex() {
     if (openBagItem) {
@@ -225,9 +226,14 @@
     if (tooltip) tooltip.classList.add("hidden");
     openBagItem = null;
     bagPanelDrag = null;
+    openBagSignature = "";
     window.removeEventListener("pointermove", handleBagPanelDragMove, true);
     window.removeEventListener("pointerup", finishBagPanelDrag, true);
     window.removeEventListener("pointercancel", finishBagPanelDrag, true);
+  }
+
+  function bagInventorySignature(bag) {
+    return ensureBagInventory(bag).map(item => item ? `${item.id || item.name}:${item.name}:${itemQuantity(item)}` : "-").join("|");
   }
 
   function clampBagPanelPosition(tooltip, left, top) {
@@ -291,7 +297,7 @@
         const bag = game.player.inventory[bagIndex];
         const item = ensureBagInventory(bag)[slotIndex];
         if (!item) return;
-        showBagItemActionMenu(bagIndex, slotIndex, event);
+        beginInventoryDrag(event, "bag", slotIndex, slotButton, { bagIndex });
       });
       tooltip.addEventListener("dblclick", event => {
         const slotButton = event.target.closest("[data-bag-slot-index]");
@@ -345,6 +351,53 @@
     return true;
   }
 
+  function mergeStackIntoTarget(sourceItem, targetItem) {
+    if (!sameStack(sourceItem, targetItem)) return 0;
+    const maxStack = targetItem.maxStack || sourceItem.maxStack || 20;
+    const space = Math.max(0, maxStack - itemQuantity(targetItem));
+    if (space <= 0) return 0;
+    const moved = Math.min(space, itemQuantity(sourceItem));
+    targetItem.quantity = itemQuantity(targetItem) + moved;
+    sourceItem.quantity = itemQuantity(sourceItem) - moved;
+    return moved;
+  }
+
+  function transferItemBetweenSlots(sourceList, sourceIndex, targetList, targetIndex, options = {}) {
+    const moving = sourceList?.[sourceIndex] || null;
+    if (!moving || !targetList || !Number.isInteger(targetIndex) || targetIndex < 0 || targetIndex >= targetList.length) return false;
+    if (sourceList === targetList && sourceIndex === targetIndex) return true;
+    const targetItem = targetList[targetIndex] || null;
+    if (options.disallowMovingBag && isBagItem(moving)) {
+      addLog("Bags cannot be stored in other bags.");
+      return true;
+    }
+    if (options.disallowTargetBag && isBagItem(targetItem)) {
+      addLog("Bags cannot be stored in other bags.");
+      return true;
+    }
+    if (moving.stackable && targetItem && sameStack(moving, targetItem)) {
+      const moved = mergeStackIntoTarget(moving, targetItem);
+      if (moved > 0) {
+        if (Number(moving.quantity) <= 0) sourceList[sourceIndex] = null;
+        addLog(`Merged <b>${moving.name}</b> x${moved}.`);
+        playSoundEffect("item-handle");
+        markUIDirty();
+        renderUI();
+        if (Number.isInteger(options.bagIndex)) renderBagInventoryTooltip(options.bagIndex);
+        if (options.renderBank) renderBank();
+        return true;
+      }
+    }
+    sourceList[sourceIndex] = targetItem;
+    targetList[targetIndex] = moving;
+    playSoundEffect("item-handle");
+    markUIDirty();
+    renderUI();
+    if (Number.isInteger(options.bagIndex)) renderBagInventoryTooltip(options.bagIndex);
+    if (options.renderBank) renderBank();
+    return true;
+  }
+
   function renderBagInventoryTooltip(index) {
     const bag = game.player.inventory[index];
     if (!isBagItem(bag)) {
@@ -353,6 +406,7 @@
     }
     openBagItem = bag;
     const bagInventory = ensureBagInventory(bag);
+    openBagSignature = bagInventorySignature(bag);
     const tooltip = bagTooltipElement();
     tooltip.dataset.inventoryIndex = index;
     tooltip.innerHTML = `
@@ -412,6 +466,51 @@
     renderBagInventoryTooltip(openedBagIndex());
   }
 
+  function moveBagItemToInventorySlot(bagIndex, slotIndex, inventoryIndex) {
+    const bag = game.player.inventory[bagIndex];
+    const bagInventory = ensureBagInventory(bag);
+    if (!isBagItem(bag) || !bagInventory[slotIndex]) return false;
+    if (!Number.isInteger(inventoryIndex) || inventoryIndex < 0 || inventoryIndex >= game.player.inventory.length) return false;
+    return transferItemBetweenSlots(bagInventory, slotIndex, game.player.inventory, inventoryIndex, { disallowTargetBag: true, bagIndex });
+  }
+
+  function dropBagItem(index, slotIndex) {
+    const bag = game.player.inventory[index];
+    const bagInventory = ensureBagInventory(bag);
+    const item = bagInventory[slotIndex];
+    if (!isBagItem(bag) || !item) return false;
+    if (item.noDrop && !window.SoulreaperQuestUI?.canDropMossCoveredRockForHollyhock?.(item)) {
+      addLog(`<b>${item.name}</b> cannot be dropped.`);
+      return true;
+    }
+    bagInventory[slotIndex] = null;
+    const point = playerDropPoint();
+    if (window.SoulreaperQuestUI?.handleInventoryItemDropped?.(item, point)) {
+      addLog(`Placed <b>${item.name}</b>.`);
+    } else if (game.mode === "multiplayer") {
+      sendMultiplayerAction({
+        action: "drop:item",
+        drop: serializeGroundItem({
+          type: "item",
+          item,
+          x: point.x,
+          y: point.y,
+          radius: 14,
+          age: 0,
+          duration: item?.persistent ? null : 20
+        })
+      });
+    } else {
+      dropGroundItem(item, point.x, point.y);
+    }
+    addLog(`Dropped <b>${item.name}</b>.`);
+    playSoundEffect("item-handle");
+    markUIDirty();
+    renderUI();
+    renderBagInventoryTooltip(index);
+    return true;
+  }
+
   function showBagItemActionMenu(bagIndex, slotIndex, event) {
     const bag = game.player.inventory[bagIndex];
     const item = ensureBagInventory(bag)[slotIndex];
@@ -438,33 +537,14 @@
   function moveInventoryItemToOpenBag(inventoryIndex, bagSlotIndex) {
     const bagIndex = openedBagIndex();
     const bag = game.player.inventory[bagIndex];
-    const item = game.player.inventory[inventoryIndex];
-    if (!isBagItem(bag) || !item) return false;
+    if (!isBagItem(bag) || !game.player.inventory[inventoryIndex]) return false;
     if (inventoryIndex === bagIndex) {
       addLog("A bag cannot store itself.");
       return true;
     }
-    if (isBagItem(item)) {
-      addLog("Bags cannot store other bags.");
-      return true;
-    }
     const bagInventory = ensureBagInventory(bag);
     if (!Number.isInteger(bagSlotIndex) || bagSlotIndex < 0 || bagSlotIndex >= bagInventory.length) return false;
-    const targetItem = bagInventory[bagSlotIndex] || null;
-    if (targetItem && isBagItem(targetItem)) {
-      addLog("Bags cannot store other bags.");
-      return true;
-    }
-    bagInventory[bagSlotIndex] = item;
-    game.player.inventory[inventoryIndex] = targetItem;
-    addLog(targetItem
-      ? `Swapped <b>${item.name}</b> into <b>${bag.name}</b>.`
-      : `Moved <b>${item.name}</b> into <b>${bag.name}</b>.`);
-    playSoundEffect("item-handle");
-    markUIDirty();
-    renderUI();
-    renderBagInventoryTooltip(bagIndex);
-    return true;
+    return transferItemBetweenSlots(game.player.inventory, inventoryIndex, bagInventory, bagSlotIndex, { disallowMovingBag: true, disallowTargetBag: true, bagIndex });
   }
 
   let inventoryDrag = null;
@@ -483,10 +563,11 @@
     if (!drag) return null;
     if (drag.source === "shop") return activeShopInventory(currentShopkeeper())?.[drag.index] || null;
     if (drag.source === "bank") return ensureBankState().inventory[drag.index] || null;
+    if (drag.source === "bag") return ensureBagInventory(game.player.inventory[drag.bagIndex])?.[drag.index] || null;
     return game.player.inventory[drag.index] || null;
   }
 
-  function beginInventoryDrag(event, source, index, button) {
+  function beginInventoryDrag(event, source, index, button, extra = {}) {
     inventoryDrag = {
       source,
       index,
@@ -494,7 +575,8 @@
       startY: event.clientY,
       dragging: false,
       sourceButton: button,
-      ghost: null
+      ghost: null,
+      ...extra
     };
     button.setPointerCapture?.(event.pointerId);
     window.addEventListener("pointermove", handleInventoryDragMove, true);
@@ -538,6 +620,7 @@
       const item = inventoryDragItem(drag);
       if (!item) return;
       if (drag.source === "shop") showShopBuyMenu(drag.index, event);
+      else if (drag.source === "bag") showBagItemActionMenu(drag.bagIndex, drag.index, event);
       else if (drag.source === "bank") return;
       else showItemActionMenu(drag.index, event);
       return;
@@ -552,13 +635,40 @@
       const targetIndex = targetPlayerSlot ? Number(targetPlayerSlot.dataset.inventoryIndex) : -1;
       if (Number.isInteger(targetIndex) && targetIndex >= 0 && targetIndex < game.player.inventory.length) {
         const bankInventory = ensureBankState().inventory;
-        const moving = bankInventory[drag.index];
-        bankInventory[drag.index] = game.player.inventory[targetIndex] || null;
-        game.player.inventory[targetIndex] = moving || null;
-        playSoundEffect("item-handle");
-        markUIDirty();
-        renderBank();
-        renderUI();
+        transferItemBetweenSlots(bankInventory, drag.index, game.player.inventory, targetIndex, { renderBank: true });
+      }
+      return;
+    }
+    if (drag.source === "bag") {
+      const targetBankSlot = target?.closest?.("[data-bank-index]");
+      if (targetBankSlot && !bankWindow.classList.contains("hidden")) {
+        moveBagItemToBankSlot(drag.bagIndex, drag.index, Number(targetBankSlot.dataset.bankIndex));
+        return;
+      }
+      if (target?.closest?.("#shopWindow") && !shopWindow.classList.contains("hidden") && !game.devItemShop) {
+        sellBagItem(drag.bagIndex, drag.index);
+        return;
+      }
+      const targetBagSlot = target?.closest?.("[data-bag-slot-index]");
+      if (targetBagSlot) {
+        const sourceBag = game.player.inventory[drag.bagIndex];
+        const bagInventory = ensureBagInventory(sourceBag);
+        transferItemBetweenSlots(bagInventory, drag.index, bagInventory, Number(targetBagSlot.dataset.bagSlotIndex), { disallowMovingBag: true, disallowTargetBag: true, bagIndex: drag.bagIndex });
+        return;
+      }
+      const targetPlayerSlot = target?.closest?.("[data-inventory-index]");
+      const targetIndex = targetPlayerSlot ? Number(targetPlayerSlot.dataset.inventoryIndex) : -1;
+      if (Number.isInteger(targetIndex) && targetIndex >= 0 && targetIndex < game.player.inventory.length) {
+        moveBagItemToInventorySlot(drag.bagIndex, drag.index, targetIndex);
+        return;
+      }
+      if (target?.closest?.("#inventoryGrid")) {
+        moveBagItemToMainInventory(drag.bagIndex, drag.index);
+        return;
+      }
+      const playCanvas = document.querySelector("#gameCanvas");
+      if (playCanvas && target === playCanvas) {
+        dropBagItem(drag.bagIndex, drag.index);
       }
       return;
     }
@@ -567,17 +677,11 @@
       const targetIndex = Number(targetBankSlot.dataset.bankIndex);
       const bankInventory = ensureBankState().inventory;
       if (Number.isInteger(targetIndex) && targetIndex >= 0 && targetIndex < bankInventory.length) {
-        const moving = game.player.inventory[drag.index];
-        game.player.inventory[drag.index] = bankInventory[targetIndex] || null;
-        bankInventory[targetIndex] = moving || null;
-        playSoundEffect("item-handle");
-        markUIDirty();
-        renderBank();
-        renderUI();
+        transferItemBetweenSlots(game.player.inventory, drag.index, bankInventory, targetIndex, { renderBank: true });
       }
       return;
     }
-    if (target?.closest?.("#shopInventory") && !shopWindow.classList.contains("hidden") && !game.devItemShop) {
+    if (target?.closest?.("#shopWindow") && !shopWindow.classList.contains("hidden") && !game.devItemShop) {
       sellInventoryItem(drag.index);
       return;
     }
@@ -589,13 +693,7 @@
     const targetIndex = targetSlot ? Number(targetSlot.dataset.inventoryIndex) : -1;
     if (Number.isInteger(targetIndex) && targetIndex >= 0 && targetIndex < game.player.inventory.length) {
       if (targetIndex !== drag.index) {
-        const inventory = game.player.inventory;
-        const moving = inventory[drag.index];
-        inventory[drag.index] = inventory[targetIndex] || null;
-        inventory[targetIndex] = moving || null;
-        playSoundEffect("item-handle");
-        markUIDirty();
-        renderUI();
+        transferItemBetweenSlots(game.player.inventory, drag.index, game.player.inventory, targetIndex);
       }
       return;
     }
@@ -931,7 +1029,7 @@
   function dropInventoryItem(index, quantity = null) {
     const item = game.player.inventory[index];
     if (!item) return;
-    if (item.noDrop) {
+    if (item.noDrop && !window.SoulreaperQuestUI?.canDropMossCoveredRockForHollyhock?.(item)) {
       addLog(`<b>${item.name}</b> cannot be dropped.`);
       hideItemActionMenu();
       return;
@@ -1051,7 +1149,16 @@
 
   function syncOpenBagInventory() {
     if (!openBagItem) return;
-    if (!game.player.inventory.includes(openBagItem)) closeBagInventory();
+    const index = game.player.inventory.findIndex(item => item === openBagItem);
+    if (index < 0) {
+      closeBagInventory();
+      return;
+    }
+    const tooltip = bagTooltipElement();
+    if (!tooltip.classList.contains("hidden")) {
+      const signature = bagInventorySignature(openBagItem);
+      if (signature !== openBagSignature) renderBagInventoryTooltip(index);
+    }
   }
   
   function applyRealmStone(index, spellName) {
@@ -1132,6 +1239,55 @@
     markUIDirty();
     renderShop();
     renderUI();
+  }
+
+  function sellBagItem(bagIndex, slotIndex, quantity = null) {
+    const bag = game.player.inventory[bagIndex];
+    const bagInventory = ensureBagInventory(bag);
+    const item = bagInventory[slotIndex];
+    const shopkeeper = currentShopkeeper();
+    if (!isBagItem(bag) || !item || !shopkeeper) return false;
+    if (item.noSell) {
+      addLog(`<b>${item.name}</b> cannot be sold.`);
+      hideItemActionMenu();
+      return true;
+    }
+    const amount = item.stackable ? Math.min(quantity || itemQuantity(item), itemQuantity(item)) : 1;
+    const soldItem = item.stackable ? cloneItemStack(item, amount) : item;
+    if (item.stackable && amount < itemQuantity(item)) {
+      item.quantity = itemQuantity(item) - amount;
+    } else {
+      bagInventory[slotIndex] = null;
+    }
+    game.player.gold += itemSellValue(item, amount);
+    if ((item.rarity || "common") !== "poor") {
+      const destination = isBagItem(item)
+        ? (shopkeeper.bags ||= [])
+        : item.scroll
+          ? shopkeeper.scrolls
+          : item.consumable
+            ? shopkeeper.consumables
+            : isMiscItem(item)
+              ? (shopkeeper.misc ||= [])
+              : shopkeeper.inventory;
+      addShopStack(destination, soldItem);
+    }
+    addLog(`Sold <b>${item.name}</b>${item.stackable ? ` x${amount}` : ""} for <b>${itemSellValue(item, amount)} gold</b>.`);
+    playSoundEffect("summon-pet");
+    hideItemActionMenu();
+    markUIDirty();
+    renderShop();
+    renderUI();
+    renderBagInventoryTooltip(bagIndex);
+    return true;
+  }
+
+  function moveBagItemToBankSlot(bagIndex, slotIndex, bankIndex) {
+    const bag = game.player.inventory[bagIndex];
+    const bagInventory = ensureBagInventory(bag);
+    const bankInventory = ensureBankState().inventory;
+    if (!isBagItem(bag) || !bagInventory[slotIndex]) return false;
+    return transferItemBetweenSlots(bagInventory, slotIndex, bankInventory, bankIndex, { bagIndex, renderBank: true });
   }
   
   function renderShop() {
@@ -1320,10 +1476,6 @@
       const index = Number(button.dataset.inventoryIndex);
       const item = game.player.inventory[index];
       if (!item) return;
-      if (!shopWindow.classList.contains("hidden")) {
-        showItemActionMenu(index, event);
-        return;
-      }
       if (!bankWindow.classList.contains("hidden")) {
         beginInventoryDrag(event, "inventory", index, button);
         return;
