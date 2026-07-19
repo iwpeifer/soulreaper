@@ -2979,6 +2979,8 @@ const fenMonsterTemplates = [
   }
 ];
 
+const editorLootTables = [];
+
 const monsterLootTables = {
   "Giant Rat": {
     "tables": [
@@ -3646,7 +3648,7 @@ const monsterLootTables = {
         "entries": [
           {
             "name": "Copper Ore",
-            "chance": 0.33
+            "chance": 0.5
           },
           {
             "name": "Silver Nugget",
@@ -3660,7 +3662,7 @@ const monsterLootTables = {
         "entries": [
           {
             "name": "Iron Ore",
-            "chance": 0.33
+            "chance": 0.5
           },
           {
             "name": "Gold Nugget",

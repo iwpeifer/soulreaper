@@ -39,6 +39,8 @@ let effectsWindowBody = null;
 let effectsWindowSignature = "";
 let petWindowBody = null;
 let petWindowSignature = "";
+let inspectWindowBody = null;
+let inspectWindowSignature = "";
 const logEl = document.querySelector("#log");
 const rightPanel = document.querySelector(".right-panel");
 const chronicleTab = document.querySelector("#chronicleTab");
@@ -51,7 +53,6 @@ const loginForm = document.querySelector("#loginForm");
 const createAccountForm = document.querySelector("#createAccountForm");
 const createCharacterForm = document.querySelector("#createCharacterForm");
 const characterList = document.querySelector("#characterList");
-const refreshAccountButton = document.querySelector("#refreshAccountButton");
 const loginUsernameInput = document.querySelector("#loginUsernameInput");
 const loginPasswordInput = document.querySelector("#loginPasswordInput");
 const createUsernameInput = document.querySelector("#createUsernameInput");
@@ -80,6 +81,19 @@ const levelReadout = document.querySelector("#levelReadout");
 const areaNameEl = document.querySelector("#areaName");
 const pauseNotice = document.querySelector("#pauseNotice");
 const chatInput = document.querySelector("#chatInput");
+const chatChannelControl = document.createElement("label");
+chatChannelControl.className = "chat-channel-control";
+chatChannelControl.innerHTML = `
+  <span class="sr-only">Chat channel</span>
+  <select id="chatChannelSelect" aria-label="Chat channel">
+    <option value="say">Say</option>
+    <option value="team">Team</option>
+    <option value="world">World</option>
+    <option value="general">General</option>
+  </select>
+`;
+const chatChannelSelect = chatChannelControl.querySelector("select");
+canvas.tabIndex = 0;
 const hpBar = document.querySelector("#hpBar");
 const xpBar = document.querySelector("#xpBar");
 const goldBar = document.querySelector("#goldBar");
@@ -96,6 +110,7 @@ const shopEquipmentTab = document.querySelector("#shopEquipmentTab");
 const shopConsumablesTab = document.querySelector("#shopConsumablesTab");
 const shopScrollsTab = document.querySelector("#shopScrollsTab");
 const shopMiscTab = document.querySelector("#shopMiscTab");
+const shopTrainTab = document.querySelector("#shopTrainTab");
 const closeShopButton = document.querySelector("#closeShopButton");
 const shopTitle = document.querySelector("#shopTitle");
 const shopSubtitle = shopWindow.querySelector(".shop-header p");
@@ -132,6 +147,7 @@ const devSpawnLevelInput = document.querySelector("#devSpawnLevelInput");
 const closeDevSpawnButton = document.querySelector("#closeDevSpawnButton");
 const trainerWindow = document.querySelector("#trainerWindow");
 const trainerSpellList = document.querySelector("#trainerSpellList");
+const trainerSubtitle = trainerWindow?.querySelector(".shop-header p");
 const closeTrainerButton = document.querySelector("#closeTrainerButton");
 const floatingItemTooltip = document.createElement("div");
 floatingItemTooltip.className = "floating-item-tooltip hidden";
@@ -172,7 +188,7 @@ let minimapZoomHoldTimer = null;
 let minimapZoomHoldPointerId = null;
 const MIN_MAP_ZOOM = 8;
 const MAX_MAP_ZOOM = 64;
-const DEFAULT_MAP_ZOOM = 28;
+const DEFAULT_MAP_ZOOM = MAX_MAP_ZOOM;
 let floatingWindowsReady = false;
 let floatingFitFrame = 0;
 let floatingFitDirty = false;
@@ -197,7 +213,9 @@ const soundEffectCache = {};
 
 function loadSoundVolume() {
   try {
-    const value = Number(localStorage.getItem(SOUND_VOLUME_STORAGE_KEY));
+    const stored = localStorage.getItem(SOUND_VOLUME_STORAGE_KEY);
+    if (stored === null) return 1;
+    const value = Number(stored);
     return Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 1;
   } catch {
     return 1;
@@ -1155,6 +1173,7 @@ const HARMUSH_LAGH_AREA_NAME = "Harmush Lagh";
 const HIGHSTONE_PASS_AREA_NAME = "Highstone Pass";
 const HARGA_VOAGH_AREA_NAME = "Harga Voagh";
 const FIRECRY_PEAK_AREA_NAME = "Firecry Peak";
+const BADGERIA_AREA_NAME = "Badgeria";
 const GOBBA_AREA_NAME = "Gobba";
 const WASTES_OF_KEBAAN_AREA_NAME = "Wastes of Kebaan";
 const KEBAAN_OASIS_AREA_NAME = "Kebaan Oasis";
@@ -1746,6 +1765,8 @@ const game = {
   groundItems: [],
   logs: [],
   logView: "all",
+  chatChannel: "say",
+  autoFollowTargetId: "",
   chronicleArea: null,
   map: null,
   enemySpatialGrid: null,
@@ -1774,6 +1795,7 @@ const game = {
     selectedCharacterId: "",
     race: "human",
     sex: "male",
+    creatingCharacter: false,
     message: "",
     loading: false
   },
@@ -1875,9 +1897,10 @@ const floatingDefaults = {
   options: { x: Math.max(320, Math.floor(window.innerWidth / 2) - 140), y: 84, width: 280, height: 170, locked: false, open: false },
   shop: { x: Math.max(300, Math.floor(window.innerWidth / 2) - 190), y: 82, width: 380, height: 420, locked: false, open: false },
   bank: { x: Math.max(300, Math.floor(window.innerWidth / 2) - 215), y: 82, width: 430, height: 360, locked: false, open: false },
-  trainer: { x: Math.max(330, Math.floor(window.innerWidth / 2) - 300), y: 90, width: 620, height: 520, locked: false, open: false },
+  trainer: { x: Math.max(330, Math.floor(window.innerWidth / 2) - 180), y: 90, width: 360, height: 280, locked: false, open: false },
   crafting: { x: Math.max(330, Math.floor(window.innerWidth / 2) - 300), y: 90, width: 620, height: 520, locked: false, open: false },
   trade: { x: Math.max(260, Math.floor(window.innerWidth / 2) - 380), y: 80, width: 780, height: 560, locked: false, open: false },
+  inspect: { x: Math.max(330, Math.floor(window.innerWidth / 2) - 160), y: 92, width: 320, height: 390, locked: false, open: false },
   dialogue: { x: Math.max(340, Math.floor(window.innerWidth / 2) - 260), y: Math.max(90, window.innerHeight - 260), width: 560, height: 190, locked: false, open: false },
   devspawn: { x: Math.max(330, Math.floor(window.innerWidth / 2) - 280), y: 90, width: 580, height: 530, locked: false, open: false }
 };
@@ -1896,9 +1919,10 @@ const floatingWindowLabels = {
   options: "Options",
   shop: "Shop",
   bank: "Bank",
-  trainer: "Trainer",
+  trainer: "Train Skills",
   crafting: "Crafting",
   trade: "Trade",
+  inspect: "Inspect",
   dialogue: "Dialogue",
   devspawn: "Spawn Mob"
 };
@@ -1968,11 +1992,115 @@ function clampFloatingGeometry(state, el) {
   state.y = Math.max(0, Math.min(Number(state.y) || 0, Math.max(0, window.innerHeight - state.height)));
 }
 
+function floatingRectOverlapArea(a, b) {
+  const x = Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x));
+  const y = Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y));
+  return x * y;
+}
+
+function openFloatingWindowRects(excludeId = "") {
+  const rects = [];
+  for (const [id, entry] of floatingWindowRegistry) {
+    if (id === excludeId || !entry?.el || entry.el.classList.contains("hidden")) continue;
+    const rect = entry.el.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) continue;
+    rects.push({ x: rect.left, y: rect.top, width: rect.width, height: rect.height });
+  }
+  return rects;
+}
+
+function fitFloatingCandidate(x, y, width, height) {
+  return {
+    x: Math.max(0, Math.min(x, Math.max(0, window.innerWidth - width))),
+    y: Math.max(0, Math.min(y, Math.max(0, window.innerHeight - height))),
+    width,
+    height
+  };
+}
+
+function moveFloatingWindowAwayFromOverlap(id) {
+  const entry = floatingWindowRegistry.get(id);
+  if (!entry?.el) return;
+  const state = floatingState(id);
+  clampFloatingGeometry(state, entry.el);
+  const occupied = openFloatingWindowRects(id);
+  if (!occupied.length) return;
+  const current = { x: state.x, y: state.y, width: state.width, height: state.height };
+  const currentOverlap = occupied.reduce((sum, rect) => sum + floatingRectOverlapArea(current, rect), 0);
+  if (currentOverlap <= Math.max(360, current.width * current.height * 0.04)) return;
+  const gap = 12;
+  const candidates = [current];
+  for (const rect of occupied) {
+    candidates.push(
+      fitFloatingCandidate(rect.x + rect.width + gap, rect.y, current.width, current.height),
+      fitFloatingCandidate(rect.x - current.width - gap, rect.y, current.width, current.height),
+      fitFloatingCandidate(rect.x, rect.y + rect.height + gap, current.width, current.height),
+      fitFloatingCandidate(rect.x, rect.y - current.height - gap, current.width, current.height)
+    );
+  }
+  const stepX = Math.max(80, Math.floor(current.width * 0.55));
+  const stepY = Math.max(70, Math.floor(current.height * 0.55));
+  for (let y = 8; y <= Math.max(8, window.innerHeight - current.height); y += stepY) {
+    for (let x = 8; x <= Math.max(8, window.innerWidth - current.width); x += stepX) {
+      candidates.push(fitFloatingCandidate(x, y, current.width, current.height));
+    }
+  }
+  let best = current;
+  let bestOverlap = currentOverlap;
+  for (const candidate of candidates) {
+    const overlap = occupied.reduce((sum, rect) => sum + floatingRectOverlapArea(candidate, rect), 0);
+    if (overlap < bestOverlap) {
+      best = candidate;
+      bestOverlap = overlap;
+      if (overlap === 0) break;
+    }
+  }
+  state.x = best.x;
+  state.y = best.y;
+}
+
+function applyNewCharacterWindowLayout() {
+  const topY = 58;
+  const minimapWidth = 292;
+  const rightX = Math.max(320, window.innerWidth - minimapWidth - 14);
+  const effectsWidth = 260;
+  const effectsX = Math.max(320, rightX - effectsWidth - 14);
+  const desired = {
+    character: { x: 14, y: topY, width: 250, height: 260, open: true },
+    inventory: { x: 14, y: topY + 272, width: 258, height: 230, open: true },
+    target: { x: 314, y: topY, width: 260, height: 176, open: true },
+    minimap: { x: rightX, y: topY, width: minimapWidth, height: 220, open: true },
+    effects: { x: effectsX, y: topY, width: effectsWidth, height: 104, open: true },
+    spells: { x: rightX, y: topY + 232, width: minimapWidth, height: 96, open: true },
+    chronicle: { x: Math.max(8, Math.floor(window.innerWidth / 2) - 280), y: Math.max(360, window.innerHeight - 230), width: 560, height: 205, open: true }
+  };
+  const openIds = new Set(Object.keys(desired));
+  for (const id of Object.keys(floatingDefaults)) {
+    const state = floatingState(id);
+    if (desired[id]) Object.assign(state, desired[id], { locked: false });
+    else if (id !== "bar") state.open = false;
+  }
+  for (const [id] of floatingWindowRegistry) {
+    const state = floatingState(id);
+    state.open = openIds.has(id) || id === "bar";
+    applyFloatingState(id);
+  }
+  saveFloatingLayout();
+  resizeMinimapWindowCanvas();
+  updateSpellsWindowLayout();
+  scheduleFloatingFitContent("new-character-default-layout");
+}
+
 function applyFloatingState(id) {
   const entry = floatingWindowRegistry.get(id);
   if (!entry) return;
   const { el, closable } = entry;
   const state = floatingState(id);
+  if (id === "bar") {
+    state.open = isGameplayScreenActive();
+    state.locked = true;
+    el.classList.toggle("hidden", !state.open);
+  }
   clampFloatingGeometry(state, el);
   el.style.left = `${state.x}px`;
   el.style.top = `${state.y}px`;
@@ -1980,6 +2108,7 @@ function applyFloatingState(id) {
   el.style.height = `${state.height}px`;
   el.classList.toggle("locked", Boolean(state.locked));
   if (closable) el.classList.toggle("hidden", !state.open);
+  else if (id === "bar") el.classList.toggle("hidden", !state.open);
   const lock = el.querySelector("[data-floating-lock]");
   if (lock) {
     lock.textContent = state.locked ? "◆" : "◇";
@@ -1988,18 +2117,25 @@ function applyFloatingState(id) {
   updateWindowBarButtons();
 }
 
+function isGameplayScreenActive() {
+  return Boolean(game.mode && modeChoice?.classList.contains("hidden"));
+}
+
 function setFloatingOpen(id, open) {
   if (!open && closeFloatingSemanticWindow(id)) return;
+  const entry = floatingWindowRegistry.get(id);
+  const wasHidden = entry?.el?.classList.contains("hidden");
   const state = floatingState(id);
   state.open = Boolean(open);
+  if (open && wasHidden) moveFloatingWindowAwayFromOverlap(id);
   applyFloatingState(id);
   saveFloatingLayout();
-  const entry = floatingWindowRegistry.get(id);
   if (floatingWindowUsesFitContent(id, entry)) scheduleFloatingFitContent(`${id}-${open ? "open" : "close"}`);
   syncPointerPause();
 }
 
 window.openInventoryWindow = () => setFloatingOpen("inventory", true);
+window.openSoulreaperFloatingWindow = id => setFloatingOpen(id, true);
 
 function closeFloatingSemanticWindow(id) {
   const entry = floatingWindowRegistry.get(id);
@@ -2014,6 +2150,7 @@ function closeFloatingSemanticWindow(id) {
   else if (id === "trainer") closeTrainer?.();
   else if (id === "crafting") closeCraftingWindow?.();
   else if (id === "trade") closeTradeWindow?.();
+  else if (id === "inspect") closeInspectWindow();
   else if (id === "dialogue") closeDialogue?.();
   else if (id === "devspawn") closeDevSpawnWindow?.();
   else return false;
@@ -2231,16 +2368,17 @@ function createWindowBar() {
     ["options", "◈", "Options"]
   ];
   bar.innerHTML = `
-    <span class="window-bar-drag" data-floating-drag></span>
+    <span class="window-bar-drag"></span>
     ${buttons.map(([id, symbol, label]) => `
       <button class="window-bar-button" type="button" data-window-toggle="${id}" aria-label="${label}">
         <span aria-hidden="true">${symbol}</span><span class="window-tooltip">${floatingWindowTitleHtml(id, label)}</span>
       </button>
     `).join("")}
-    <button class="floating-window-tool" type="button" data-floating-lock title="Lock">◇</button>
   `;
   document.body.appendChild(bar);
   registerFloatingWindow("bar", bar, { closable: false });
+  floatingState("bar").locked = true;
+  applyFloatingState("bar");
   bar.addEventListener("click", event => {
     const button = event.target.closest("[data-window-toggle]");
     if (!button) return;
@@ -2319,6 +2457,7 @@ function floatingWindowUsesFitContent(id, entry) {
   return id === "character"
     || id === "inventory"
     || id === "target"
+    || id === "inspect"
     || id === "spellbook"
     || id === "questlog"
     || entry?.detachedMeta?.group === "character"
@@ -2433,6 +2572,10 @@ function setupCoreFloatingWindows() {
   petBody.appendChild(petWindowBody);
   petBody.addEventListener("click", handlePetWindowClick);
 
+  const inspectBody = createFloatingShell("inspect", "Inspect", { minWidth: 260, minHeight: 300 });
+  inspectWindowBody = createFloatingFitContent(inspectBody);
+  inspectWindowBody.classList.add("inspect-fit-content");
+
   const optionsBody = createFloatingShell("options", "Options", { minWidth: 220, minHeight: 130 });
   optionsBody.innerHTML = `
     <div class="options-window">
@@ -2459,11 +2602,14 @@ function setupCoreFloatingWindows() {
 
   const chronicleBody = createFloatingShell("chronicle", "Chronicle", { minWidth: 320, minHeight: 150 });
   chronicleBody.innerHTML = `
-    <div class="floating-tabs" id="chronicleTabs">${makeFloatingTabs([
-      { id: "all", label: "All" },
-      { id: "combat", label: "Combat" },
-      { id: "chat", label: "Chat" }
-    ], "all", "data-log-view")}</div>
+    <div class="chronicle-toolbar">
+      <div class="floating-tabs" id="chronicleTabs">${makeFloatingTabs([
+        { id: "all", label: "All" },
+        { id: "combat", label: "Combat" },
+        { id: "chat", label: "Chat" }
+      ], "all", "data-log-view")}</div>
+      <div class="chat-channel-slot" data-chat-channel-slot="chronicle"></div>
+    </div>
   `;
   chronicleBody.appendChild(logEl);
 
@@ -2628,6 +2774,12 @@ function detachFloatingPaneTab(descriptor, clientX, clientY) {
     pane.classList.remove("hidden");
     body.appendChild(pane);
   } else {
+    if (group === "chronicle" && tabId === "chat") {
+      const toolbar = document.createElement("div");
+      toolbar.className = "chronicle-toolbar detached-chat-toolbar";
+      toolbar.innerHTML = `<div class="chat-channel-slot" data-chat-channel-slot="detached-chat"></div>`;
+      body.appendChild(toolbar);
+    }
     const list = document.createElement("ol");
     list.className = "log detached-chronicle-log";
     list.dataset.detachedLogView = descriptor.channel || tabId;
@@ -3206,6 +3358,10 @@ for (const dungeon of devDungeonConfigs) {
   if (dungeon?.name && Array.isArray(dungeon.spawnTable)) areaSpawnTables[dungeon.name] = dungeon.spawnTable;
 }
 
+function devDungeonConfigForArea(areaName) {
+  return devDungeonConfigs.find(dungeon => dungeon?.name === areaName) || null;
+}
+
 const {
   NPC_INTERACTION_ALIGNMENTS,
   DEFAULT_NPC_REFUSAL_TEXT,
@@ -3310,13 +3466,92 @@ function addChatLog(message, context = null) {
   addLog(message, context, "chat");
 }
 
-function addPlayerSpeech(text, { broadcast = true } = {}) {
+function playerDamageAmountHtml(amount) {
+  return `<b class="chronicle-player-damage">${formatNumber(amount)}</b>`;
+}
+
+function playerHealAmountHtml(amount) {
+  return `<b class="chronicle-player-heal">${formatNumber(amount)} HP</b>`;
+}
+
+const CHAT_COMMAND_LIST = [
+  "/list",
+  "/say [message] or /s [message]",
+  "/shout [message], /yell [message], or /y [message]",
+  "/team [message] or /t [message]",
+  "/world [message] or /w [message]",
+  "/general [message] or /g [message]",
+  "/tell [name] [message]",
+  "/who",
+  "/trade [name]",
+  "/inspect [name]",
+  "/invite [player name]",
+  "/leave",
+  "/remove [player name]",
+  "/makeleader [player name]",
+  "/afk",
+  "/lfg",
+  "/map",
+  "/worlds"
+];
+
+const CHAT_CHANNELS = {
+  say: { label: "Say", color: "", aliases: ["/say", "/s"] },
+  shout: { label: "Shout", color: "#ff4d4d", aliases: ["/shout", "/yell", "/y"] },
+  team: { label: "Team", color: "#6fd7ff", aliases: ["/team", "/t"] },
+  world: { label: "World", color: "#60d466", aliases: ["/world", "/w"] },
+  general: { label: "General", color: "#a9a9a9", aliases: ["/general", "/g"] }
+};
+
+function playerChatTags(player = game.player) {
+  return `${player?.afk ? " (AFK)" : ""}${player?.lfg ? " (LFG)" : ""}`;
+}
+
+function renderChatTextWithItemLinks(text) {
+  const escaped = escapeHtml(text);
+  return escaped.replace(/\[([^\]\n]{1,100})\]/g, (match, itemName) => {
+    const template = itemTemplates[itemName];
+    if (!template) return match;
+    const item = cloneItem(itemName) || template;
+    return `<span class="chat-item-link" tabindex="0">${match}${itemTooltipHtml(item)}</span>`;
+  });
+}
+
+function chatLineHtml(name, text, channel = "say", self = false) {
+  const info = CHAT_CHANNELS[channel] || CHAT_CHANNELS.say;
+  const speaker = self ? "You" : (name || "Soulreaper");
+  let label = speaker;
+  if (channel === "say") label = `${speaker} say${self ? "" : "s"}`;
+  else if (channel === "shout") label = `${speaker} shout${self ? "" : "s"}`;
+  else if (channel === "world") label = `${speaker} (World)`;
+  else if (channel === "general") label = `${speaker} (General)`;
+  const content = `<b>${escapeHtml(label)}:</b> ${renderChatTextWithItemLinks(text)}`;
+  return info.color ? `<span style="color:${info.color}">${content}</span>` : content;
+}
+
+function addChannelChatLog(name, text, channel = "say", { self = false, area = null } = {}) {
+  game.logs.unshift({ message: chatLineHtml(name, text, channel, self), area: area || currentPlayerAreaName(), kind: "chat" });
+  if (game.logs.length > 240) game.logs.length = 240;
+  renderChronicle();
+}
+
+function addPlayerSpeech(text, { broadcast = true, channel = "say" } = {}) {
   const clean = text.trim();
   if (!clean) return;
-  const duration = Math.min(9, Math.max(2.4, clean.length * 0.065));
-  game.playerSpeech = { text: clean, age: 0, duration };
-  addChatLog(`<b>You:</b> ${escapeHtml(clean)}`);
-  if (broadcast) sendMultiplayerChat(clean);
+  if ((channel === "team" || channel === "world" || channel === "general") && game.mode !== "multiplayer") {
+    addLog(`<b>Chat:</b> ${CHAT_CHANNELS[channel]?.label || "That"} channel requires multiplayer.`, null, "chat");
+    return;
+  }
+  if (channel === "team" && !game.multiplayer.team) {
+    addLog("<b>Team:</b> you are not in a team.", null, "chat");
+    return;
+  }
+  if (channel === "say" || channel === "shout") {
+    const duration = Math.min(9, Math.max(2.4, clean.length * 0.065));
+    game.playerSpeech = { text: clean, age: 0, duration };
+  }
+  addChannelChatLog(game.player.name || "Soulreaper", clean, channel, { self: true });
+  if (broadcast) sendMultiplayerChat(clean, channel);
 }
 
 function addNpcSpeech(speaker, text) {
@@ -3600,6 +3835,10 @@ function submitChatInput() {
   game.chatOpen = false;
   canvas.focus?.();
   if (!text) return;
+  if (text.toLowerCase() === "/list") {
+    addLog(`<b>Chat commands:</b> ${CHAT_COMMAND_LIST.map(escapeHtml).join(", ")}`, null, "chat");
+    return;
+  }
   if (text.toLowerCase() === "/map") {
     game.mapVisible = !game.mapVisible;
     addLog(`Map ${game.mapVisible ? "shown" : "hidden"}.`);
@@ -3617,6 +3856,7 @@ function submitChatInput() {
     requestMultiplayerWorldList();
     return;
   }
+  if (handleChannelChatCommand(text)) return;
   if (handleMultiplayerChatCommand(text)) return;
   if (handleTeamChatCommand(text)) return;
   if (!game.devtoolsEnabled && text.toLowerCase() === "devtools") {
@@ -3629,7 +3869,7 @@ function submitChatInput() {
     runDevtoolCommand(text);
     return;
   }
-  addPlayerSpeech(text);
+  addPlayerSpeech(text, { channel: game.chatChannel || "say" });
 }
 
 function chatInputHost() {
@@ -3641,15 +3881,66 @@ function chatInputHost() {
   return document.querySelector("#chronicleFloatingWindow .floating-window-body") || document.querySelector("#chronicleFloatingWindow");
 }
 
+function chatChannelHost() {
+  const detachedChatList = document.querySelector('[data-detached-log-view="chat"]');
+  const detachedChatWindow = detachedChatList?.closest(".floating-window");
+  if (detachedChatWindow && !detachedChatWindow.classList.contains("hidden")) {
+    return detachedChatWindow.querySelector('[data-chat-channel-slot="detached-chat"]') || detachedChatWindow.querySelector(".floating-window-body") || detachedChatWindow;
+  }
+  return document.querySelector('[data-chat-channel-slot="chronicle"]')
+    || document.querySelector("#chronicleFloatingWindow .chronicle-toolbar")
+    || document.querySelector("#chronicleFloatingWindow .floating-window-body")
+    || document.querySelector("#chronicleFloatingWindow");
+}
+
+function syncChatChannelSelect() {
+  if (chatChannelSelect) chatChannelSelect.value = game.chatChannel || "say";
+}
+
 function dockChatInput() {
   if (!chatInput) return;
   const host = chatInputHost();
-  if (!host || chatInput.parentElement === host) return;
-  host.appendChild(chatInput);
+  if (!host) return;
+  const channelHost = chatChannelHost();
+  if (channelHost && chatChannelControl.parentElement !== channelHost) channelHost.appendChild(chatChannelControl);
+  if (chatInput.parentElement !== host) host.appendChild(chatInput);
+  syncChatChannelSelect();
+}
+
+function itemFromClickedElement(target) {
+  const inventoryButton = target?.closest?.("[data-inventory-index]");
+  if (inventoryButton) return game.player.inventory[Number(inventoryButton.dataset.inventoryIndex)] || null;
+  const equipmentButton = target?.closest?.("[data-equipment-slot]");
+  if (equipmentButton) return game.player.equippedItems[equipmentButton.dataset.equipmentSlot] || null;
+  const bagButton = target?.closest?.("[data-bag-slot-index]");
+  if (bagButton) {
+    const bagIndex = Number(bagButton.closest("#bagInventoryTooltip")?.dataset.inventoryIndex);
+    const bag = game.player.inventory[bagIndex];
+    const bagInventory = isBagItem(bag) ? ensureBagInventory(bag) : [];
+    return bagInventory[Number(bagButton.dataset.bagSlotIndex)] || null;
+  }
+  return null;
+}
+
+function insertChatItemLink(item) {
+  if (!item?.name || !chatInput) return false;
+  const link = `[${item.name}]`;
+  const start = chatInput.selectionStart ?? chatInput.value.length;
+  const end = chatInput.selectionEnd ?? chatInput.value.length;
+  const before = chatInput.value.slice(0, start);
+  const after = chatInput.value.slice(end);
+  const prefix = before && !/\s$/.test(before) ? " " : "";
+  const suffix = after && !/^\s/.test(after) ? " " : "";
+  chatInput.value = `${before}${prefix}${link}${suffix}${after}`;
+  const cursor = before.length + prefix.length + link.length;
+  chatInput.focus();
+  chatInput.setSelectionRange?.(cursor, cursor);
+  return true;
 }
 
 function openChatInput() {
   if (hasOpenModal()) return;
+  if (document.querySelector("#chronicleFloatingWindow")?.classList.contains("hidden")) setFloatingOpen("chronicle", true);
   dockChatInput();
   game.chatOpen = true;
   game.keys.clear();
@@ -3732,7 +4023,7 @@ function colorWithAlpha(color, alpha) {
 }
 
 function positionFloatingItemTooltip(event) {
-  const trigger = event.target.closest(".inventory-slot.filled, .equip-button, .shop-item, .quest-reward-item, .action-item-preview");
+  const trigger = event.target.closest(".inventory-slot.filled, .equip-button, .shop-item, .quest-reward-item, .action-item-preview, .chat-item-link");
   const tooltip = trigger?.querySelector(".item-tooltip");
   if (!tooltip) {
     floatingItemTooltip.classList.add("hidden");
@@ -3741,10 +4032,13 @@ function positionFloatingItemTooltip(event) {
   floatingItemTooltip.innerHTML = tooltip.innerHTML;
   floatingItemTooltip.classList.remove("hidden");
   const rect = floatingItemTooltip.getBoundingClientRect();
+  const triggerRect = trigger.getBoundingClientRect();
   const gap = 14;
-  let left = event.clientX + gap;
-  let top = event.clientY + gap;
-  if (left + rect.width > window.innerWidth - 10) left = event.clientX - rect.width - gap;
+  const anchorX = Number.isFinite(event.clientX) ? event.clientX : triggerRect.right;
+  const anchorY = Number.isFinite(event.clientY) ? event.clientY : triggerRect.bottom;
+  let left = anchorX + gap;
+  let top = anchorY + gap;
+  if (left + rect.width > window.innerWidth - 10) left = anchorX - rect.width - gap;
   if (top + rect.height > window.innerHeight - 10) top = window.innerHeight - rect.height - 10;
   floatingItemTooltip.style.left = `${Math.max(10, left)}px`;
   floatingItemTooltip.style.top = `${Math.max(10, top)}px`;
@@ -3895,7 +4189,7 @@ function sameNonMortalRealmAggroBlocked(attacker, defender) {
     && defender.realm === realm;
 }
 
-const DUNGEON_AREA_NAMES = new Set([RATZKHAN_AREA_NAME, DIARRH_REALM_AREA_NAME, BEAR_CAVE_AREA_NAME, ROGABOGU_AREA_NAME, YRGMA_DIM_AREA_NAME, WHISPERSPRING_AREA_NAME, WYNDHELM_CATHEDRAL_AREA_NAME]);
+const DUNGEON_AREA_NAMES = new Set([RATZKHAN_AREA_NAME, DIARRH_REALM_AREA_NAME, BEAR_CAVE_AREA_NAME, ROGABOGU_AREA_NAME, YRGMA_DIM_AREA_NAME, BADGERIA_AREA_NAME, WHISPERSPRING_AREA_NAME, WYNDHELM_CATHEDRAL_AREA_NAME]);
 
 function areaNameIsDungeon(name) {
   const value = String(name || "");
@@ -5089,7 +5383,7 @@ function healPlayer(amount, sourceName) {
   const healed = roundUpTenth(Math.min(amount, game.player.maxHp - game.player.hp));
   game.player.hp += healed;
   spawnFloatingText(game.player, `+${formatNumber(healed)}`, "#61d66f");
-  if (sourceName) addLog(`${sourceName} restores <b>${formatNumber(healed)} HP</b>.`);
+  if (sourceName) addLog(`${sourceName} restores ${playerHealAmountHtml(healed)}.`);
   return healed;
 }
 
@@ -5271,6 +5565,13 @@ function handleWhisperspringTeleport() {
       areaName: YRGMA_DIM_AREA_NAME,
       enterLog: "<b>Yrgma Dim</b>: you enter the mountain dark.",
       exitLog: "<b>Yrgma Dim</b>: you return to Harmush Lagh."
+    },
+    {
+      state: game.map?.badgeria,
+      latch: "badgeriaTeleportLatch",
+      areaName: BADGERIA_AREA_NAME,
+      enterLog: "<b>Badgeria</b>: you squeeze into the badger den.",
+      exitLog: "<b>Badgeria</b>: you climb back into Harmush Lagh."
     }
   ];
   for (const portal of portals) {
@@ -8099,7 +8400,7 @@ function damagePlayer(enemy, amount, realm, sourceName, dmgType = "Magical", opt
     { style: options.critical && reduced > 0 ? "critical" : "" }
   );
   game.shake = 0.18;
-  addLog(`${sourceName} hits you for <b>${reduced}</b> ${realm} damage.`);
+  addLog(`${sourceName} hits you for ${playerDamageAmountHtml(reduced)} ${realm} damage.`);
   if (game.player.hp <= 0) handlePlayerDefeat();
   return true;
 }
@@ -8124,7 +8425,7 @@ function applyStatusDamageToPlayer(amount, realm, sourceName, dmgType = "Magical
     realmInfo[realm]?.color || "#f04f48",
     realm === "Umbral" ? "#d9c7ff" : "rgba(0, 0, 0, 0.75)"
   );
-  addLog(`${sourceName} deals <b>${formatNumber(damage)}</b> ${realm} damage to you.`);
+  addLog(`${sourceName} deals ${playerDamageAmountHtml(damage)} ${realm} damage to you.`);
   if (game.player.hp <= 0) handlePlayerDefeat();
 }
 
@@ -9440,7 +9741,7 @@ function spawnAreaAt(x, y) {
 }
 
 function spawnAmountMultiplierForArea(areaName, area = null) {
-  const amountName = devAreaConfigs[areaName]?.spawnAmount || area?.spawnAmount || "Normal";
+  const amountName = devAreaConfigs[areaName]?.spawnAmount || devDungeonConfigForArea(areaName)?.spawnAmount || area?.spawnAmount || "Normal";
   return spawnAmountMultipliers[amountName] ?? spawnAmountMultipliers.Normal;
 }
 
@@ -9794,6 +10095,23 @@ function updatePlayer(dt) {
   if (game.keys.has("ArrowRight") || game.keys.has("d")) dx += 1;
   if (game.keys.has("ArrowUp") || game.keys.has("w")) dy -= 1;
   if (game.keys.has("ArrowDown") || game.keys.has("s")) dy += 1;
+  if ((dx || dy) && game.autoFollowTargetId) {
+    game.autoFollowTargetId = "";
+    renderTargetWindow();
+    addLog("<b>Follow:</b> stopped.", null, "chat");
+  } else if (!dx && !dy && game.autoFollowTargetId) {
+    const followTarget = game.multiplayer.peers.get(game.autoFollowTargetId);
+    if (!followTarget || followTarget.area !== currentPlayerAreaName()) {
+      game.autoFollowTargetId = "";
+      renderTargetWindow();
+    } else {
+      const followDistance = Math.hypot((followTarget.x || 0) - game.player.x, (followTarget.y || 0) - game.player.y);
+      if (followDistance > 70) {
+        dx = (followTarget.x || 0) - game.player.x;
+        dy = (followTarget.y || 0) - game.player.y;
+      }
+    }
+  }
 
   if (moveMortifiedPlayer(dt)) {
     dx = 0;
@@ -10516,8 +10834,9 @@ function updateSpawning(dt) {
 
 function draw() {
   const rect = canvas.getBoundingClientRect();
-  const camera = getCamera(rect);
   ctx.clearRect(0, 0, rect.width, rect.height);
+  if (!game.map || !modeChoice.classList.contains("hidden")) return;
+  const camera = getCamera(rect);
   if (game.shake > 0) {
     ctx.save();
     ctx.translate(randomBetween(-3, 3), randomBetween(-3, 3));
@@ -11161,6 +11480,7 @@ function drawStaticGroundLayer(rect, camera) {
   drawConfiguredDungeonWalls(game.map?.bearCave, camera, rect);
   drawConfiguredDungeonWalls(game.map?.rogabogu, camera, rect);
   drawConfiguredDungeonWalls(game.map?.yrgmaDim, camera, rect);
+  drawConfiguredDungeonWalls(game.map?.badgeria, camera, rect);
   drawRuinsOfKebaanWalls(game.map?.kebaan?.ruins, camera, rect);
   for (const passage of game.map.passages) {
     if (boundsVisible(passage.bounds, camera, rect, 260)) {
@@ -13456,6 +13776,7 @@ function multiplayerPayload() {
     stats: multiplayerStatsPayload(),
     weapon: clonePlain(game.player.weapon),
     equipmentVisuals: clonePlain(playerEquipmentVisuals(game.player)),
+    equippedItems: clonePlain(game.player.equippedItems),
     statMods: clonePlain(game.player.statMods),
     activeSpells: multiplayerActiveSpellsPayload(),
     stunned: game.player.stunned || 0,
@@ -13466,6 +13787,8 @@ function multiplayerPayload() {
     alignment: playerAlignment(),
     factionStandings: clonePlain(playerFactionStandings()),
     speech: game.playerSpeech ? game.playerSpeech.text : "",
+    afk: Boolean(game.player.afk),
+    lfg: Boolean(game.player.lfg),
     character: serializeCharacterSave()
   };
 }
@@ -13514,6 +13837,26 @@ function hydrateSavedItem(item) {
   return template ? { ...template, ...item } : item;
 }
 
+function hydrateSavedSpell(spell, spellLevels = game.player.spellLevels) {
+  const name = typeof spell === "string" ? spell : spell?.name;
+  if (!name) return null;
+  const level = Number(spell?.lvl ?? spell?.level ?? spellLevels?.[name]) || null;
+  const template = makeSpell(name, level);
+  const hydrated = makePlayerSpell(name, level);
+  if (!hydrated) return null;
+  if (typeof spell === "object" && spell) {
+    hydrated.autocast = spell.autocast ?? hydrated.autocast;
+    hydrated.cooldownMultiplier = spell.cooldownMultiplier ?? hydrated.cooldownMultiplier;
+    hydrated.memorizing = Math.max(0, Number(spell.memorizing) || 0);
+    hydrated.memorizationDuration = Number(spell.memorizationDuration) || hydrated.memorizationDuration;
+    hydrated.memorizationReadyFlash = Math.max(0, Number(spell.memorizationReadyFlash) || 0);
+    hydrated.memorizationReadyFlashed = Boolean(spell.memorizationReadyFlashed);
+  }
+  hydrated.cast = template?.cast || hydrated.cast;
+  hydrated.castAt = template?.castAt || hydrated.castAt;
+  return hydrated;
+}
+
 function applyCharacterSave(save) {
   if (!save || typeof save !== "object") return false;
   const keepName = game.player.name;
@@ -13544,16 +13887,21 @@ function applyCharacterSave(save) {
     lastDeath: save.lastDeath && Number.isFinite(Number(save.lastDeath.x)) && Number.isFinite(Number(save.lastDeath.y))
       ? { x: Number(save.lastDeath.x), y: Number(save.lastDeath.y), area: save.lastDeath.area || "" }
       : null,
-    spells: Array.isArray(save.spells) ? save.spells : [],
+    spells: [],
     spellSlotsActive: Number(save.spellSlotsActive) || game.player.spellSlotsActive,
     bank: save.bank && typeof save.bank === "object" ? save.bank : game.player.bank
   });
+  game.player.spells = Array.isArray(save.spells)
+    ? save.spells.map(spell => hydrateSavedSpell(spell, game.player.spellLevels)).filter(Boolean)
+    : [];
   game.player.inventory = Array.isArray(save.inventory) ? save.inventory.slice(0, game.player.inventory.length).map(hydrateSavedItem) : game.player.inventory;
   while (game.player.inventory.length < initialPlayerState.inventory.length) game.player.inventory.push(null);
   while (game.player.spellLineups.length < SPELL_LINEUP_COUNT) game.player.spellLineups.push(null);
   game.player.equippedItems = {};
   for (const [slot, item] of Object.entries(save.equippedItems || {})) game.player.equippedItems[slot] = hydrateSavedItem(item);
   game.player.equipment = { ...initialPlayerState.equipment, ...(save.equipment || {}) };
+  if (!game.player.equippedItems.Chest && game.player.equipment.Chest === "Empty") equipStartingItem("Linen Shirt");
+  if (!game.player.equippedItems.Legs && game.player.equipment.Legs === "Empty") equipStartingItem("Linen Pants");
   game.player.weapon = save.weapon || (game.player.equippedItems["Main Hand"] ? weaponFromItem(game.player.equippedItems["Main Hand"]) : null);
   enforceSinglePassiveSpell();
   game.quests = Array.isArray(save.quests) ? save.quests : [];
@@ -13565,13 +13913,14 @@ function applyCharacterSave(save) {
   return true;
 }
 
-function sendMultiplayerChat(text) {
+function sendMultiplayerChat(text, channel = "say") {
   const mp = game.multiplayer;
   if (!mp.connected || !mp.socket || mp.socket.readyState !== WebSocket.OPEN) return;
   mp.socket.send(JSON.stringify({
     type: "chat",
     world: game.multiplayer.worldName,
     text,
+    channel,
     name: game.player.name || "Soulreaper",
     area: currentPlayerAreaName()
   }));
@@ -13596,6 +13945,54 @@ function selectedAccountCharacter() {
 function avatarForRaceSex(race = "human", sex = "male") {
   if (race === "dwarf") return sex === "female" ? "dwarfFemale" : "dwarfMale";
   return sex === "female" ? "soulreaperFemale" : "soulreaperMale";
+}
+
+function hydrateAccountEquipmentItem(item) {
+  if (!item) return null;
+  if (typeof item === "string") return item === "Empty" ? null : hydrateSavedItem({ name: item });
+  return hydrateSavedItem(item);
+}
+
+function accountCharacterEquipmentItems(character) {
+  const equippedItems = {};
+  for (const [slot, item] of Object.entries(character?.equippedItems || {})) {
+    const hydrated = hydrateAccountEquipmentItem(item);
+    if (hydrated) equippedItems[slot] = hydrated;
+  }
+  for (const [slot, itemName] of Object.entries(character?.equipment || {})) {
+    if (equippedItems[slot] || !itemName || itemName === "Empty") continue;
+    const hydrated = hydrateAccountEquipmentItem(itemName);
+    if (hydrated) equippedItems[slot] = hydrated;
+  }
+  return equippedItems;
+}
+
+function characterSelectionPortraitHtml(character) {
+  const avatar = character?.avatar || avatarForRaceSex(character?.race, character?.sex);
+  const baseSrc = avatarBaseSources[avatar] || avatarBaseSources.soulreaperMale;
+  const entity = {
+    avatar,
+    equippedItems: accountCharacterEquipmentItems(character)
+  };
+  const layers = avatarLayersForEntity(entity).slice().sort((a, b) => avatarLayerSortValue(a) - avatarLayerSortValue(b));
+  const layerHtml = layers.map(layer => {
+    const rawSrc = avatarSpritePathForLayer(layer, avatar);
+    if (!rawSrc) return "";
+    const src = itemIconCssSrc(avatarTintProxy(layer, rawSrc), rawSrc);
+    const held = isHeldAvatarLayer(layer);
+    const offHand = layer.slot === "Off-Hand";
+    const heldClass = held ? ` held ${slugifyAssetName(layer.slot)}${offHand && layer.weapon ? " mirrored" : ""}` : "";
+    const heldStyle = held
+      ? ` style="--held-size:${Math.max(10, Math.min(34, itemGraphicSize(layer, 30)))}px;--held-x:${offHand ? 29 : 71}%;--held-y:${offHand ? 60 : 59}%;--held-offset-x:${offHand ? -1.3 : 1.3}px;"`
+      : "";
+    return `<img class="character-portrait-layer${heldClass}" src="${escapeHtml(src)}" alt=""${heldStyle}>`;
+  }).join("");
+  return `
+    <span class="character-portrait" aria-hidden="true">
+      <img class="character-portrait-base" src="${escapeHtml(baseSrc)}" alt="">
+      ${layerHtml}
+    </span>
+  `;
 }
 
 function characterHasActiveWorld(character) {
@@ -13627,7 +14024,7 @@ function applyAccountResponse(data) {
   game.account.username = account?.username || "";
   game.account.characters = Array.isArray(account?.characters) ? account.characters : [];
   if (!game.account.characters.some(character => character.id === game.account.selectedCharacterId)) {
-    game.account.selectedCharacterId = game.account.characters[0]?.id || "";
+    game.account.selectedCharacterId = "";
   }
   if (Array.isArray(data?.worlds)) {
     game.multiplayer.availableWorlds = data.worlds
@@ -13668,6 +14065,7 @@ function renderAccountHome() {
   const loggedIn = Boolean(game.account.username);
   authPanel?.classList.toggle("hidden", loggedIn);
   characterDashboard?.classList.toggle("hidden", !loggedIn);
+  characterDashboard?.classList.toggle("creating-character", Boolean(game.account.creatingCharacter));
   if (accountStatus) {
     accountStatus.textContent = game.account.loading
       ? "Loading..."
@@ -13696,18 +14094,20 @@ function renderAccountHome() {
           const worldText = character.lastWorld
             ? activeWorld ? character.lastWorld : "No active world"
             : "No world yet";
-          const avatarSrc = avatarBaseSources[character.avatar] || avatarBaseSources.soulreaperMale;
           return `
             <button class="character-list-card${selected ? " selected" : ""}" type="button" data-character-id="${escapeHtml(character.id)}">
-              <img src="${escapeHtml(avatarSrc)}" alt="">
+              ${characterSelectionPortraitHtml(character)}
               <span><strong>${escapeHtml(character.name)}</strong><small>LVL ${Number(character.level) || 1} · ${escapeHtml(character.lastArea || "Starting Area")}</small><small>${escapeHtml(worldText)}${activeWorld ? ` · ${Number(game.multiplayer.availableWorlds.find(world => world.name === character.lastWorld)?.playerCount) || 0} players` : ""}</small></span>
             </button>
           `;
         }).join("")
-      : `<span class="multiplayer-world-empty">No characters yet. Create one to enter a world.</span>`;
+      : "";
   }
-  renderMultiplayerWorldList();
   const selectedCharacter = selectedAccountCharacter();
+  createCharacterForm?.classList.toggle("hidden", !game.account.creatingCharacter);
+  const multiplayerPanel = modeChoice.querySelector(".multiplayer-panel");
+  multiplayerPanel?.classList.toggle("hidden", game.account.creatingCharacter || !selectedCharacter);
+  renderMultiplayerWorldList();
   const canResume = characterHasActiveWorld(selectedCharacter);
   modeChoice.querySelectorAll("[data-multiplayer-action]").forEach(button => {
     const action = button.dataset.multiplayerAction;
@@ -13718,6 +14118,24 @@ function renderAccountHome() {
   });
   const deleteButton = modeChoice.querySelector("[data-delete-character]");
   if (deleteButton) deleteButton.disabled = !selectedCharacter;
+}
+
+function showAccountCharacterSelectionScreen(message = "") {
+  game.account.creatingCharacter = false;
+  game.account.selectedCharacterId = "";
+  if (message) game.account.message = message;
+  modeChoice?.classList.remove("hidden");
+  authPanel?.classList.toggle("hidden", Boolean(game.account.username));
+  characterDashboard?.classList.toggle("hidden", !game.account.username);
+  renderAccountHome();
+}
+
+function randomDarkFantasyWorldName() {
+  const prefixes = ["Black", "Grim", "Hollow", "Dread", "Ashen", "Umbral", "Raven", "Blood", "Frost", "Iron", "Duskworn", "Witch"];
+  const middles = ["mire", "fell", "grave", "thorn", "gloom", "wraith", "cairn", "barrow", "night", "wolf", "ember", "veil"];
+  const suffixes = ["Reach", "Hollow", "March", "Vale", "Moor", "Fen", "Pass", "Crown", "Gate", "Watch", "Wold", "Hold"];
+  const pick = list => list[Math.floor(Math.random() * list.length)];
+  return `${pick(prefixes)}${pick(middles)} ${pick(suffixes)}`;
 }
 
 function setFieldHelp(el, message = "") {
@@ -13775,6 +14193,7 @@ async function createCharacterFromForm() {
     });
     applyAccountResponse(data);
     if (data.character?.id) game.account.selectedCharacterId = data.character.id;
+    game.account.creatingCharacter = false;
     if (playerNameInput) playerNameInput.value = "";
     renderAccountHome();
   } catch (error) {
@@ -13812,9 +14231,145 @@ async function logoutAccount() {
   game.account.username = "";
   game.account.characters = [];
   game.account.selectedCharacterId = "";
+  game.account.creatingCharacter = false;
   game.account.message = "Logged off.";
-  resetGame();
+  returnToHomeScreen();
   renderAccountHome();
+}
+
+function logOffCharacterToAccount() {
+  const accountSnapshot = {
+    username: game.account.username || "",
+    characters: Array.isArray(game.account.characters) ? structuredClone(game.account.characters) : [],
+    worlds: Array.isArray(game.multiplayer.availableWorlds) ? structuredClone(game.multiplayer.availableWorlds) : []
+  };
+  const restoreAccountScreen = () => {
+    game.account.username = accountSnapshot.username;
+    game.account.characters = accountSnapshot.characters;
+    game.account.selectedCharacterId = "";
+    game.account.creatingCharacter = false;
+    game.account.loading = false;
+    game.multiplayer.availableWorlds = accountSnapshot.worlds;
+    modeChoice?.classList.remove("hidden");
+    if (modeChoice) modeChoice.style.display = "";
+    authPanel?.classList.toggle("hidden", Boolean(game.account.username));
+    characterDashboard?.classList.toggle("hidden", !game.account.username);
+    showAccountCharacterSelectionScreen(game.account.username
+      ? `Logged in as ${game.account.username}`
+      : "Create an account or log in."
+    );
+  };
+  if (game.mode === "multiplayer" && game.multiplayer.connected) {
+    sendMultiplayerUpdate(true);
+  }
+  restoreAccountScreen();
+  try {
+    returnToHomeScreen();
+  } catch (error) {
+    console.error(error);
+  }
+  restoreAccountScreen();
+  refreshMultiplayerWorldList();
+}
+
+function closeAllFloatingWindowsForHome() {
+  for (const [id, entry] of floatingWindowRegistry) {
+    const state = floatingState(id);
+    if (id === "bar") {
+      state.open = false;
+      state.locked = true;
+      entry?.el?.classList.add("hidden");
+      applyFloatingState(id);
+      continue;
+    }
+    state.open = false;
+    if (entry?.el) entry.el.classList.add("hidden");
+  }
+  saveFloatingLayout();
+  updateWindowBarButtons();
+}
+
+function hideSessionOverlaysForHome() {
+  [
+    deathScreen,
+    levelChoice,
+    shopWindow,
+    bankWindow,
+    confirmWindow,
+    devSpawnWindow,
+    trainerWindow,
+    craftingWindow,
+    spellbookWindow,
+    soulCrystalsWindow,
+    replaceSpellWindow,
+    spellChoice,
+    questLogWindow,
+    dialogueWindow,
+    tradeWindow
+  ].filter(Boolean).forEach(el => el.classList.add("hidden"));
+  trainerRealmOverlay?.classList.add("hidden");
+  floatingItemTooltip?.classList.add("hidden");
+  spellbookFloatingTooltip?.classList.add("hidden");
+  itemActionMenu?.classList.add("hidden");
+  document.querySelector("#bagInventoryTooltip")?.classList.add("hidden");
+  hideTeamInvite?.();
+  hidePetCommandMenu?.();
+  activePrompt = null;
+  game.activeCraftingStation = null;
+  game.activeShopkeeper = null;
+  game.activeBanker = null;
+  game.activeTrainer = null;
+}
+
+function clearSessionScreenForHome() {
+  const rect = canvas.getBoundingClientRect();
+  ctx.clearRect(0, 0, rect.width, rect.height);
+  if (minimapCtx && minimapCanvas) minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+  logEl.innerHTML = "";
+  chatInput.value = "";
+  chatInput.classList.add("hidden");
+}
+
+function returnToHomeScreen() {
+  modeChoice?.classList.remove("hidden");
+  disconnectMultiplayer();
+  game.running = false;
+  game.mode = null;
+  game.keys.clear();
+  game.map = null;
+  resetGroundCacheForMap();
+  game.player = structuredClone(initialPlayerState);
+  game.enemies = [];
+  game.enemySpatialGrid = null;
+  game.enemySpatialCount = 0;
+  game.enemySpatialVersion = 0;
+  game.enemySpatialGridVersion = -1;
+  game.eliteRespawns = [];
+  game.projectiles = [];
+  game.effects = [];
+  game.floatingTexts = [];
+  game.groundItems = [];
+  game.logs = [];
+  game.chronicleArea = null;
+  game.playerSpeech = null;
+  game.npcSpeech = [];
+  game.quests = [];
+  game.completedQuests = [];
+  game.questLogAlert = false;
+  game.pendingLevelChoices = null;
+  game.pendingSpellAssignment = null;
+  game.pendingSpellTarget = null;
+  game.chatOpen = false;
+  game.multiplayer.peers.clear();
+  game.multiplayer.team = null;
+  clearSelectedTarget();
+  closeAllFloatingWindowsForHome();
+  hideSessionOverlaysForHome();
+  clearSessionScreenForHome();
+  setLevelUpTabVisible(false);
+  updateChronicleInlineMode();
+  modeChoice.classList.remove("hidden");
+  syncPointerPause();
 }
 
 function requestMultiplayerWho() {
@@ -13967,6 +14522,37 @@ function splitCommandTargetAndMessage(text, command) {
   return { targetName: parts.shift() || "", message: parts.join(" ").trim() };
 }
 
+function handleChannelChatCommand(text) {
+  const trimmed = text.trim();
+  const lower = trimmed.toLowerCase();
+  if (lower === "/afk") {
+    game.player.afk = !game.player.afk;
+    addLog(`<b>Status:</b> AFK ${game.player.afk ? "enabled" : "disabled"}.`, null, "chat");
+    sendMultiplayerUpdate(true);
+    return true;
+  }
+  if (lower === "/lfg") {
+    game.player.lfg = !game.player.lfg;
+    addLog(`<b>Status:</b> LFG ${game.player.lfg ? "enabled" : "disabled"}.`, null, "chat");
+    sendMultiplayerUpdate(true);
+    return true;
+  }
+  for (const [channel, info] of Object.entries(CHAT_CHANNELS)) {
+    const alias = info.aliases.find(command => lower === command || lower.startsWith(`${command} `));
+    if (!alias) continue;
+    const message = trimmed.slice(alias.length).trim();
+    if (!message) {
+      game.chatChannel = channel;
+      syncChatChannelSelect();
+      addLog(`<b>Chat:</b> default channel set to ${escapeHtml(info.label)}.`, null, "chat");
+    } else {
+      addPlayerSpeech(message, { channel });
+    }
+    return true;
+  }
+  return false;
+}
+
 function handleMultiplayerChatCommand(text) {
   const lower = text.trim().toLowerCase();
   if (lower === "/who") {
@@ -13982,7 +14568,21 @@ function handleMultiplayerChatCommand(text) {
   if (lower.startsWith("/trade ")) {
     const playerName = text.slice("/trade".length).trim();
     if (!playerName) addLog("<b>Trade:</b> use /trade [name].");
-    else sendTradeAction("request", { playerName });
+    else {
+      const peer = peerByName(playerName);
+      if (peer) tradeWithPeer(peer);
+      else sendTradeAction("request", { playerName });
+    }
+    return true;
+  }
+  if (lower.startsWith("/inspect ")) {
+    const playerName = text.slice("/inspect".length).trim();
+    if (!playerName) addLog("<b>Inspect:</b> use /inspect [player name].");
+    else {
+      const peer = peerByName(playerName);
+      if (!peer) addLog(`<b>Inspect:</b> could not find ${escapeHtml(playerName)} nearby.`, null, "chat");
+      else inspectPeer(peer);
+    }
     return true;
   }
   return false;
@@ -14915,12 +15515,14 @@ function handleMultiplayerMessage(message) {
     return;
   }
   if (message.type === "chat") {
-    const name = escapeHtml(message.name || "Soulreaper");
-    const text = escapeHtml(message.text || "");
+    const name = `${message.name || "Soulreaper"}${playerChatTags(message)}`;
+    const text = message.text || "";
     const area = message.area || currentPlayerAreaName();
-    game.logs.unshift({ message: `<b>${name}:</b> ${text}`, area, kind: "chat" });
-    if (game.logs.length > 240) game.logs.length = 240;
-    renderChronicle();
+    addChannelChatLog(name, text, message.channel || "say", { area });
+    return;
+  }
+  if (message.type === "chat:error") {
+    addLog(`<b>Chat:</b> ${escapeHtml(message.message || "Message failed.")}`, null, "chat");
     return;
   }
   if (message.type === "tell") {
@@ -14936,7 +15538,7 @@ function handleMultiplayerMessage(message) {
   }
   if (message.type === "who") {
     const players = Array.isArray(message.players) ? message.players : [];
-    const lines = players.map(player => `${escapeHtml(player.name || "Soulreaper")} LVL ${Number(player.level) || 1}`);
+    const lines = players.map(player => `${escapeHtml(player.name || "Soulreaper")}${escapeHtml(playerChatTags(player))} (${escapeHtml(player.area || "Unknown")}) LVL ${Number(player.level) || 1}`);
     addLog(`<b>Who:</b> ${lines.length ? lines.join(", ") : "No players in this world."}`);
     return;
   }
@@ -15101,8 +15703,9 @@ function enterMultiplayerWorld(worldName, seed, hostId = null, revision = 0, cha
   resetGroundCacheForMap();
   applyPlayerStartFromMap();
   const hasSavedPosition = Number.isFinite(Number(characterSave?.x)) && Number.isFinite(Number(characterSave?.y));
+  const freshCharacterSession = !resume && !hasSavedPosition;
   const appliedSave = applyCharacterSave(characterSave);
-  if (!appliedSave || (!resume && !hasSavedPosition)) applyRaceStartFromMap();
+  if (!appliedSave || freshCharacterSession) applyRaceStartFromMap();
   game.enemies = [];
   game.enemySpatialGrid = null;
   game.enemySpatialCount = 0;
@@ -15115,6 +15718,8 @@ function enterMultiplayerWorld(worldName, seed, hostId = null, revision = 0, cha
   game.effects = [];
   game.groundItems = [];
   modeChoice.classList.add("hidden");
+  applyFloatingState("bar");
+  if (freshCharacterSession) applyNewCharacterWindowLayout();
   syncPointerPause();
   addLog(`<b>${escapeHtml(game.player.name)}</b> ${resume && appliedSave ? "resumes in" : "enters"} multiplayer world <b>${escapeHtml(game.multiplayer.worldName)}</b>.`);
   if (game.multiplayer.isHost) {
@@ -15296,7 +15901,7 @@ function drawRemotePlayerNameplate(peer, radius) {
 
   const alignment = peer.alignment || "Neutral";
   const symbol = alignmentSymbol(alignment);
-  const name = String(peer.name || "Soulreaper").slice(0, 24);
+  const name = `${String(peer.name || "Soulreaper").slice(0, 24)}${playerChatTags(peer)}`;
   const gap = symbol ? 4 : 0;
   const labelY = barY - 4;
   ctx.font = "bold 12px system-ui";
@@ -18019,6 +18624,94 @@ function targetTypeLabel(target) {
   return parts.join(" ");
 }
 
+function peerByName(name) {
+  const wanted = String(name || "").trim().toLowerCase();
+  if (!wanted) return null;
+  return [...game.multiplayer.peers.values()].find(peer => String(peer.name || "").toLowerCase() === wanted) || null;
+}
+
+function peerCloseEnough(peer, rangeUnits = 3) {
+  return Boolean(peer
+    && peer.area === currentPlayerAreaName()
+    && Math.hypot((peer.x || 0) - game.player.x, (peer.y || 0) - game.player.y) <= rangeUnits * RANGE_UNIT);
+}
+
+function hydratedPeerEquippedItems(peer) {
+  const equipped = {};
+  for (const [slot, item] of Object.entries(peer?.equippedItems || {})) {
+    const hydrated = hydrateAccountEquipmentItem(item);
+    if (hydrated) equipped[slot] = hydrated;
+  }
+  return equipped;
+}
+
+function renderInspectWindow(peer) {
+  if (!inspectWindowBody || !peer) return;
+  const equipped = hydratedPeerEquippedItems(peer);
+  const html = `
+    <div class="inspect-window">
+      <strong>${escapeHtml(peer.name || "Player")}</strong>
+      <div class="equipment-grid inspect-equipment-grid">
+        ${equipmentDisplaySlots.map(({ slot, label, col, row, small }) => {
+          const item = equipped[slot];
+          const style = `grid-column:${col};grid-row:${row};`;
+          const labelHtml = `<span>${escapeHtml(label)}</span>`;
+          if (!item) return `<div class="equip-row empty${small ? " small-slot" : ""}" style="${style}" title="${escapeHtml(slot)}">${labelHtml}</div>`;
+          return `
+            <button class="equip-row equip-button${small ? " small-slot" : ""}" type="button" style="${style}" title="${escapeHtml(slot)}">
+              ${renderItemContents(item, true)}
+              ${itemTooltipHtml(item)}
+            </button>
+          `;
+        }).join("")}
+      </div>
+    </div>
+  `;
+  updateHtmlIfChanged(inspectWindowBody, html);
+  inspectWindowSignature = `${peer.id}|${JSON.stringify(peer.equippedItems || {})}`;
+  setFloatingOpen("inspect", true);
+  markFloatingFitContentChanged("inspect");
+}
+
+function closeInspectWindow() {
+  document.querySelector("#inspectFloatingWindow")?.classList.add("hidden");
+  floatingState("inspect").open = false;
+  inspectWindowSignature = "";
+}
+
+function inspectPeer(peer) {
+  if (!peer) return false;
+  if (!peerCloseEnough(peer)) {
+    addLog(`<b>Inspect:</b> ${escapeHtml(peer.name || "Player")} is too far away.`, null, "chat");
+    return false;
+  }
+  renderInspectWindow(peer);
+  return true;
+}
+
+function tradeWithPeer(peer) {
+  if (!peer) return false;
+  if (!peerCloseEnough(peer)) {
+    addLog(`<b>Trade:</b> ${escapeHtml(peer.name || "Player")} is too far away.`, null, "chat");
+    return false;
+  }
+  sendTradeAction("request", { playerName: peer.name || "" });
+  return true;
+}
+
+function toggleFollowPeer(peer) {
+  if (!peer) return false;
+  if (game.autoFollowTargetId === peer.id) {
+    game.autoFollowTargetId = "";
+    addLog(`<b>Follow:</b> stopped following ${escapeHtml(peer.name || "Player")}.`, null, "chat");
+  } else {
+    game.autoFollowTargetId = peer.id;
+    addLog(`<b>Follow:</b> following ${escapeHtml(peer.name || "Player")}.`, null, "chat");
+  }
+  renderTargetWindow();
+  return true;
+}
+
 function renderTargetWindow() {
   if (!targetWindowBody) return;
   const target = selectedTargetUnit();
@@ -18037,6 +18730,8 @@ function renderTargetWindow() {
   const realmColor = realmUiColor(realm);
   const hostile = targetIsHostileToPlayer(target);
   const effects = activeTargetStatusEffects(target);
+  const isPeerTarget = targetKindForUnit(target) === "peer";
+  const followingTarget = isPeerTarget && game.autoFollowTargetId === target.id;
   const effectHtml = effects.map(effect => {
     const effectRealm = statusEffectRealm(effect);
     const realmEffectColor = realmUiColor(effectRealm);
@@ -18066,6 +18761,14 @@ function renderTargetWindow() {
         <i style="width:${Math.max(0, Math.min(100, (hp / maxHp) * 100))}%"></i>
       </div>
       <div class="target-effects">${effectHtml}</div>
+      ${isPeerTarget ? `
+        <div class="target-actions">
+          <button type="button" data-target-action="invite">Invite</button>
+          <button type="button" data-target-action="inspect">Inspect</button>
+          <button type="button" data-target-action="trade">Trade</button>
+          <button type="button" data-target-action="follow">${followingTarget ? "Unfollow" : "Follow"}</button>
+        </div>
+      ` : ""}
     </div>
   `;
   if (targetWindowSignature !== html) {
@@ -18119,6 +18822,8 @@ function markUIDirty() {
 }
 
 function renderUI() {
+  applyFloatingState("bar");
+  if (!game.map || !modeChoice.classList.contains("hidden")) return;
   const p = game.player;
   syncOpenBagInventory?.();
   renderStatusEffectHud();
@@ -18398,6 +19103,9 @@ function spellTrainerCost(spell) {
 
 function spellTrainerState(spell, index) {
   const trainer = game.activeTrainer;
+  if (trainer) {
+    return { active: false, trainable: false, affordable: false, maxed: false, cost: 0, reason: "", index };
+  }
   if (!trainer || !spell || spell.static) {
     return { active: false, trainable: false, affordable: false, maxed: false, cost: 0, reason: "", index };
   }
@@ -18674,6 +19382,7 @@ function resetGame() {
   game.showCollision = false;
   game.devItemShop = false;
   game.activeShopkeeper = null;
+  game.activeTrainer = null;
   game.pointTargetArea = null;
   game.pendingSpellTarget = null;
   clearSelectedTarget();
@@ -18782,6 +19491,7 @@ function loop(now) {
       game.loopErrorLogged = true;
       addLog(`<b>Runtime error:</b> ${escapeHtml(error?.message || String(error))}`);
     }
+    if (game.mode === null && modeChoice?.classList.contains("hidden")) modeChoice.classList.remove("hidden");
   }
   try {
     draw();
@@ -18792,6 +19502,7 @@ function loop(now) {
       game.loopErrorLogged = true;
       addLog(`<b>Render error:</b> ${escapeHtml(error?.message || String(error))}`);
     }
+    if (game.mode === null && modeChoice?.classList.contains("hidden")) modeChoice.classList.remove("hidden");
   }
   requestAnimationFrame(loop);
 }
@@ -18910,8 +19621,40 @@ document.addEventListener("input", event => {
   if (event.target === playerNameInput) setFieldHelp(characterNameHelp, "");
 });
 
+function handleChatItemLinkClick(event) {
+  if (game.chatOpen || document.activeElement === chatInput) {
+    const item = itemFromClickedElement(event.target);
+    if (item && insertChatItemLink(item)) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
+  }
+}
+
+document.addEventListener("click", handleChatItemLinkClick, true);
+
 document.addEventListener("click", event => {
+  const targetAction = event.target?.closest?.("[data-target-action]");
+  if (targetAction) {
+    const peer = selectedTargetUnit();
+    if (!peer || targetKindForUnit(peer) !== "peer") return;
+    const action = targetAction.dataset.targetAction;
+    if (action === "invite") sendTeamAction("invite", { playerName: peer.name || "" });
+    else if (action === "inspect") inspectPeer(peer);
+    else if (action === "trade") tradeWithPeer(peer);
+    else if (action === "follow") toggleFollowPeer(peer);
+    event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
   if (event.target?.closest?.("#logoutButton")) {
+    event.preventDefault();
+    event.stopPropagation();
+    logOffCharacterToAccount();
+    return;
+  }
+  if (event.target?.closest?.("#accountLogoutButton")) {
     logoutAccount();
   }
 });
@@ -18927,6 +19670,13 @@ chatInput.addEventListener("keydown", event => {
     chatInput.classList.add("hidden");
     game.chatOpen = false;
   }
+});
+
+chatChannelSelect?.addEventListener("change", () => {
+  game.chatChannel = chatChannelSelect.value || "say";
+  syncChatChannelSelect();
+  chatChannelSelect.blur();
+  canvas.focus?.();
 });
 
 teamInvitePopup.addEventListener("click", event => {
@@ -19081,11 +19831,6 @@ document.addEventListener("click", event => {
 });
 
 modeChoice.addEventListener("click", event => {
-  const refreshAccount = event.target.closest("#refreshAccountButton");
-  if (refreshAccount) {
-    refreshAccountState();
-    return;
-  }
   const refreshWorldsButton = event.target.closest("#refreshMultiplayerWorldsButton");
   if (refreshWorldsButton) {
     refreshMultiplayerWorldList();
@@ -19101,7 +19846,15 @@ modeChoice.addEventListener("click", event => {
   const characterButton = event.target.closest("[data-character-id]");
   if (characterButton) {
     game.account.selectedCharacterId = characterButton.dataset.characterId || "";
+    game.account.creatingCharacter = false;
     renderAccountHome();
+    return;
+  }
+  if (event.target.closest("[data-create-character-toggle]")) {
+    game.account.creatingCharacter = true;
+    game.account.selectedCharacterId = "";
+    renderAccountHome();
+    playerNameInput?.focus();
     return;
   }
   const raceButton = event.target.closest("[data-race-choice]");
@@ -19133,11 +19886,11 @@ modeChoice.addEventListener("click", event => {
     const worldName = action === "resume"
       ? (character.lastWorld || "").trim()
       : action === "create"
-        ? (multiplayerWorldInput?.value || "").trim()
+        ? randomDarkFantasyWorldName()
         : (game.multiplayer.selectedWorldName || "").trim();
     if (!worldName) {
       game.account.message = action === "create"
-        ? "Enter a new world name first."
+        ? "Could not create a world name."
         : action === "resume"
           ? "That character has no active world to resume."
           : "Select an existing world first.";
@@ -19183,6 +19936,7 @@ starterSpellsEl.addEventListener("click", event => {
   applyRaceStartFromMap({ onlyIfAtDefault: true });
   modeChoice.classList.add("hidden");
   spellChoice.classList.add("hidden");
+  applyFloatingState("bar");
   game.running = true;
   game.pointerInArena = true;
   spellHudSignature = "";
@@ -19229,9 +19983,9 @@ trainerSpellList.addEventListener("click", event => {
     unlockTrainerSpellSlot();
     return;
   }
-  const button = event.target.closest("[data-train-spell-index]");
+  const button = event.target.closest("[data-train-spell-name], [data-train-spell-index]");
   if (!button || button.disabled) return;
-  trainActiveSpell(Number(button.dataset.trainSpellIndex));
+  trainActiveSpell(button.dataset.trainSpellName || Number(button.dataset.trainSpellIndex));
 });
 
 openSpellbookButton.addEventListener("click", openSpellbookWindow);
@@ -19504,6 +20258,33 @@ function hideActiveSpellTooltip() {
   spellbookFloatingTooltip.innerHTML = "";
 }
 
+function positionTrainerSpellTooltip(trigger) {
+  const tooltip = trigger?.querySelector?.(".trainer-spell-tooltip");
+  if (!tooltip || !trigger.closest?.("#trainerWindow, #shopWindow")) return;
+  const rect = trigger.getBoundingClientRect();
+  const width = Math.min(520, Math.max(280, window.innerWidth - 24));
+  spellbookFloatingTooltip.innerHTML = tooltip.innerHTML;
+  spellbookFloatingTooltip.style.width = `${width}px`;
+  spellbookFloatingTooltip.classList.remove("hidden");
+  let left = rect.right + 10;
+  if (left + width > window.innerWidth - 8) left = rect.left - width - 10;
+  left = Math.max(8, Math.min(window.innerWidth - width - 8, left));
+  let top = Math.max(8, Math.min(window.innerHeight - 120, rect.top));
+  spellbookFloatingTooltip.style.left = `${left}px`;
+  spellbookFloatingTooltip.style.top = `${top}px`;
+  requestAnimationFrame(() => {
+    const tooltipRect = spellbookFloatingTooltip.getBoundingClientRect();
+    if (tooltipRect.bottom <= window.innerHeight - 8) return;
+    top = Math.max(8, window.innerHeight - tooltipRect.height - 8);
+    spellbookFloatingTooltip.style.top = `${top}px`;
+  });
+}
+
+function hideTrainerSpellTooltip() {
+  spellbookFloatingTooltip.classList.add("hidden");
+  spellbookFloatingTooltip.innerHTML = "";
+}
+
 spellbookSpellList.addEventListener("mousemove", event => {
   const button = event.target.closest(".learned-spell-icon-button");
   if (button) positionLearnedSpellTooltip(button);
@@ -19517,6 +20298,37 @@ spellbookSpellList.addEventListener("focusin", event => {
 spellbookSpellList.addEventListener("mouseleave", hideLearnedSpellTooltip);
 spellbookSpellList.addEventListener("focusout", event => {
   if (!event.relatedTarget || !spellbookSpellList.contains(event.relatedTarget)) hideLearnedSpellTooltip();
+});
+
+function trainerTooltipRootForEvent(event) {
+  return event.target.closest?.("#trainerSpellList, #shopInventory");
+}
+
+document.addEventListener("mousemove", event => {
+  if (!trainerTooltipRootForEvent(event)) return;
+  const button = event.target.closest?.(".trainer-spell-icon-button");
+  if (button) positionTrainerSpellTooltip(button);
+  else hideTrainerSpellTooltip();
+});
+
+document.addEventListener("focusin", event => {
+  if (!trainerTooltipRootForEvent(event)) return;
+  const button = event.target.closest?.(".trainer-spell-icon-button");
+  if (button) positionTrainerSpellTooltip(button);
+});
+
+document.addEventListener("mouseout", event => {
+  const root = trainerTooltipRootForEvent(event);
+  if (!root) return;
+  if (event.relatedTarget && root.contains(event.relatedTarget)) return;
+  hideTrainerSpellTooltip();
+});
+
+document.addEventListener("focusout", event => {
+  const root = trainerTooltipRootForEvent(event);
+  if (!root) return;
+  if (event.relatedTarget && root.contains(event.relatedTarget)) return;
+  hideTrainerSpellTooltip();
 });
 
 spellHudEl.addEventListener("mousemove", event => {
@@ -19554,6 +20366,12 @@ document.addEventListener("pointerdown", event => {
 });
 
 document.addEventListener("pointermove", positionFloatingItemTooltip);
+document.addEventListener("focusin", event => {
+  if (event.target?.closest?.(".chat-item-link")) positionFloatingItemTooltip(event);
+});
+document.addEventListener("focusout", event => {
+  if (event.target?.closest?.(".chat-item-link")) floatingItemTooltip.classList.add("hidden");
+});
 
 restartButton.addEventListener("click", resetGame);
 

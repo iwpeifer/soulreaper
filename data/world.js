@@ -3401,7 +3401,7 @@ const devSpellConfigs = {
     "name": "Pacify",
     "realm": "Ethereal",
     "lvl": 1,
-    "cooldown": 8,
+    "cooldown": 4,
     "range": 10,
     "text": "Removes aggression from a hostile enemy for 1.5 seconds.",
     "manualTarget": true,
@@ -7870,12 +7870,6 @@ const devDungeonConfigs = [
         "brush": "diag-nw"
       },
       {
-        "x": 29,
-        "y": 23,
-        "texture": "./assets/ground/dwarf-floor.png",
-        "brush": "square"
-      },
-      {
         "x": 13,
         "y": 24,
         "texture": "./assets/ground/dwarf-tile.png",
@@ -9069,7 +9063,7 @@ const devDungeonConfigs = [
     "cellSize": 128,
     "width": 16,
     "height": 32,
-    "wallTexture": "./assets/ground/rat-den.png",
+    "wallTexture": "./assets/ground/house-wall.png",
     "entrance": {
       "x": 7,
       "y": 31
@@ -10146,184 +10140,184 @@ const devDungeonConfigs = [
         "name": "Badgeri",
         "x": 5,
         "y": 20,
-        "level": 1,
-        "elite": false,
+        "level": 5,
+        "elite": true,
         "boss": false
       },
       {
         "name": "Badgeri",
         "x": 5,
         "y": 22,
-        "level": 1,
-        "elite": false,
+        "level": 5,
+        "elite": true,
         "boss": false
       },
       {
         "name": "Badgeri",
         "x": 7,
         "y": 20,
-        "level": 1,
-        "elite": false,
+        "level": 5,
+        "elite": true,
         "boss": false
       },
       {
         "name": "Badgeri",
         "x": 7,
         "y": 22,
-        "level": 1,
-        "elite": false,
+        "level": 5,
+        "elite": true,
         "boss": false
       },
       {
         "name": "Badgeri Bruiser",
         "x": 12,
         "y": 20,
-        "level": 1,
-        "elite": false,
+        "level": 5,
+        "elite": true,
         "boss": false
       },
       {
         "name": "Badgeri Bruiser",
         "x": 12,
         "y": 22,
-        "level": 1,
-        "elite": false,
+        "level": 5,
+        "elite": true,
         "boss": false
       },
       {
         "name": "Badgeri Bruiser",
         "x": 13,
         "y": 21,
-        "level": 1,
-        "elite": false,
+        "level": 5,
+        "elite": true,
         "boss": false
       },
       {
         "name": "Badgeri",
         "x": 12,
         "y": 17,
-        "level": 1,
-        "elite": false,
+        "level": 6,
+        "elite": true,
         "boss": false
       },
       {
         "name": "Badgeri",
         "x": 13,
         "y": 17,
-        "level": 1,
-        "elite": false,
+        "level": 6,
+        "elite": true,
         "boss": false
       },
       {
         "name": "Badgeri Shaman",
         "x": 12,
         "y": 16,
-        "level": 1,
-        "elite": false,
+        "level": 6,
+        "elite": true,
         "boss": false
       },
       {
         "name": "Badgeri Shaman",
         "x": 13,
         "y": 16,
-        "level": 1,
-        "elite": false,
+        "level": 6,
+        "elite": true,
         "boss": false
       },
       {
         "name": "Badgeri Shaman",
         "x": 10,
         "y": 9,
-        "level": 1,
-        "elite": false,
+        "level": 6,
+        "elite": true,
         "boss": false
       },
       {
         "name": "Badgeri Shaman",
         "x": 8,
         "y": 7,
-        "level": 1,
-        "elite": false,
+        "level": 6,
+        "elite": true,
         "boss": false
       },
       {
         "name": "Badgeri Shaman",
         "x": 12,
         "y": 7,
-        "level": 1,
-        "elite": false,
+        "level": 6,
+        "elite": true,
         "boss": false
       },
       {
         "name": "Badgeri Shaman",
         "x": 10,
         "y": 5,
-        "level": 1,
-        "elite": false,
+        "level": 6,
+        "elite": true,
         "boss": false
       },
       {
         "name": "Badgeri Bruiser",
         "x": 11,
         "y": 9,
-        "level": 1,
-        "elite": false,
+        "level": 6,
+        "elite": true,
         "boss": false
       },
       {
         "name": "Badgeri Bruiser",
         "x": 12,
         "y": 6,
-        "level": 1,
-        "elite": false,
+        "level": 6,
+        "elite": true,
         "boss": false
       },
       {
         "name": "Badgeri Bruiser",
         "x": 8,
         "y": 8,
-        "level": 1,
-        "elite": false,
+        "level": 6,
+        "elite": true,
         "boss": false
       },
       {
         "name": "Badgeri Bruiser",
         "x": 9,
         "y": 5,
-        "level": 1,
-        "elite": false,
+        "level": 6,
+        "elite": true,
         "boss": false
       },
       {
         "name": "Badgeri Bruiser",
         "x": 3,
         "y": 2,
-        "level": 1,
-        "elite": false,
+        "level": 7,
+        "elite": true,
         "boss": false
       },
       {
         "name": "Badgeri Bruiser",
         "x": 5,
         "y": 2,
-        "level": 1,
-        "elite": false,
+        "level": 7,
+        "elite": true,
         "boss": false
       },
       {
         "name": "Badgeri Bruiser",
         "x": 3,
         "y": 1,
-        "level": 1,
-        "elite": false,
+        "level": 7,
+        "elite": true,
         "boss": false
       },
       {
         "name": "Badgeri Shaman",
         "x": 5,
         "y": 1,
-        "level": 1,
-        "elite": false,
+        "level": 7,
+        "elite": true,
         "boss": false
       }
     ],
@@ -10436,10 +10430,12 @@ const devDungeonConfigs = [
       },
       {
         "name": "Badgeri Shaman",
-        "frequency": 4,
+        "frequency": 2,
         "minLvl": 6
       }
-    ]
+    ],
+    "spawnRate": "Low",
+    "spawnAmount": "Low"
   }
 ];
 

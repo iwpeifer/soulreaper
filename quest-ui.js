@@ -964,7 +964,8 @@
     }
     dialogueTitle.textContent = title;
     renderDialoguePage();
-    dialogueWindow.classList.remove("hidden");
+    if (typeof window.openSoulreaperFloatingWindow === "function") window.openSoulreaperFloatingWindow("dialogue");
+    else dialogueWindow.classList.remove("hidden");
     syncPointerPause();
   }
 

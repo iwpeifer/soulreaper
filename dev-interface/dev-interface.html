@@ -15,6 +15,7 @@
         </header>
         <nav class="main-tabs" aria-label="Editor tabs">
           <button class="active" type="button" data-tab="units">Units</button>
+          <button type="button" data-tab="lootTables">Loot Tables</button>
           <button type="button" data-tab="areas">Areas</button>
           <button type="button" data-tab="dungeons">Dungeons</button>
           <button type="button" data-tab="spells">Spells</button>
@@ -136,6 +137,20 @@
           </form>
         </section>
 
+        <section id="lootTablesView" class="tab-view">
+          <form id="lootTableForm" class="editor-grid">
+            <section class="panel">
+              <h3>Loot Table</h3>
+              <label><span>Name</span><input name="name" type="text"></label>
+            </section>
+            <section class="panel full">
+              <h3>Tables</h3>
+              <div id="editorLootTableList" class="stack-list"></div>
+              <button id="addEditorLootTableButton" type="button">Add Loot Table</button>
+            </section>
+          </form>
+        </section>
+
         <section id="factionsView" class="tab-view">
           <form id="factionForm" class="editor-grid">
             <section class="panel">
@@ -173,6 +188,8 @@
                 <label><span>ID</span><input name="id" type="text"></label>
                 <label><span>Width Squares</span><input name="width" type="number" min="1" max="80" step="1"></label>
                 <label><span>Height Squares</span><input name="height" type="number" min="1" max="80" step="1"></label>
+                <label><span>Spawn Rate</span><select name="spawnRate"></select></label>
+                <label><span>Spawn Amount</span><select name="spawnAmount"></select></label>
               </div>
               <p class="hint">Each square represents 128 x 128 pixels in the dungeon.</p>
             </section>
@@ -716,7 +733,7 @@
         <h3>Import Loot Table</h3>
         <button id="closeLootImportDialog" type="button">Close</button>
       </header>
-      <input id="lootImportSearch" type="search" placeholder="Filter units">
+      <input id="lootImportSearch" type="search" placeholder="Filter loot tables">
       <div id="lootImportList" class="bulk-check-list"></div>
     </dialog>
 

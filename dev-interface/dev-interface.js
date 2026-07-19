@@ -180,6 +180,7 @@ const state = {
   dungeonSelectedNpc: "",
   dungeonSelectedBrush: "square",
   spellIndex: 0,
+  lootTableIndex: 0,
   enchantmentIndex: 0,
   craftingSkill: "Tailoring",
   craftingIndex: 0,
@@ -193,6 +194,7 @@ const state = {
   assetIndex: 0,
   npcShopBulkGroup: "",
   lootBulkTableIndex: -1,
+  lootBulkContainerSelector: "#unitLootList",
   areas: [],
   dungeons: [],
   spells: [],
@@ -205,6 +207,7 @@ const state = {
   itemOriginalNames: Object.fromEntries(ITEM_GROUP_KEYS.map(key => [key, []])),
   itemRenames: {},
   lootTables: {},
+  editorLootTables: [],
   inheritedLootTables: {},
   assets: { all: [], unitSprites: [], featureSprites: [], groundTextures: [], spellIcons: [], audio: [] },
   dirty: false,
@@ -217,6 +220,7 @@ const statusText = $("#statusText");
 const validationPanel = $("#validationPanel");
 const searchInput = $("#searchInput");
 const unitForm = $("#unitForm");
+const lootTableForm = $("#lootTableForm");
 const areaForm = $("#areaForm");
 const dungeonForm = $("#dungeonForm");
 const spellForm = $("#spellForm");
@@ -717,7 +721,7 @@ function renderTabs() {
   $("#itemGroupsPanel").style.display = state.tab === "items" ? "" : "none";
   $("#npcGroupsPanel").style.display = state.tab === "npcs" ? "" : "none";
   $("#assetGroupsPanel").style.display = state.tab === "assets" ? "" : "none";
-  $("#editorTitle").textContent = state.tab === "units" ? "Units" : state.tab === "areas" ? "Areas" : state.tab === "dungeons" ? "Dungeons" : state.tab === "spells" ? "Spells" : state.tab === "enchantments" ? "Enchantments" : state.tab === "items" ? "Items" : state.tab === "crafting" ? "Crafting" : state.tab === "factions" ? "Factions" : state.tab === "npcs" ? "NPCs" : state.tab === "quests" ? "Quests" : "Assets";
+  $("#editorTitle").textContent = state.tab === "units" ? "Units" : state.tab === "lootTables" ? "Loot Tables" : state.tab === "areas" ? "Areas" : state.tab === "dungeons" ? "Dungeons" : state.tab === "spells" ? "Spells" : state.tab === "enchantments" ? "Enchantments" : state.tab === "items" ? "Items" : state.tab === "crafting" ? "Crafting" : state.tab === "factions" ? "Factions" : state.tab === "npcs" ? "NPCs" : state.tab === "quests" ? "Quests" : "Assets";
   $("#newButton").disabled = state.tab === "assets";
   $("#duplicateButton").disabled = state.tab === "assets";
   $("#deleteButton").disabled = state.tab === "assets";
@@ -741,6 +745,7 @@ function renderGroupTabs() {
 
 function currentRecords() {
   if (state.tab === "units") return activeUnits();
+  if (state.tab === "lootTables") return state.editorLootTables;
   if (state.tab === "areas") return state.areas;
   if (state.tab === "dungeons") return state.dungeons;
   if (state.tab === "spells") return state.spells;
@@ -755,6 +760,7 @@ function currentRecords() {
 
 function currentIndex() {
   if (state.tab === "units") return state.unitIndex;
+  if (state.tab === "lootTables") return state.lootTableIndex;
   if (state.tab === "areas") return state.areaIndex;
   if (state.tab === "dungeons") return state.dungeonIndex;
   if (state.tab === "spells") return state.spellIndex;
@@ -769,6 +775,7 @@ function currentIndex() {
 
 function setCurrentIndex(index) {
   if (state.tab === "units") state.unitIndex = index;
+  else if (state.tab === "lootTables") state.lootTableIndex = index;
   else if (state.tab === "areas") state.areaIndex = index;
   else if (state.tab === "dungeons") {
     state.dungeonIndex = index;
@@ -990,7 +997,45 @@ function renderUnitLoot() {
   const inheritedTables = normalizeLootTables(state.inheritedLootTables[unit?.name]);
   $("#unitLootList").innerHTML = [
     ...inheritedTables.map(table => inheritedLootTableHtml(table)),
-    ...tables.map((table, tableIndex) => `
+    ...tables.map((table, tableIndex) => editableLootTableHtml(table, tableIndex))
+  ].join("");
+}
+
+function selectedEditorLootTable() {
+  return state.editorLootTables[state.lootTableIndex] || null;
+}
+
+function normalizeEditorLootTables(tables = []) {
+  return (Array.isArray(tables) ? tables : [])
+    .map(table => ({
+      name: table.name || "New Loot Table",
+      tables: normalizeLootTables(table)
+    }))
+    .filter(table => table.name);
+}
+
+function fillLootTableForm() {
+  const table = selectedEditorLootTable();
+  if (!table) {
+    lootTableForm.elements.name.value = "";
+    $("#editorLootTableList").innerHTML = `<p class="hint">Create a loot table to edit it.</p>`;
+    return;
+  }
+  lootTableForm.elements.name.value = table.name || "";
+  $("#editorLootTableList").innerHTML = normalizeLootTables(table).map((lootTable, tableIndex) => editableLootTableHtml(lootTable, tableIndex)).join("");
+}
+
+function readLootTableForm() {
+  const current = selectedEditorLootTable() || { name: "New Loot Table", tables: [] };
+  return {
+    ...current,
+    name: lootTableForm.elements.name.value.trim() || current.name || "New Loot Table",
+    tables: normalizeLootTables(readLootTablesFrom("#editorLootTableList"))
+  };
+}
+
+function editableLootTableHtml(table, tableIndex) {
+  return `
     <section class="stack-row loot-table-row" data-loot-table="${tableIndex}">
       <div class="form-grid two">
         <label><span>Min LVL</span><input data-loot-table-min type="number" step="1" min="1" value="${table.minLvl ?? ""}"></label>
@@ -1005,8 +1050,7 @@ function renderUnitLoot() {
         <button type="button" data-remove-loot-table>Delete Table</button>
       </div>
     </section>
-  `)
-  ].join("");
+  `;
 }
 
 function normalizeLootTables(raw) {
@@ -1080,8 +1124,8 @@ function syncLootPreview(row) {
   if (preview) preview.innerHTML = graphic ? `<img src="../${graphic.replace(/^\.\//, "")}" alt="">` : "";
 }
 
-function readUnitLootFor(name) {
-  const tables = [...document.querySelectorAll("[data-loot-table]")].map(section => {
+function readLootTablesFrom(containerSelector) {
+  const tables = [...document.querySelectorAll(`${containerSelector} [data-loot-table]`)].map(section => {
     const minValue = section.querySelector("[data-loot-table-min]").value;
     const maxValue = section.querySelector("[data-loot-table-max]").value;
     const entries = [...section.querySelectorAll("[data-loot-row]")].map(row => ({
@@ -1095,6 +1139,10 @@ function readUnitLootFor(name) {
   }).filter(table => table.entries.length);
   if (!tables.length) return [];
   return { tables };
+}
+
+function readUnitLootFor(name) {
+  return readLootTablesFrom("#unitLootList");
 }
 
 function renderUnitSprite() {
@@ -1173,6 +1221,8 @@ function defaultDungeon() {
     units: [],
     npcs: [],
     features: [],
+    spawnRate: "Normal",
+    spawnAmount: "Normal",
     spawnTable: []
   };
 }
@@ -1239,6 +1289,8 @@ function normalizeDungeon(dungeon = {}) {
       .filter(feature => feature.sprite && feature.x >= 0 && feature.y >= 0 && feature.x < width && feature.y < height),
     spawnTable: normalizeSpawnRows(dungeon.spawnTable)
   };
+  if (AREA_SPAWN_RATES.includes(dungeon.spawnRate)) normalized.spawnRate = dungeon.spawnRate;
+  if (AREA_SPAWN_AMOUNTS.includes(dungeon.spawnAmount) && dungeon.spawnAmount !== "Normal") normalized.spawnAmount = dungeon.spawnAmount;
   const seenCells = new Map();
   for (const cell of normalized.cells) seenCells.set(`${cell.x},${cell.y}`, cell);
   normalized.cells = [...seenCells.values()].sort((a, b) => a.y - b.y || a.x - b.x);
@@ -1332,6 +1384,8 @@ function fillDungeonForm() {
   dungeonForm.elements.width.value = normalized.width;
   dungeonForm.elements.height.value = normalized.height;
   dungeonForm.elements.wallTexture.value = normalized.wallTexture;
+  dungeonForm.elements.spawnRate.innerHTML = areaSpawnRateOptionHtml(AREA_SPAWN_RATES.includes(normalized.spawnRate) ? normalized.spawnRate : "");
+  dungeonForm.elements.spawnAmount.innerHTML = areaSpawnAmountOptionHtml(normalized.spawnAmount);
   renderDungeonToolOptions(normalized);
   renderDungeonGrid(normalized);
   renderDungeonSpawns(normalized);
@@ -1347,6 +1401,12 @@ function readDungeonForm() {
   dungeon.width = width;
   dungeon.height = height;
   dungeon.wallTexture = dungeonForm.elements.wallTexture.value || DEFAULT_DUNGEON_WALL_TEXTURE;
+  const spawnRate = dungeonForm.elements.spawnRate.value;
+  if (AREA_SPAWN_RATES.includes(spawnRate)) dungeon.spawnRate = spawnRate;
+  else delete dungeon.spawnRate;
+  const spawnAmount = dungeonForm.elements.spawnAmount.value;
+  if (AREA_SPAWN_AMOUNTS.includes(spawnAmount) && spawnAmount !== "Normal") dungeon.spawnAmount = spawnAmount;
+  else delete dungeon.spawnAmount;
   dungeon.spawnTable = readSpawnRows("#dungeonSpawnList");
   return normalizeDungeon(dungeon);
 }
@@ -2955,6 +3015,20 @@ function unitLootSummary(unitName) {
   ].filter(Boolean).join(" / ") || "No loot";
 }
 
+function lootTableEntryCount(table) {
+  return (table?.entries || []).length;
+}
+
+function lootImportButtonHtml(source, table, index) {
+  const range = [table.minLvl ? `Min ${table.minLvl}` : "", table.maxLvl ? `Max ${table.maxLvl}` : ""].filter(Boolean).join(" / ") || "Any level";
+  return `
+    <button type="button" class="bulk-check-row" data-import-loot-kind="${escapeHtml(source.kind)}" data-import-loot-name="${escapeHtml(source.name)}" data-import-loot-index="${index}">
+      <strong>${escapeHtml(source.label)}</strong>
+      <small>${escapeHtml(`${range} - ${lootTableEntryCount(table)} item${lootTableEntryCount(table) === 1 ? "" : "s"}`)}</small>
+    </button>
+  `;
+}
+
 function openLootImportPicker() {
   const unit = selectedUnit();
   if (!unit) return;
@@ -2967,37 +3041,58 @@ function openLootImportPicker() {
 function renderLootImportPicker() {
   const currentName = selectedUnit()?.name || "";
   const query = $("#lootImportSearch").value.trim().toLowerCase();
-  const units = allUnitNames()
-    .filter(name => name !== currentName)
-    .filter(name => !query || name.toLowerCase().includes(query));
-  $("#lootImportList").innerHTML = units.length ? units.map(name => `
-    <button type="button" class="bulk-check-row" data-import-loot-unit="${escapeHtml(name)}">
-      <strong>${escapeHtml(name)}</strong>
-      <small>${escapeHtml(unitLootSummary(name))}</small>
-    </button>
-  `).join("") : `<div class="empty-state">No units found.</div>`;
+  const rows = [];
+  for (const name of allUnitNames().filter(name => name !== currentName)) {
+    const tables = normalizeLootTables(state.lootTables[name]);
+    const inheritedTables = normalizeLootTables(state.inheritedLootTables[name]);
+    tables.forEach((table, index) => rows.push({
+      haystack: `${name} ${unitLootSummary(name)} direct`,
+      html: lootImportButtonHtml({ kind: "unit", name, label: `${name} - Table ${index + 1}` }, table, index)
+    }));
+    inheritedTables.forEach((table, index) => rows.push({
+      haystack: `${name} ${table.source || "inherited"} inherited`,
+      html: lootImportButtonHtml({ kind: "unitInherited", name, label: `${name} - ${table.source || "Inherited Table"}` }, table, index)
+    }));
+  }
+  for (const tableSet of state.editorLootTables || []) {
+    normalizeLootTables(tableSet).forEach((table, index) => rows.push({
+      haystack: `${tableSet.name} standalone loot table`,
+      html: lootImportButtonHtml({ kind: "editor", name: tableSet.name, label: `${tableSet.name} - Table ${index + 1}` }, table, index)
+    }));
+  }
+  const filtered = rows.filter(row => !query || row.haystack.toLowerCase().includes(query));
+  $("#lootImportList").innerHTML = filtered.length ? filtered.map(row => row.html).join("") : `<div class="empty-state">No loot tables found.</div>`;
 }
 
-function importLootFromUnit(sourceName) {
+function importLootTable(kind, sourceName, sourceIndex) {
   const unit = selectedUnit();
   if (!unit || !sourceName) return;
-  const tables = normalizeLootTables(state.lootTables[sourceName]);
-  state.lootTables[unit.name] = { tables: structuredClone(tables) };
+  const sourceTables = kind === "unitInherited"
+    ? normalizeLootTables(state.inheritedLootTables[sourceName])
+    : kind === "editor"
+      ? normalizeLootTables((state.editorLootTables || []).find(table => table.name === sourceName))
+      : normalizeLootTables(state.lootTables[sourceName]);
+  const table = sourceTables[Number(sourceIndex)];
+  if (!table) return;
+  const tables = normalizeLootTables(readUnitLootFor(unit.name));
+  tables.push(structuredClone(table));
+  state.lootTables[unit.name] = { tables };
   $("#lootImportDialog").close();
   state.dirty = true;
   renderCurrentForm();
-  setStatus(`Imported loot from ${sourceName}`);
+  setStatus(`Imported loot table from ${sourceName}`);
 }
 
-function currentLootTableItemNames(tableIndex) {
-  const section = document.querySelector(`[data-loot-table="${tableIndex}"]`);
+function currentLootTableItemNames(tableIndex, containerSelector = "#unitLootList") {
+  const section = document.querySelector(`${containerSelector} [data-loot-table="${tableIndex}"]`);
   return new Set([...section?.querySelectorAll("[data-loot-row]") || []]
     .map(row => row.querySelector("[data-loot-name]")?.value)
     .filter(Boolean));
 }
 
-function openLootBulkPicker(tableIndex) {
+function openLootBulkPicker(tableIndex, containerSelector = "#unitLootList") {
   state.lootBulkTableIndex = Number(tableIndex);
+  state.lootBulkContainerSelector = containerSelector;
   $("#lootBulkSearch").value = "";
   renderLootBulkPicker();
   $("#lootBulkDialog").showModal();
@@ -3005,7 +3100,7 @@ function openLootBulkPicker(tableIndex) {
 
 function renderLootBulkPicker() {
   const query = $("#lootBulkSearch").value.trim().toLowerCase();
-  const existing = currentLootTableItemNames(state.lootBulkTableIndex);
+  const existing = currentLootTableItemNames(state.lootBulkTableIndex, state.lootBulkContainerSelector);
   const items = ITEM_GROUP_KEYS.flatMap(group => (state.items[group] || []).map(item => ({ ...item, group })))
     .filter(item => !query || [item.name, item.rarity, item.slot, ITEM_GROUPS[item.group]].join(" ").toLowerCase().includes(query))
     .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
@@ -3023,9 +3118,10 @@ function renderLootBulkPicker() {
 
 function addSelectedLootItems() {
   const unit = selectedUnit();
-  const section = document.querySelector(`[data-loot-table="${state.lootBulkTableIndex}"]`);
+  const tableSet = selectedEditorLootTable();
+  const section = document.querySelector(`${state.lootBulkContainerSelector || "#unitLootList"} [data-loot-table="${state.lootBulkTableIndex}"]`);
   const container = section?.querySelector(".stack-list");
-  if (!unit || !container) return;
+  if (!container || (!unit && !tableSet)) return;
   const selected = [...document.querySelectorAll("[data-loot-bulk-item]:checked:not(:disabled)")]
     .map(input => input.value)
     .filter(Boolean);
@@ -3033,7 +3129,8 @@ function addSelectedLootItems() {
   for (const name of selected) {
     container.insertAdjacentHTML("beforeend", lootEntryRow({ name, chance: 0.1 }));
   }
-  state.lootTables[unit.name] = readUnitLootFor(unit.name);
+  if (state.lootBulkContainerSelector === "#editorLootTableList" && tableSet) tableSet.tables = normalizeLootTables(readLootTablesFrom("#editorLootTableList"));
+  else if (unit) state.lootTables[unit.name] = readUnitLootFor(unit.name);
   $("#lootBulkDialog").close();
   state.dirty = true;
   validateCurrentForm();
@@ -3051,6 +3148,7 @@ function writeCurrentFormToState() {
     state.unitGroups[ref.groupName].entries[ref.index] = unit;
     ref.unit = unit;
   }
+  if (state.tab === "lootTables" && selectedEditorLootTable()) state.editorLootTables[state.lootTableIndex] = readLootTableForm();
   if (state.tab === "areas" && selectedArea()) state.areas[state.areaIndex] = readAreaForm();
   if (state.tab === "dungeons" && selectedDungeon()) state.dungeons[state.dungeonIndex] = readDungeonForm();
   if (state.tab === "spells" && selectedSpell()) state.spells[state.spellIndex] = readSpellForm();
@@ -3087,6 +3185,12 @@ function validateCurrentForm() {
       const unit = readUnitForm();
       if (!unit.name) errors.push("Unit name is required.");
       if (!unit.weapon.name) errors.push("Weapon is required.");
+    } else if (state.tab === "lootTables") {
+      const table = readLootTableForm();
+      if (!table.name) errors.push("Loot table name is required.");
+      const duplicateIndex = state.editorLootTables.findIndex((candidate, index) => index !== state.lootTableIndex && candidate.name === table.name);
+      if (table.name && duplicateIndex >= 0) errors.push(`Loot table name duplicates "${table.name}".`);
+      validateJsonSafeValueInBrowser(table, "loot table", errors);
     } else if (state.tab === "areas") {
       const area = readAreaForm();
       if (!area.name) errors.push("Area name is required.");
@@ -3203,6 +3307,7 @@ function renderCurrentForm() {
   renderItemNameOptions();
   renderRecordList();
   if (state.tab === "units") fillUnitForm();
+  if (state.tab === "lootTables") fillLootTableForm();
   if (state.tab === "areas") fillAreaForm();
   if (state.tab === "dungeons") fillDungeonForm();
   if (state.tab === "spells") fillSpellForm();
@@ -3250,9 +3355,11 @@ async function loadData() {
   ]));
   state.itemRenames = {};
   state.lootTables = data.lootTables || {};
+  state.editorLootTables = normalizeEditorLootTables(data.editorLootTables || []);
   state.inheritedLootTables = data.inheritedLootTables || {};
   state.assets = { all: [], unitSprites: [], featureSprites: [], groundTextures: [], spellIcons: [], audio: [], ...data.assets };
   state.unitIndex = 0;
+  state.lootTableIndex = 0;
   state.areaIndex = 0;
   state.dungeonIndex = 0;
   state.dungeonSelectedUnitIndex = -1;
@@ -3288,7 +3395,8 @@ async function saveData() {
     quests: state.quests,
     items: state.items,
     itemRenames: state.itemRenames,
-    lootTables: state.lootTables
+    lootTables: state.lootTables,
+    editorLootTables: state.editorLootTables
   };
   normalizeRealmData(payload);
   setStatus("Saving...");
@@ -3317,6 +3425,9 @@ function createRecord() {
     entries.push(unit);
     rebuildUnitRefs();
     state.unitIndex = state.unitRefs.findIndex(ref => ref.unit === unit);
+  } else if (state.tab === "lootTables") {
+    state.editorLootTables.push({ name: uniqueName("New Loot Table", state.editorLootTables.map(table => table.name)), tables: [{ entries: [{ name: allItemNames()[0] || "", chance: 0.1 }] }] });
+    state.lootTableIndex = state.editorLootTables.length - 1;
   } else if (state.tab === "areas") {
     state.areas.push({ name: uniqueName("New Area", state.areas.map(area => area.name)), levelRange: { min: 1, max: 1 }, spawnRate: "Normal", spawnAmount: "Normal", connectsTo: [], environment: { groundTexture: "", features: [] }, spawnTable: [] });
     state.areaIndex = state.areas.length - 1;
@@ -3384,6 +3495,7 @@ function duplicateRecord() {
   if (state.tab === "npcs") copy.id = uniqueId(`${copy.id || "npc"}-copy`, records.map(record => record.id));
   if (state.tab === "dungeons") copy.id = uniqueId(`${copy.id || "dungeon"}-copy`, records.map(record => record.id));
   if (state.tab === "crafting") copy.name = uniqueName(`${copy.name || "Recipe"} Copy`, records.map(record => record.name));
+  if (state.tab === "lootTables") copy.name = uniqueName(`${copy.name || "Loot Table"} Copy`, records.map(record => record.name));
   records.splice(currentIndex() + 1, 0, copy);
   if (state.tab === "items") state.itemOriginalNames[state.itemGroup].splice(currentIndex() + 1, 0, "");
   setCurrentIndex(currentIndex() + 1);
@@ -3629,7 +3741,7 @@ recordList.addEventListener("click", event => {
   renderCurrentForm();
 });
 
-for (const form of [unitForm, areaForm, dungeonForm, spellForm, enchantmentForm, craftingForm, factionForm, itemForm, questForm, npcForm]) {
+for (const form of [unitForm, lootTableForm, areaForm, dungeonForm, spellForm, enchantmentForm, craftingForm, factionForm, itemForm, questForm, npcForm]) {
   form.addEventListener("input", event => {
     state.dirty = true;
     if (form === unitForm) {
@@ -4125,6 +4237,16 @@ $("#addLootButton").addEventListener("click", () => {
   renderCurrentForm();
 });
 $("#importLootButton").addEventListener("click", openLootImportPicker);
+$("#addEditorLootTableButton").addEventListener("click", () => {
+  const table = selectedEditorLootTable();
+  if (!table) return;
+  state.editorLootTables[state.lootTableIndex] = readLootTableForm();
+  const tables = normalizeLootTables(state.editorLootTables[state.lootTableIndex]);
+  tables.push({ minLvl: "", maxLvl: "", entries: [{ name: allItemNames()[0] || "", chance: 0.1 }] });
+  state.editorLootTables[state.lootTableIndex].tables = tables;
+  state.dirty = true;
+  renderCurrentForm();
+});
 unitForm.addEventListener("click", event => {
   const addLootEntryButton = event.target.closest("[data-add-loot-entry]");
   if (addLootEntryButton) {
@@ -4156,6 +4278,37 @@ unitForm.addEventListener("click", event => {
     const unit = selectedUnit();
     if (unit && isSpellRow) unit.spells = readUnitSpells();
     if (unit && isLootRow) state.lootTables[unit.name] = readUnitLootFor(unit.name);
+    state.dirty = true;
+    renderCurrentForm();
+  }
+});
+lootTableForm.addEventListener("click", event => {
+  const addLootEntryButton = event.target.closest("[data-add-loot-entry]");
+  if (addLootEntryButton) {
+    addLootEntryButton.closest("[data-loot-table]")?.querySelector(".stack-list")?.insertAdjacentHTML("beforeend", lootEntryRow({ name: allItemNames()[0] || "", chance: 0.1 }));
+    state.dirty = true;
+    validateCurrentForm();
+    setStatus("Unsaved changes");
+    return;
+  }
+  const addLootManyButton = event.target.closest("[data-add-loot-many]");
+  if (addLootManyButton) {
+    const table = addLootManyButton.closest("[data-loot-table]");
+    if (table) openLootBulkPicker(table.dataset.lootTable, "#editorLootTableList");
+    return;
+  }
+  if (event.target.closest("[data-remove-loot-table]")) {
+    event.target.closest("[data-loot-table]")?.remove();
+    const table = selectedEditorLootTable();
+    if (table) table.tables = normalizeLootTables(readLootTablesFrom("#editorLootTableList"));
+    state.dirty = true;
+    renderCurrentForm();
+    return;
+  }
+  if (event.target.closest("[data-remove-row]")) {
+    event.target.closest(".stack-row")?.remove();
+    const table = selectedEditorLootTable();
+    if (table) table.tables = normalizeLootTables(readLootTablesFrom("#editorLootTableList"));
     state.dirty = true;
     renderCurrentForm();
   }
@@ -4211,6 +4364,13 @@ unitForm.addEventListener("change", event => {
   validateCurrentForm();
   setStatus("Unsaved changes");
 });
+lootTableForm.addEventListener("change", event => {
+  const row = event.target.closest("[data-loot-row]");
+  if (row) syncLootPreview(row);
+  state.dirty = true;
+  validateCurrentForm();
+  setStatus("Unsaved changes");
+});
 
 $("#closeAssetDialog").addEventListener("click", () => $("#assetDialog").close());
 $("#assetSearch").addEventListener("input", renderAssetGrid);
@@ -4228,9 +4388,9 @@ $("#addNpcShopBulkSelected").addEventListener("click", addSelectedNpcShopItems);
 $("#closeLootImportDialog").addEventListener("click", () => $("#lootImportDialog").close());
 $("#lootImportSearch").addEventListener("input", renderLootImportPicker);
 $("#lootImportList").addEventListener("click", event => {
-  const button = event.target.closest("[data-import-loot-unit]");
+  const button = event.target.closest("[data-import-loot-kind]");
   if (!button) return;
-  importLootFromUnit(button.dataset.importLootUnit);
+  importLootTable(button.dataset.importLootKind, button.dataset.importLootName, button.dataset.importLootIndex);
 });
 $("#closeLootBulkDialog").addEventListener("click", () => $("#lootBulkDialog").close());
 $("#lootBulkSearch").addEventListener("input", renderLootBulkPicker);

@@ -107,9 +107,14 @@
           <aside class="character-list-panel">
             <div class="multiplayer-worlds-header">
               <span>Characters</span>
-              <button id="refreshAccountButton" class="small-button" type="button">Refresh</button>
+              <div class="account-header-actions">
+                <button id="accountLogoutButton" class="small-button" type="button">Log Out</button>
+              </div>
             </div>
             <div id="characterList" class="character-list"></div>
+            <button class="choice-card create-character-toggle" type="button" data-create-character-toggle>
+              <strong>Create New Character</strong>
+            </button>
           </aside>
           <section class="character-detail-panel">
             <form id="createCharacterForm" class="account-panel">
@@ -139,10 +144,7 @@
             </form>
             <div class="multiplayer-panel">
               <h3 class="mode-heading">World</h3>
-              <label class="name-field multiplayer-field">
-                <span>New World Name</span>
-                <input id="multiplayerWorldInput" type="text" maxlength="32" autocomplete="off" placeholder="The Hollow Road">
-              </label>
+              <input id="multiplayerWorldInput" type="hidden" maxlength="32" autocomplete="off">
               <div class="multiplayer-worlds">
                 <div class="multiplayer-worlds-header">
                   <span>Active Worlds</span>
@@ -276,6 +278,7 @@
               <button id="shopConsumablesTab" class="shop-tab" type="button">Supplies</button>
               <button id="shopScrollsTab" class="shop-tab" type="button">Scrolls</button>
               <button id="shopMiscTab" class="shop-tab" type="button">Materials</button>
+              <button id="shopTrainTab" class="shop-tab hidden" type="button">Train Skills</button>
             </div>
             <div id="shopInventory" class="shop-inventory"></div>
           </div>
@@ -326,8 +329,8 @@
       <section class="modal spellbook-modal" role="dialog" aria-modal="true" aria-labelledby="trainerTitle">
         <div class="shop-header">
           <div>
-            <h2 id="trainerTitle">Soulreaper Trainer</h2>
-            <p>Level active spells with gold.</p>
+            <h2 id="trainerTitle">Train Skills</h2>
+            <p>Level learned spells with gold.</p>
           </div>
           <button id="closeTrainerButton" class="shop-close" type="button">Close</button>
         </div>
@@ -406,14 +409,14 @@
     <script src="./data/item-art.js?v=gold-jewelry-20260712"></script>
     <script src="./data/npc-sprites.js"></script>
     <script src="./data/monsters.js?v=loot-duplicate-rolls-20260706"></script>
-    <script src="./data/world.js?v=editor-save-1784344732793"></script>
+    <script src="./data/world.js?v=editor-save-1784431464401"></script>
     <script src="./data/spells.js?v=portal-ingame-choice-20260713"></script>
     <script src="./npc-interactions.js"></script>
-    <script src="./map-generation.js?v=editor-save-1784344732793"></script>
+    <script src="./map-generation.js?v=editor-save-1784431464401"></script>
     <script src="./spell-runtime.js"></script>
     <script src="./inventory-ui.js?v=enchantment-avatar-channels-20260703"></script>
     <script src="./spell-ui.js?v=skills-crafting-tab-20260706"></script>
     <script src="./quest-ui.js?v=quest-hardening-20260708"></script>
-    <script src="./game.js?v=editor-save-1784344732793"></script>
+    <script src="./game.js?v=editor-save-1784431464401"></script>
   </body>
 </html>

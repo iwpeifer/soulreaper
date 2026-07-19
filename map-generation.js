@@ -578,16 +578,22 @@
     const rogabogu = makeRogabogu(lakeRoga);
     const yrgmaDim = makeYrgmaDim(harmushLagh, [harmushPassage, highstonePassage]);
     const transitionPassages = [passage, fenhold.passage, ratDenPassage, ratDenSeamPassage, gandersvillePassage, lakeRoga.passage, gladePassage, evermistPassage, ...grimswood.passages, wyndhelmPassage, crowingPassage, harkharPassage, harmushPassage, highstonePassage, hargaPassage, firecryPassage, kebaanPassage];
-    const passages = [...ratDenCavern.passages, ...ratzkhan.passages, ...diarrhRealm.passages, ...bearCave.passages, ...rogabogu.passages, ...yrgmaDim.passages, ...whisperspring.passages];
-    const reservationPassages = [...transitionPassages, ...passages];
-    const areas = [ganderswood, fen, fenhold.area, ratDen, ...ratDenCavern.areas, ...ratzkhan.areas, ...diarrhRealm.areas, ...bearCave.areas, ...rogabogu.areas, ...yrgmaDim.areas, ...ratDenConnectorPads, gandersville, lakeRoga.area, glade, evermist, ...whisperspring.areas, ...wyndhelmCathedral.areas, grimswood.hub, ...grimswoodPathPads, wyndhelm, crowingFields, harkharHighlands, harmushLagh, highstonePass, hargaVoagh, firecryPeak, gobba, wastes, kebaan.oasisArea, ...kebaan.ruins.areas];
-    repairMissingTransitionPads(areas, transitionPassages);
+    const initialDungeonPassages = [...ratDenCavern.passages, ...ratzkhan.passages, ...diarrhRealm.passages, ...bearCave.passages, ...rogabogu.passages, ...yrgmaDim.passages, ...whisperspring.passages];
+    const passagesBeforeBadgeria = initialDungeonPassages;
+    const reservationPassages = [...transitionPassages, ...passagesBeforeBadgeria];
     const harmushLake = makeHarmushLake(harmushLagh, reservationPassages);
     const hollyhockSite = makeHollyhockLakeSite(harmushLagh, harmushLake);
     const barbarianHouseSite = makeBarbarianHouseSite(harmushLagh, reservationPassages, harmushLake, [hollyhockSite?.npc].filter(Boolean));
+    const badgeria = makeBadgeria(harmushLagh, reservationPassages, harmushLake, [
+      yrgmaDim.entranceObstacle,
+      barbarianHouseSite?.house
+    ].filter(Boolean));
+    const passages = [...passagesBeforeBadgeria, ...badgeria.passages];
+    const areas = [ganderswood, fen, fenhold.area, ratDen, ...ratDenCavern.areas, ...ratzkhan.areas, ...diarrhRealm.areas, ...bearCave.areas, ...rogabogu.areas, ...yrgmaDim.areas, ...badgeria.areas, ...ratDenConnectorPads, gandersville, lakeRoga.area, glade, evermist, ...whisperspring.areas, ...wyndhelmCathedral.areas, grimswood.hub, ...grimswoodPathPads, wyndhelm, crowingFields, harkharHighlands, harmushLagh, highstonePass, hargaVoagh, firecryPeak, gobba, wastes, kebaan.oasisArea, ...kebaan.ruins.areas];
+    repairMissingTransitionPads(areas, transitionPassages);
     const river = makeCrowingRiver(crowingFields, 28);
     const mudBanks = makeCrowingRiverMudBanks(river);
-    const puddles = [lakeRoga.lake, harmushLake, ...makeGladePuddles(glade, 26), ...makeLavaPuddles(firecryPeak, 24), ...whisperspring.water, ...(bearCave.water || []), ...(bearCave.lava || []), ...(rogabogu.water || []), ...(rogabogu.lava || []), ...(yrgmaDim.water || []), ...(yrgmaDim.lava || []), ...river, kebaan.oasisWater];
+    const puddles = [lakeRoga.lake, harmushLake, ...makeGladePuddles(glade, 26), ...makeLavaPuddles(firecryPeak, 24), ...whisperspring.water, ...(bearCave.water || []), ...(bearCave.lava || []), ...(rogabogu.water || []), ...(rogabogu.lava || []), ...(yrgmaDim.water || []), ...(yrgmaDim.lava || []), ...(badgeria.water || []), ...(badgeria.lava || []), ...river, kebaan.oasisWater];
     const oasisGrounds = [kebaan.oasisGround];
     const mistClouds = makeEvermistClouds(evermist, 70);
     const homestead = makeStartingHomestead(ganderswood, areas, reservationPassages);
@@ -648,7 +654,7 @@
     });
     if (hollyhockSite?.npc) configuredNpcs.push(hollyhockSite.npc);
     configuredNpcs.push(...(barbarianHouseSite?.npcs || []));
-    configuredNpcs.push(...(bearCave.configuredNpcs || []), ...(rogabogu.configuredNpcs || []), ...(yrgmaDim.configuredNpcs || []));
+    configuredNpcs.push(...(bearCave.configuredNpcs || []), ...(rogabogu.configuredNpcs || []), ...(yrgmaDim.configuredNpcs || []), ...(badgeria.configuredNpcs || []));
     const fenGraveyard = makeRandomGraveyardSite(fen, areas, reservationPassages, mapHouses, {
       id: "ganderswood-fen-graveyard",
       w: 410,
@@ -692,7 +698,8 @@
       ...(ratzkhan.fixedSpawns || []),
       ...(bearCave.fixedSpawns || []),
       ...(rogabogu.fixedSpawns || []),
-      ...(yrgmaDim.fixedSpawns || [])
+      ...(yrgmaDim.fixedSpawns || []),
+      ...(badgeria.fixedSpawns || [])
     ].filter(Boolean);
     const obstacles = [];
     obstacles.push(whisperspring.entranceObstacle);
@@ -702,7 +709,8 @@
     if (bearCave.entranceObstacle) obstacles.push(bearCave.entranceObstacle);
     if (rogabogu.entranceObstacle) obstacles.push(rogabogu.entranceObstacle);
     if (yrgmaDim.entranceObstacle) obstacles.push(yrgmaDim.entranceObstacle);
-    obstacles.push(...(bearCave.featureObstacles || []), ...(rogabogu.featureObstacles || []), ...(yrgmaDim.featureObstacles || []));
+    if (badgeria.entranceObstacle) obstacles.push(badgeria.entranceObstacle);
+    obstacles.push(...(bearCave.featureObstacles || []), ...(rogabogu.featureObstacles || []), ...(yrgmaDim.featureObstacles || []), ...(badgeria.featureObstacles || []));
     obstacles.push(...(wyndhelmCathedral.obstacles || []));
     obstacles.push(...makeGrimswoodDeadTrees(grimswood, 75));
     obstacles.push(...wyndhelmSite.obstacles);
@@ -714,6 +722,7 @@
     obstacles.push(...makeGladeRuinedPillars(glade, reservationPassages, puddles, eliteSpawns, 9));
     obstacles.push(...makeLakeRogaFlora(lakeRoga.area, reservationPassages, lakeRoga.lake, 64));
     obstacles.push(...makeEvermistFeatures(evermist, reservationPassages, 96));
+    obstacles.push(makeHarkharEyrie(harkharHighlands, reservationPassages, obstacles));
     obstacles.push(...makeAreaFeatureObstacles(harkharHighlands, reservationPassages, obstacles, [
       { kind: "pine-tree", weight: 5, minRadius: 18, maxRadius: 38 },
       { kind: "dead-tree", weight: 3, minRadius: 18, maxRadius: 36 },
@@ -792,7 +801,7 @@
   
     applyDevAreaConfigs(areas);
     const graveyards = [blasphemiumSite?.graveyard, fenGraveyard?.graveyard, wyndhelmGraveyard?.graveyard].filter(Boolean);
-    const map = { name: AREA_NAME, areas, passages, transitionPassages, obstacles, puddles, mudBanks, oasisGrounds, mistClouds, houses: mapHouses, furniture: [...(gandersvilleSite.furniture || []), ...(fenhold.furniture || []), ...(bearCave.furniture || []), ...(rogabogu.furniture || []), ...(yrgmaDim.furniture || [])], gandersvilleTownSquare: gandersvilleSite.townSquare, playerStart: gandersvilleSite.playerStart, shopkeeper, pleezix, trainer, gladeTrainer: gladeTrainerSite?.trainer || null, configuredNpcs, hollyhockQuestSites: hollyhockSite?.questSites || null, gvada, huntsmanRobb, blacksmithFredward, tailorAntonia, barbarianessSkjoldma, chaplainSonsam, highPriestessSierra, alchemistClaristra, magisterMaimon, juanTabo, lordYantos: gandersvilleSite.lordYantos, theodora: theodoraSite?.theodora || null, hereticOswaldo: blasphemiumSite?.hereticOswaldo || null, hereticSlayleigh: blasphemiumSite?.hereticSlayleigh || null, sharlene, mordren, cecil, bumsforkNpcs, ganderswoodGraveyard: blasphemiumSite?.graveyard || null, graveyards, grimswood, fenhold, whisperspring, whisperspringRooms: whisperspring.rooms, wyndhelmCathedral, wyndhelmCathedralRooms: wyndhelmCathedral.rooms, ratzkhan, diarrhRealm, diarrhRealmRooms: diarrhRealm.rooms, bearCave, bearCaveRooms: bearCave.rooms, rogabogu, rogaboguRooms: rogabogu.rooms, yrgmaDim, yrgmaDimRooms: yrgmaDim.rooms, firecryPeak, kebaan: { wastes, ...kebaan }, eliteSpawns, fixedSpawns };
+    const map = { name: AREA_NAME, areas, passages, transitionPassages, obstacles, puddles, mudBanks, oasisGrounds, mistClouds, houses: mapHouses, furniture: [...(gandersvilleSite.furniture || []), ...(fenhold.furniture || []), ...(bearCave.furniture || []), ...(rogabogu.furniture || []), ...(yrgmaDim.furniture || []), ...(badgeria.furniture || [])], gandersvilleTownSquare: gandersvilleSite.townSquare, playerStart: gandersvilleSite.playerStart, shopkeeper, pleezix, trainer, gladeTrainer: gladeTrainerSite?.trainer || null, configuredNpcs, hollyhockQuestSites: hollyhockSite?.questSites || null, gvada, huntsmanRobb, blacksmithFredward, tailorAntonia, barbarianessSkjoldma, chaplainSonsam, highPriestessSierra, alchemistClaristra, magisterMaimon, juanTabo, lordYantos: gandersvilleSite.lordYantos, theodora: theodoraSite?.theodora || null, hereticOswaldo: blasphemiumSite?.hereticOswaldo || null, hereticSlayleigh: blasphemiumSite?.hereticSlayleigh || null, sharlene, mordren, cecil, bumsforkNpcs, ganderswoodGraveyard: blasphemiumSite?.graveyard || null, graveyards, grimswood, fenhold, whisperspring, whisperspringRooms: whisperspring.rooms, wyndhelmCathedral, wyndhelmCathedralRooms: wyndhelmCathedral.rooms, ratzkhan, diarrhRealm, diarrhRealmRooms: diarrhRealm.rooms, bearCave, bearCaveRooms: bearCave.rooms, rogabogu, rogaboguRooms: rogabogu.rooms, yrgmaDim, yrgmaDimRooms: yrgmaDim.rooms, badgeria, badgeriaRooms: badgeria.rooms, firecryPeak, kebaan: { wastes, ...kebaan }, eliteSpawns, fixedSpawns };
     applyNpcConfigsToMap(map);
     scaleMapNpcRadii(map);
     prepareMapCaches(map);
@@ -1209,6 +1218,61 @@
       obstacles.push(obstacle);
     }
     return obstacles;
+  }
+
+  function makeEyrieBlockRects(size) {
+    const s = size;
+    return [
+      { x: -0.46 * s, y: -0.36 * s, w: 0.24 * s, h: 0.46 * s },
+      { x: 0.22 * s, y: -0.36 * s, w: 0.24 * s, h: 0.46 * s },
+      { x: -0.36 * s, y: -0.48 * s, w: 0.72 * s, h: 0.13 * s }
+    ];
+  }
+
+  function makeHarkharEyrie(area, passages, existingObstacles) {
+    const size = 700;
+    const radius = size * 0.5;
+    const clearance = radius + 80;
+    const candidateClear = (x, y) => {
+      const samples = [
+        { x, y },
+        { x: x - radius, y: y - radius },
+        { x: x + radius, y: y - radius },
+        { x: x - radius, y: y + radius },
+        { x: x + radius, y: y + radius },
+        { x, y: y - radius },
+        { x, y: y + radius },
+        { x: x - radius, y },
+        { x: x + radius, y }
+      ];
+      if (samples.some(point => !isPointInBoundary(point.x, point.y, area.boundary))) return false;
+      if (samples.some(point => pointInAnyPassage(point.x, point.y, passages, 120))) return false;
+      if ((existingObstacles || []).some(existing => distance({ x, y }, existing) < clearance + (existing.radius || Math.max(existing.w || 0, existing.h || 0, existing.size || 0) / 2 || 24))) return false;
+      return true;
+    };
+    for (let attempt = 0; attempt < 180; attempt += 1) {
+      const x = randomBetween(area.center.x - area.width * 0.34, area.center.x + area.width * 0.34);
+      const y = randomBetween(area.center.y - area.height * 0.34, area.center.y + area.height * 0.34);
+      if (!candidateClear(x, y)) continue;
+      return {
+        kind: "eyrie",
+        sprite: "./assets/sprites/eyrie.png",
+        x,
+        y,
+        radius,
+        size,
+        blockRects: makeEyrieBlockRects(size)
+      };
+    }
+    return {
+      kind: "eyrie",
+      sprite: "./assets/sprites/eyrie.png",
+      x: area.center.x,
+      y: area.center.y,
+      radius,
+      size,
+      blockRects: makeEyrieBlockRects(size)
+    };
   }
   
   function makeGandersvilleSite(gandersville) {
@@ -2476,6 +2540,7 @@
     const cellSize = Math.max(64, Number(config.cellSize) || 128);
     const origin = configuredDungeonOrigin(id);
     const cells = Array.isArray(config.cells) ? config.cells : [];
+    const configuredSpawnRate = config.spawnRate || (Array.isArray(config.spawnTable) && config.spawnTable.length ? "Normal" : "None");
     const cellKey = (x, y) => `${x},${y}`;
     const texturedCells = new Map(cells.map(cell => [cellKey(Number(cell.x), Number(cell.y)), cell]));
     const centerOfCell = (x, y) => ({
@@ -2494,6 +2559,8 @@
       const boundary = dungeonCellBoundary(center.x, center.y, cellSize, normalizeDungeonBrush(cell.brush));
       const area = makeDungeonShape(name, cellKey(x, y), boundary, dungeonSurfaceFromTexture(cell.texture));
       area.groundTexture = cell.texture;
+      area.spawnRate = configuredSpawnRate;
+      if (config.spawnAmount) area.spawnAmount = config.spawnAmount;
       areas.push(area);
       rooms.push({ id: cellKey(x, y), center, area });
     }
@@ -2697,6 +2764,69 @@
     };
   }
 
+  function pointNearBlockingObject(point, blockers = [], padding = 0) {
+    return blockers.some(blocker => {
+      if (!blocker) return false;
+      if (blocker.door && Math.hypot(point.x - blocker.door.x, point.y - blocker.door.y) < (blocker.door.radius || 0) + padding) return true;
+      if (Number.isFinite(blocker.w) && Number.isFinite(blocker.h)) {
+        const left = (blocker.x || 0) - blocker.w / 2 - padding;
+        const right = (blocker.x || 0) + blocker.w / 2 + padding;
+        const top = (blocker.y || 0) - blocker.h / 2 - padding;
+        const bottom = (blocker.y || 0) + blocker.h / 2 + padding;
+        return point.x >= left && point.x <= right && point.y >= top && point.y <= bottom;
+      }
+      return Math.hypot(point.x - (blocker.x || 0), point.y - (blocker.y || 0)) < (blocker.radius || 0) + padding;
+    });
+  }
+
+  function findRandomAreaEntranceSpot(area, entranceSize = 260, blockedPassages = [], blockedWater = [], blockers = []) {
+    const bounds = boundsForPoints(area.boundary || []);
+    const makeCandidate = (x, y) => ({
+      x,
+      y,
+      door: { x, y: y + entranceSize * 0.36 },
+      returnPoint: { x, y: y + entranceSize * 0.62 }
+    });
+    const candidateValid = candidate => {
+      const samples = [
+        { x: candidate.x, y: candidate.y },
+        candidate.door,
+        candidate.returnPoint,
+        { x: candidate.x - entranceSize * 0.36, y: candidate.y + entranceSize * 0.2 },
+        { x: candidate.x + entranceSize * 0.36, y: candidate.y + entranceSize * 0.2 },
+        { x: candidate.x - entranceSize * 0.44, y: candidate.y - entranceSize * 0.28 },
+        { x: candidate.x + entranceSize * 0.44, y: candidate.y - entranceSize * 0.28 }
+      ];
+      if (!samples.every(point => isPointInBoundary(point.x, point.y, area.boundary))) return false;
+      if (samples.some(point => pointInAnyPassage(point.x, point.y, blockedPassages, -160))) return false;
+      if (samples.some(point => (blockedWater || []).some(water => pointInPuddle(point.x, point.y, water, 72)))) return false;
+      if (samples.some(point => pointNearBlockingObject(point, blockers, entranceSize * 0.62))) return false;
+      return true;
+    };
+    for (let attempt = 0; attempt < 180; attempt += 1) {
+      const candidate = makeCandidate(
+        randomBetween(bounds.minX + entranceSize * 0.7, bounds.maxX - entranceSize * 0.7),
+        randomBetween(bounds.minY + entranceSize * 0.7, bounds.maxY - entranceSize * 0.95)
+      );
+      if (candidateValid(candidate)) return candidate;
+    }
+    const fallbackFractions = shuffled([
+      [0.28, 0.32],
+      [0.72, 0.36],
+      [0.34, 0.68],
+      [0.66, 0.72],
+      [0.5, 0.5]
+    ]);
+    for (const [fx, fy] of fallbackFractions) {
+      const candidate = makeCandidate(
+        bounds.minX + (bounds.maxX - bounds.minX) * fx,
+        bounds.minY + (bounds.maxY - bounds.minY) * fy
+      );
+      if (candidateValid(candidate)) return candidate;
+    }
+    return makeCandidate(area.center.x + area.width * 0.22, area.center.y + area.height * 0.18);
+  }
+
   function makeYrgmaDim(harmushLagh, blockedPassages = []) {
     const name = "Yrgma Dim";
     const config = customDungeonConfigByName(name);
@@ -2718,6 +2848,35 @@
       ]
     };
     return makeConfiguredCaveDungeon(name, "yrgma-dim", config, entranceObstacle, entranceSpot.returnPoint);
+  }
+
+  function makeBadgeria(harmushLagh, blockedPassages = [], harmushLake = null, blockers = []) {
+    const name = "Badgeria";
+    const config = customDungeonConfigByName(name);
+    const entranceSize = 260;
+    const entranceSpot = findRandomAreaEntranceSpot(
+      harmushLagh,
+      entranceSize,
+      blockedPassages,
+      [harmushLake].filter(Boolean),
+      blockers
+    );
+    const entranceObstacle = {
+      kind: "whisperspring-entrance",
+      sprite: "cave-entrance",
+      dungeon: "badgeria",
+      x: entranceSpot.x,
+      y: entranceSpot.y,
+      radius: entranceSize * 0.42,
+      size: entranceSize,
+      door: { x: entranceSpot.door.x, y: entranceSpot.door.y, radius: 48 },
+      blockRects: [
+        { x: -entranceSize * 0.44, y: -entranceSize * 0.36, w: entranceSize * 0.88, h: entranceSize * 0.38 },
+        { x: -entranceSize * 0.42, y: -entranceSize * 0.02, w: entranceSize * 0.24, h: entranceSize * 0.28 },
+        { x: entranceSize * 0.18, y: -entranceSize * 0.02, w: entranceSize * 0.24, h: entranceSize * 0.28 }
+      ]
+    };
+    return makeConfiguredCaveDungeon(name, "badgeria", config, entranceObstacle, entranceSpot.returnPoint);
   }
 
   function makeRatzkhan(ratRoom) {
@@ -5795,7 +5954,24 @@
     const fenrir = makeConfiguredNpc("fenrir", interior.x + interior.w * 0.34, interior.y + interior.h * 0.48, {
       area: HARMUSH_LAGH_AREA_NAME,
       houseId: house.id,
-      wandering: false
+      wandering: false,
+      startsQuest: true,
+      questChain: ["fenrirs-goblin-iron", "fenrirs-badgeri-rivals", "fenrirs-corvari-wings", "fenrirs-bisonar-head"],
+      dialogueContexts: {
+        questOffer: "I am Fenrir. Goblins foul the high passes and laugh behind their yellow teeth. Bring me four Goblin Heads, and I will mark you as one who knows how to answer insult with steel.",
+        questActive: "The goblins still have heads on their shoulders. That is not the shape of victory.",
+        questReady: "Ha! Four heads, and the stink of goblin fear still fresh on them. Take your pay, and take this rune. Let goblinkin learn your name.",
+        questAfterComplete: "You have blooded yourself proper against goblins. Good.",
+        questBadgeriOffer: "The Badgeri think these hills belong to their claws and drums. Kill four Bruisers and four Shamans. Show them the stone remembers barbarian feet.",
+        questBadgeriActive: "The Badgeri still beat their drums. Silence them.",
+        questBadgeriReady: "Good. Bruisers broken, Shamans quiet. The highlands breathe easier.",
+        questCorvariOffer: "The Corvari circle above us like black thoughts. Bring me six wings, and I will know you can pull pride from the sky.",
+        questCorvariActive: "Six Corvari wings. Not feathers. Wings.",
+        questCorvariReady: "Fine trophies. The Corvari will curse you from colder winds now.",
+        questBisonarOffer: "Last, a harder proving. Bring me the head of a Bisonar. The herd-lords are no easy meat.",
+        questBisonarActive: "A Bisonar still walks with its head. Go change that.",
+        questBisonarReady: "You return with the head. That is a barbarian answer."
+      }
     });
     const sigrid = makeConfiguredNpc("sigrid", interior.x + interior.w * 0.66, interior.y + interior.h * 0.48, {
       area: HARMUSH_LAGH_AREA_NAME,
@@ -5894,7 +6070,7 @@
         maxY: obstacle.y + obstacle.h / 2
       };
     }
-    if (obstacle.kind === "whisperspring-entrance") {
+    if (obstacle.kind === "whisperspring-entrance" || (obstacle.blockRects || []).length) {
       const rects = obstacle.blockRects || [];
       if (!rects.length) {
         const size = obstacle.size || 120;
@@ -6022,6 +6198,16 @@
       }
       if (obstacle.kind === "whisperspring-entrance") {
         if ((obstacle.blockRects || []).some(rect => {
+          const rectCenterX = obstacle.x + rect.x + rect.w / 2;
+          const rectCenterY = obstacle.y + rect.y + rect.h / 2;
+          const dx = Math.max(Math.abs(x - rectCenterX) - rect.w / 2, 0);
+          const dy = Math.max(Math.abs(y - rectCenterY) - rect.h / 2, 0);
+          return Math.hypot(dx, dy) <= radius;
+        })) return true;
+        continue;
+      }
+      if ((obstacle.blockRects || []).length) {
+        if (obstacle.blockRects.some(rect => {
           const rectCenterX = obstacle.x + rect.x + rect.w / 2;
           const rectCenterY = obstacle.y + rect.y + rect.h / 2;
           const dx = Math.max(Math.abs(x - rectCenterX) - rect.w / 2, 0);
@@ -6292,6 +6478,15 @@
           return Math.hypot(dx, dy) <= radius;
         });
       }
+      if ((obstacle.blockRects || []).length) {
+        return obstacle.blockRects.some(rect => {
+          const rectCenterX = obstacle.x + rect.x + rect.w / 2;
+          const rectCenterY = obstacle.y + rect.y + rect.h / 2;
+          const dx = Math.max(Math.abs(x - rectCenterX) - rect.w / 2, 0);
+          const dy = Math.max(Math.abs(y - rectCenterY) - rect.h / 2, 0);
+          return Math.hypot(dx, dy) <= radius;
+        });
+      }
       return Math.hypot(x - obstacle.x, y - obstacle.y) < obstacle.radius + radius;
     });
   }
@@ -6353,6 +6548,14 @@
     }
     if (obstacle.kind === "whisperspring-entrance") {
       return (obstacle.blockRects || []).some(rect => segmentIntersectsRect(x1, y1, x2, y2, {
+        x: obstacle.x + rect.x,
+        y: obstacle.y + rect.y,
+        w: rect.w,
+        h: rect.h
+      }, padding));
+    }
+    if ((obstacle.blockRects || []).length) {
+      return obstacle.blockRects.some(rect => segmentIntersectsRect(x1, y1, x2, y2, {
         x: obstacle.x + rect.x,
         y: obstacle.y + rect.y,
         w: rect.w,

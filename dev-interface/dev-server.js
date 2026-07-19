@@ -658,6 +658,7 @@ function renameItemReferencesInSource(source, renames, context = {}) {
     "shopkeeperStartingConsumables",
     "shopkeeperStartingScrolls",
     "monsterLootTables",
+    "editorLootTables",
     "itemGraphics"
   ];
   for (const name of names) {
@@ -1034,6 +1035,8 @@ async function loadData() {
   const itemContext = { ...context, weaponTemplates };
   const itemTemplates = parseJsValue(findConstBlock(itemSource, "itemTemplates").valueText, "itemTemplates", itemContext);
   const monsterLootTables = parseJsValue(findConstBlock(monsterSource, "monsterLootTables").valueText, "monsterLootTables", itemContext);
+  const editorLootBlock = findConstBlock(monsterSource, "editorLootTables");
+  const editorLootTables = editorLootBlock ? parseJsValue(editorLootBlock.valueText, "editorLootTables", itemContext) : [];
   const items = itemSummaries(weaponTemplates, itemTemplates, itemIconSources, itemGraphics, itemIconTints);
   const shopkeeperStartingInventory = parseJsValue(findConstBlock(itemSource, "shopkeeperStartingInventory").valueText, "shopkeeperStartingInventory", itemContext);
   const shopkeeperStartingConsumables = parseJsValue(findConstBlock(itemSource, "shopkeeperStartingConsumables").valueText, "shopkeeperStartingConsumables", itemContext);
@@ -1071,6 +1074,7 @@ async function loadData() {
     npcs: npcSummaries(npcConfigs, defaultShop),
     items,
     lootTables: monsterLootTables,
+    editorLootTables: Array.isArray(editorLootTables) ? editorLootTables : [],
     inheritedLootTables: inheritedLootSummaries(unitGroups, itemContext),
     assets: {
       all: await listAllAssets(),
@@ -1398,6 +1402,7 @@ function validatePayload(payload) {
   }
   if (!payload.items || typeof payload.items !== "object") errors.push("items must be present.");
   if (!payload.lootTables || typeof payload.lootTables !== "object") errors.push("lootTables must be present.");
+  if (payload.editorLootTables !== undefined && !Array.isArray(payload.editorLootTables)) errors.push("editorLootTables must be a list.");
   return errors;
 }
 
@@ -1432,6 +1437,8 @@ function dungeonsToConfig(dungeons) {
     units: dungeon.units || [],
     npcs: dungeon.npcs || [],
     water: dungeon.water || [],
+    spawnRate: dungeon.spawnRate || undefined,
+    spawnAmount: dungeon.spawnAmount || undefined,
     spawnTable: dungeon.spawnTable || []
   }));
 }
@@ -1675,6 +1682,7 @@ async function saveData(payload) {
   worldSource = ensureConstBlock(worldSource, "devDungeonConfigs", [], "devNpcConfigs");
   worldSource = ensureConstBlock(worldSource, "devCraftingRecipes", Object.fromEntries(CRAFTING_SKILLS.map(skill => [skill, []])), "devDungeonConfigs");
   worldSource = ensureConstBlock(worldSource, "devFactionConfigs", [], "devCraftingRecipes");
+  monsterSource = ensureConstBlock(monsterSource, "editorLootTables", [], "monsterLootTables");
   worldSource = ensureWorldDataExport(worldSource, "devFactionConfigs");
   source = renameItemReferencesInSource(source, itemRenames, constContext(source));
   itemSource = renameItemReferencesInSource(itemSource, itemRenames, constContext(source));
@@ -1720,6 +1728,7 @@ async function saveData(payload) {
   };
   const monsterReplacements = {
     ...payload.unitGroups,
+    editorLootTables: payload.editorLootTables || [],
     monsterLootTables: payload.lootTables
   };
 

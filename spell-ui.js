@@ -5,7 +5,12 @@
     if (!options.skipInteraction && !allowNpcInteraction(trainer)) return;
     hideItemActionMenu();
     game.activeTrainer = trainer;
-    trainerWindow.classList.add("hidden");
+    if (trainer.shopkeeper && !options.forceWindow) {
+      renderShop?.();
+    } else {
+      renderTrainerWindow();
+      trainerWindow.classList.remove("hidden");
+    }
     spellHudSignature = "";
     syncPointerPause();
     renderUI();
@@ -114,75 +119,119 @@
   function trainerCanTrainSpellLevel(spell, trainer = game.activeTrainer) {
     return spellLevel(spell) < trainerMaxSpellLevel(trainer);
   }
+
+  function trainerRealmTextHtml(realms) {
+    if (!Array.isArray(realms) || !realms.length || realms.length >= Object.keys(realmInfo).length) return "All Realms";
+    return realms.map(realm => {
+      const color = realmInfo[realm]?.color || "#f2ede3";
+      const shadowClass = realm === "Umbral" ? " shadow-text" : "";
+      return `<span class="${shadowClass.trim()}" style="color:${color}">${escapeHtml(realm)}</span>`;
+    }).join(", ");
+  }
+  window.trainerRealmTextHtml = trainerRealmTextHtml;
   
   function renderTrainerWindow() {
     const trainer = game.activeTrainer || game.map?.trainer;
     const titleEl = document.querySelector("#trainerTitle");
     if (titleEl) titleEl.textContent = trainer?.name || "Soulreaper Trainer";
     const allowedRealms = trainerRealms(trainer);
-    const available = game.player.spells
-      .map((spell, index) => ({ spell, index, cost: spellLevel(spell) * 5 }))
-      .filter(entry => !entry.spell.static && spellLevel(entry.spell) < game.player.level && trainerCanTrainSpell(entry.spell, trainer));
+    const levelCap = trainerMaxSpellLevel(trainer);
+    const capText = Number.isFinite(levelCap) ? `Max Spell LVL ${levelCap}` : "No training cap";
+    if (trainerSubtitle) trainerSubtitle.innerHTML = `Trains ${trainerRealmTextHtml(allowedRealms)}. ${escapeHtml(capText)}.`;
+    const available = (Array.isArray(game.player.learnedSpells) ? game.player.learnedSpells : [])
+      .map(name => makePlayerSpell(name))
+      .filter(Boolean)
+      .map(spell => ({ spell, name: spell.name, cost: spellLevel(spell) * 5 }))
+      .filter(entry => !entry.spell.static);
     const nextUnlock = nextSpellSlotUnlock();
     const canUnlockSpellSlot = nextUnlock && game.player.level >= nextUnlock.level;
     const slotUnlockHtml = nextUnlock ? `
-      <button class="spellbook-spell-button" type="button" data-unlock-spell-slot ${canUnlockSpellSlot && game.player.gold >= nextUnlock.cost ? "" : "disabled"}>
-        <strong>Unlock Spell Slot</strong>
-        <span>${game.player.spellSlotsActive} to ${nextUnlock.slots} / ${nextUnlock.cost} gold</span>
-        <small>${canUnlockSpellSlot
-          ? game.player.gold >= nextUnlock.cost
-            ? "Unlocks one additional active Spell Slot."
-            : "Not enough gold."
-          : `Requires LVL ${nextUnlock.level}.`}</small>
+      <button class="trainer-spell-icon-button trainer-slot-unlock-button" type="button" data-unlock-spell-slot ${canUnlockSpellSlot && game.player.gold >= nextUnlock.cost ? "" : "disabled"} aria-label="Unlock Spell Slot">
+        <span class="empty-spell-slot-icon">+</span>
+        <span class="spell-tooltip trainer-spell-tooltip" role="tooltip">
+          <strong>Unlock Spell Slot</strong>
+          <span>${game.player.spellSlotsActive} to ${nextUnlock.slots}</span>
+          <span>${canUnlockSpellSlot
+            ? game.player.gold >= nextUnlock.cost
+              ? `Cost ${nextUnlock.cost} Gold.`
+              : `Not enough gold. Cost ${nextUnlock.cost}.`
+            : `Requires LVL ${nextUnlock.level}.`}</span>
+        </span>
       </button>
     ` : "";
-    const spellTrainingHtml = available.map(({ spell, index, cost }) => {
+    const spellTrainingHtml = available.map(({ spell, name, cost }) => {
         const realmColor = realmInfo[spell.realm]?.color || "#f2ede3";
         const shadowClass = spell.realm === "Umbral" ? " shadow-text" : "";
-        const affordable = game.player.gold >= cost;
+        const realmAllowed = allowedRealms.includes(spell.realm || "Mortal");
+        const trainerLevelAllowed = trainerCanTrainSpellLevel(spell, trainer);
+        const playerLevelAllowed = spellLevel(spell) < game.player.level;
+        const trainable = realmAllowed && trainerLevelAllowed && playerLevelAllowed && Boolean(trainerCanTrainSpell(spell, trainer));
+        const affordable = trainable && game.player.gold >= cost;
+        const blockedText = !realmAllowed
+          ? `${trainer?.name || "This trainer"} cannot train ${spell.realm || "Mortal"} spells.`
+          : !trainerLevelAllowed
+            ? `Max trained here: LVL ${trainerMaxSpellLevel(trainer)}.`
+            : !playerLevelAllowed
+              ? `Max for your player LVL: ${game.player.level}.`
+              : "Not enough gold.";
+        const state = { active: true, trainable, affordable, maxed: !trainable, cost, reason: blockedText, index: -1 };
         return `
-          <button class="spellbook-spell-button" type="button" data-train-spell-index="${index}" ${affordable ? "" : "disabled"}>
-            <strong class="${shadowClass}" style="color:${realmColor}">${escapeHtml(spell.name)}</strong>
-            <span>LVL ${spellLevel(spell)} to ${spellLevel(spell) + 1} / ${cost} gold</span>
-            <small>${affordable ? escapeHtml(spellDescription({ ...spell, lvl: spellLevel(spell) + 1 })) : "Not enough gold."}</small>
+          <button class="trainer-spell-icon-button trainer-spell-option${realmAllowed ? "" : " trainer-realm-blocked"}" type="button" data-train-spell-name="${escapeHtml(name)}" ${affordable ? "" : "aria-disabled=\"true\""} aria-label="${escapeHtml(spell.name)}">
+            ${spellIconHtml(spell, "trainer-spell-icon")}
+            <span class="trainer-spell-level">LVL ${spellLevel(spell)}</span>
+            ${affordable ? `<span class="attention-spark" aria-hidden="true"></span>` : ""}
+            ${trainerSpellTooltipHtml(spell, state)}
           </button>
         `;
       }).join("");
-    const realmNote = allowedRealms.length < Object.keys(realmInfo).length
-      ? `<div class="level-note">Training: ${allowedRealms.map(realm => `<span class="${realm === "Umbral" ? "shadow-text" : ""}" style="color:${realmInfo[realm].color}">${escapeHtml(realm)}</span>`).join(", ")}</div>`
-      : "";
-    const levelCap = trainerMaxSpellLevel(trainer);
-    const capNote = Number.isFinite(levelCap) ? `<div class="level-note">Max Spell LVL: ${levelCap}</div>` : "";
     updateHtmlIfChanged(trainerSpellList, slotUnlockHtml || spellTrainingHtml
-      ? `${realmNote}${capNote}${slotUnlockHtml}${spellTrainingHtml}`
-      : `<div class="level-note">No active spells can be trained right now.</div>`);
+      ? `<div class="trainer-icon-grid">${spellTrainingHtml}${slotUnlockHtml}</div>`
+      : `<div class="level-note">No learned spells can be trained right now.</div>`);
+  }
+
+  function refreshOpenTrainerViews() {
+    renderTrainerWindow();
+    if (typeof renderShop === "function" && !shopWindow.classList.contains("hidden") && game.shopTab === "Train Skills") {
+      renderShop();
+    }
   }
   
-  function trainActiveSpell(index) {
-    const spell = game.player.spells[index];
-    if (!spell || spell.static || spellLevel(spell) >= game.player.level) return;
+  function trainActiveSpell(identifier) {
+    const spellName = typeof identifier === "string"
+      ? identifier
+      : game.player.spells[Number(identifier)]?.name;
+    const spell = makePlayerSpell(spellName);
+    if (!spell || spell.static) return;
+    if (spellLevel(spell) >= game.player.level) {
+      addLog(`<b>${spell.name}</b> cannot be trained past your player LVL ${game.player.level}.`);
+      refreshOpenTrainerViews();
+      return;
+    }
     if (!trainerCanTrainSpell(spell)) {
       const cap = trainerMaxSpellLevel();
       const reason = Number.isFinite(cap) && spellLevel(spell) >= cap
         ? `past LVL ${cap}`
         : `${spell.realm} spells`;
       addLog(`<b>${game.activeTrainer?.name || "This trainer"}</b> cannot train ${reason}.`);
-      renderTrainerWindow();
+      refreshOpenTrainerViews();
       return;
     }
     const cost = spellLevel(spell) * 5;
     if (game.player.gold < cost) {
       addLog("Not enough gold for training.");
-      renderTrainerWindow();
+      refreshOpenTrainerViews();
       return;
     }
     game.player.gold -= cost;
     spell.lvl = spellLevel(spell) + 1;
     saveSpellLevel(spell);
+    for (const activeSpell of game.player.spells || []) {
+      if (activeSpell?.name === spell.name) activeSpell.lvl = Math.max(spellLevel(activeSpell), spellLevel(spell));
+    }
     spellHudSignature = "";
     addLog(`Trained <b>${spell.name}</b> to <b>LVL ${spellLevel(spell)}</b> for <b>${cost} gold</b>.`);
     markUIDirty();
-    renderTrainerWindow();
+    refreshOpenTrainerViews();
     renderUI();
   }
   
@@ -191,7 +240,7 @@
     if (!nextUnlock || game.player.level < nextUnlock.level) return;
     if (game.player.gold < nextUnlock.cost) {
       addLog("Not enough gold to unlock a Spell Slot.");
-      renderTrainerWindow();
+      refreshOpenTrainerViews();
       return;
     }
     game.player.gold -= nextUnlock.cost;
@@ -199,7 +248,7 @@
     spellHudSignature = "";
     addLog(`Unlocked an additional <b>Spell Slot</b> for <b>${nextUnlock.cost} gold</b>.`);
     markUIDirty();
-    renderTrainerWindow();
+    refreshOpenTrainerViews();
     renderSpellbookWindow();
     renderUI();
   }

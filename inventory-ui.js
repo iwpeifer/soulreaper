@@ -1297,11 +1297,29 @@
     if (shopTitle) shopTitle.textContent = game.devItemShop ? "Dev Item Browser" : shopkeeper.name;
     if (shopSubtitle) shopSubtitle.textContent = game.devItemShop ? "Click any item to add it to your inventory." : "Buy supplies here. Sell items from your Inventory window.";
     if (shopGoldReadout) shopGoldReadout.textContent = game.devItemShop ? "DEV" : game.player.gold;
+    const hasTrainerTab = Boolean(!game.devItemShop && shopkeeper?.trainer);
+    shopTrainTab?.classList.toggle("hidden", !hasTrainerTab);
+    if (!hasTrainerTab && game.shopTab === "Train Skills") game.shopTab = defaultShopTab(shopkeeper);
+    if (hasTrainerTab && game.shopTab === "Train Skills") {
+      game.activeTrainer = shopkeeper;
+      renderTrainerWindow?.();
+      const allowedRealms = trainerRealms?.(shopkeeper) || [];
+      const cap = trainerMaxSpellLevel?.(shopkeeper);
+      if (shopSubtitle) shopSubtitle.innerHTML = `Trains ${trainerRealmTextHtml?.(allowedRealms) || "All Realms"}. ${Number.isFinite(cap) ? `Max Spell LVL ${cap}.` : "No training cap."}`;
+      shopEquipmentTab.classList.toggle("active", false);
+      shopConsumablesTab.classList.toggle("active", false);
+      shopScrollsTab.classList.toggle("active", false);
+      shopMiscTab?.classList.toggle("active", false);
+      shopTrainTab?.classList.toggle("active", true);
+      updateHtmlIfChanged(shopInventoryEl, trainerSpellList?.innerHTML || `<div class="shop-note">No learned spells can be trained right now.</div>`);
+      return;
+    }
     const activeInventory = activeShopInventory(shopkeeper);
     shopEquipmentTab.classList.toggle("active", game.shopTab === "Equipment");
     shopConsumablesTab.classList.toggle("active", game.shopTab === "Consumables");
     shopScrollsTab.classList.toggle("active", game.shopTab === "Scrolls");
     shopMiscTab?.classList.toggle("active", game.shopTab === "Misc" || game.shopTab === "Materials");
+    shopTrainTab?.classList.toggle("active", false);
     const emptyShopName = escapeHtml(shopkeeper?.name || "The shopkeeper");
     const shopHtml = activeInventory.length
       ? activeInventory.map((item, index) => `
@@ -1340,6 +1358,7 @@
     hideItemActionMenu();
     shopWindow.classList.add("hidden");
     game.devItemShop = false;
+    if (game.activeTrainer === game.activeShopkeeper) game.activeTrainer = null;
     game.activeShopkeeper = null;
     syncPointerPause();
   }
@@ -1626,6 +1645,20 @@
     });
     
     shopInventoryEl.addEventListener("pointerdown", event => {
+      const trainButton = event.target.closest("[data-train-spell-name], [data-train-spell-index]");
+      if (trainButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!trainButton.disabled) trainActiveSpell?.(trainButton.dataset.trainSpellName || Number(trainButton.dataset.trainSpellIndex));
+        return;
+      }
+      const unlockButton = event.target.closest("[data-unlock-spell-slot]");
+      if (unlockButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!unlockButton.disabled) unlockTrainerSpellSlot?.();
+        return;
+      }
       const button = event.target.closest("[data-shop-index]");
       if (!button) return;
       event.preventDefault();
@@ -1657,6 +1690,12 @@
     
     shopMiscTab?.addEventListener("click", () => {
       game.shopTab = "Materials";
+      hideItemActionMenu();
+      renderShop();
+    });
+
+    shopTrainTab?.addEventListener("click", () => {
+      game.shopTab = "Train Skills";
       hideItemActionMenu();
       renderShop();
     });

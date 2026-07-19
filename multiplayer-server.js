@@ -291,6 +291,11 @@ function loadSharedGameData(force = false) {
     areaSpawnAmounts = Object.fromEntries(Object.entries(parsedDevAreaConfigs || {})
       .filter(([, config]) => config?.spawnAmount)
       .map(([name, config]) => [name, String(config.spawnAmount)]));
+    for (const dungeon of parsedDevDungeonConfigs || []) {
+      if (!dungeon?.name) continue;
+      if (dungeon.spawnRate) areaSpawnRates[dungeon.name] = String(dungeon.spawnRate);
+      if (dungeon.spawnAmount) areaSpawnAmounts[dungeon.name] = String(dungeon.spawnAmount);
+    }
     monsterLootTables = normalizeRealmData(parsedMonsterLootTables);
     gameDataMtimeMs = stat.mtimeMs;
     itemDataMtimeMs = itemStat.mtimeMs;
@@ -645,6 +650,8 @@ function authenticatedAccount(req) {
 function publicCharacter(character) {
   const save = character.save && typeof character.save === "object" ? character.save : {};
   const worldActive = Boolean(character.lastWorld && worlds.has(character.lastWorld));
+  const equippedItems = save.equippedItems && typeof save.equippedItems === "object" ? save.equippedItems : {};
+  const equipment = save.equipment && typeof save.equipment === "object" ? save.equipment : {};
   return {
     id: character.id,
     name: character.name,
@@ -657,6 +664,8 @@ function publicCharacter(character) {
     lastArea: character.lastArea || save.area || "Unknown",
     lastWorld: worldActive ? character.lastWorld : "",
     worldActive,
+    equippedItems,
+    equipment,
     updatedAt: character.updatedAt || character.createdAt || 0
   };
 }
@@ -752,7 +761,46 @@ async function handleApiRequest(req, res) {
       return sendJson(res, 409, { ok: false, message: "That character name is already taken." });
     }
     const avatar = avatarForRaceSex(race, sex);
-    const character = { id: crypto.randomUUID(), accountId: account.id, name, race, sex, avatar, level: 1, lastArea: "", lastWorld: "", save: { name, avatar, level: 1 }, createdAt: Date.now(), updatedAt: Date.now() };
+    const startingEquipment = {
+      "Main Hand": "Empty",
+      "Off-Hand": "Empty",
+      Head: "Empty",
+      Chest: "Linen Shirt",
+      Legs: "Linen Pants",
+      Shoulders: "Empty",
+      Hands: "Empty",
+      Feet: "Empty",
+      Neck: "Empty",
+      "Right Finger": "Empty",
+      "Left Finger": "Empty",
+      "Right Wrist": "Empty",
+      "Left Wrist": "Empty",
+      "Right Ear": "Empty",
+      "Left Ear": "Empty"
+    };
+    const character = {
+      id: crypto.randomUUID(),
+      accountId: account.id,
+      name,
+      race,
+      sex,
+      avatar,
+      level: 1,
+      lastArea: "",
+      lastWorld: "",
+      save: {
+        name,
+        avatar,
+        level: 1,
+        equipment: startingEquipment,
+        equippedItems: {
+          Chest: { name: "Linen Shirt" },
+          Legs: { name: "Linen Pants" }
+        }
+      },
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
     accountStore.characters.push(character);
     saveAccountStore();
     return sendJson(res, 200, { ok: true, account: publicAccount(account), character: publicCharacter(character), worlds: activeWorldSummaries() });
@@ -942,12 +990,75 @@ function playerByName(worldName, name) {
   return playerList(worldName).find(player => String(player.name || "").toLowerCase() === wanted) || null;
 }
 
+function chatPayloadForPlayer(fromId, text, channel) {
+  const player = players.get(fromId);
+  return {
+    type: "chat",
+    id: fromId,
+    name: player?.name || "Soulreaper",
+    text: String(text || "").trim().slice(0, 200),
+    channel,
+    area: player?.area || "The Black Wilds"
+  };
+}
+
+function sendChannelChat(fromId, channel, text) {
+  const state = sockets.get(fromId);
+  const from = players.get(fromId);
+  if (!state?.world || !from) return;
+  const clean = String(text || "").trim().slice(0, 200);
+  if (!clean) return;
+  const normalizedChannel = ["say", "shout", "team", "world", "general"].includes(channel) ? channel : "say";
+  const payload = chatPayloadForPlayer(fromId, clean, normalizedChannel);
+  if (normalizedChannel === "general") {
+    broadcast(payload, fromId);
+    return;
+  }
+  if (normalizedChannel === "team") {
+    const team = teamForPlayer(fromId);
+    if (!team) {
+      send(state.socket, { type: "chat:error", message: "You are not in a team." });
+      return;
+    }
+    for (const memberId of team.members || []) {
+      if (memberId === fromId) continue;
+      const memberSocket = sockets.get(memberId)?.socket;
+      if (memberSocket) send(memberSocket, payload);
+    }
+    return;
+  }
+  if (normalizedChannel === "shout") {
+    for (const [id, socketState] of sockets) {
+      if (id === fromId || socketState.world !== state.world) continue;
+      const player = players.get(id);
+      if (player?.area === from.area) send(socketState.socket, payload);
+    }
+    return;
+  }
+  if (normalizedChannel === "world") {
+    broadcastToWorld(state.world, payload, fromId);
+    return;
+  }
+  const sayRange = 320;
+  for (const [id, socketState] of sockets) {
+    if (id === fromId || socketState.world !== state.world) continue;
+    const player = players.get(id);
+    if (!player || player.area !== from.area) continue;
+    if (Math.hypot((player.x || 0) - (from.x || 0), (player.y || 0) - (from.y || 0)) <= sayRange) {
+      send(socketState.socket, payload);
+    }
+  }
+}
+
 function playerSummaryList(worldName) {
   return playerList(worldName)
     .map(player => ({
       id: player.id,
       name: player.name || "Soulreaper",
-      level: Number(player.level) || 1
+      level: Number(player.level) || 1,
+      area: player.area || "Unknown",
+      afk: Boolean(player.afk),
+      lfg: Boolean(player.lfg)
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -1501,6 +1612,15 @@ function sanitizePlayer(id, message) {
     radius: Number(message.radius) || 18,
     stats: typeof message.stats === "object" && message.stats ? message.stats : {},
     weapon: typeof message.weapon === "object" && message.weapon ? message.weapon : null,
+    equippedItems: message.equippedItems && typeof message.equippedItems === "object"
+      ? Object.fromEntries(Object.entries(message.equippedItems).slice(0, 24).map(([slot, item]) => [
+        String(slot || "").slice(0, 32),
+        item && typeof item === "object" ? {
+          ...item,
+          name: String(item.name || "").slice(0, 100)
+        } : null
+      ]).filter(([, item]) => item?.name))
+      : {},
     equipmentVisuals: Array.isArray(message.equipmentVisuals)
       ? message.equipmentVisuals.slice(0, 20).map(layer => ({
         slot: String(layer?.slot || "").slice(0, 24),
@@ -1524,6 +1644,8 @@ function sanitizePlayer(id, message) {
     alignment: String(message.alignment || "Neutral").slice(0, 12),
     factionStandings: message.factionStandings && typeof message.factionStandings === "object" ? message.factionStandings : {},
     speech: String(message.speech || "").slice(0, 160),
+    afk: Boolean(message.afk),
+    lfg: Boolean(message.lfg),
     updatedAt: Date.now()
   });
 }
@@ -1764,6 +1886,15 @@ function serverCollidingObstacle(world, x, y, radius = 0) {
       }, x, y, radius))) return true;
       continue;
     }
+    if ((obstacle.blockRects || []).length) {
+      if (obstacle.blockRects.some(rect => rectCollidesCircle({
+        x: (obstacle.x || 0) + (rect.x || 0),
+        y: (obstacle.y || 0) + (rect.y || 0),
+        w: rect.w || 0,
+        h: rect.h || 0
+      }, x, y, radius))) return true;
+      continue;
+    }
     if (Math.hypot(x - (obstacle.x || 0), y - (obstacle.y || 0)) < (obstacle.radius || 0) + radius) return true;
   }
   return false;
@@ -1888,6 +2019,15 @@ function serverHasLineOfSight(world, source, target, padding = 2) {
     }
     if (obstacle.kind === "whisperspring-entrance") {
       if ((obstacle.blockRects || []).some(rect => segmentIntersectsRect(x1, y1, x2, y2, {
+        x: (obstacle.x || 0) + (rect.x || 0),
+        y: (obstacle.y || 0) + (rect.y || 0),
+        w: rect.w || 0,
+        h: rect.h || 0
+      }, padding))) return false;
+      continue;
+    }
+    if ((obstacle.blockRects || []).length) {
+      if (obstacle.blockRects.some(rect => segmentIntersectsRect(x1, y1, x2, y2, {
         x: (obstacle.x || 0) + (rect.x || 0),
         y: (obstacle.y || 0) + (rect.y || 0),
         w: rect.w || 0,
@@ -6750,14 +6890,7 @@ server.on("upgrade", (req, socket) => {
         broadcastToWorld(state.world, worldStatePayload(world, id));
       } else if (message.type === "chat") {
         if (!state?.world) continue;
-        const player = players.get(id);
-        broadcastToWorld(state.world, {
-          type: "chat",
-          id,
-          name: String(message.name || player?.name || "Soulreaper").slice(0, 24),
-          text: String(message.text || "").slice(0, 160),
-          area: String(message.area || player?.area || "The Black Wilds").slice(0, 80)
-        }, id);
+        sendChannelChat(id, String(message.channel || "say").toLowerCase(), message.text);
       } else if (message.type === "tell") {
         if (!state?.world) continue;
         sendPrivateTell(state.world, id, message.targetName, message.text);
